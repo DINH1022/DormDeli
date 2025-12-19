@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "819432234132",
+    "project_id": "dormdeli",
+    "storage_bucket": "dormdeli.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:819432234132:android:81e4323182ede17c956881",
+        "android_client_info": {
+          "package_name": "com.example.dormdeli"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxGV5XbAc1eV_Y7-NEOiaW7eymz_8moY8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
