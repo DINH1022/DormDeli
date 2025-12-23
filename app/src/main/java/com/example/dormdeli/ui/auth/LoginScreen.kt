@@ -176,7 +176,8 @@ fun LoginScreen(
 fun PhoneNumberTextField(
     phoneNumber: String,
     onPhoneNumberChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     OutlinedTextField(
         value = phoneNumber,
@@ -187,6 +188,7 @@ fun PhoneNumberTextField(
             }
         },
         modifier = modifier.height(56.dp),
+        enabled = enabled,
         placeholder = {
             Text(
                 text = "+84 | 000 000 000",
@@ -206,7 +208,10 @@ fun PhoneNumberTextField(
             focusedBorderColor = OrangePrimary,
             unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
             focusedTextColor = Color.Black,
-            unfocusedTextColor = Color.Black
+            unfocusedTextColor = Color.Black,
+            disabledBorderColor = Color.Gray.copy(alpha = 0.2f),
+            disabledTextColor = Color.Gray,
+            disabledLeadingIconColor = Color.Gray
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true

@@ -20,6 +20,7 @@ import com.example.dormdeli.ui.theme.OrangeLight
 
 @Composable
 fun SignUpScreen(
+    prefilledPhone: String? = null,
     onRegisterClick: (String, String, String) -> Unit,
     onSignInClick: () -> Unit,
     onSocialSignUpClick: (String) -> Unit = {}
@@ -28,9 +29,16 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
-    
-    val isButtonEnabled = phoneNumber.isNotBlank() && 
-                         email.isNotBlank() && 
+
+    // Nếu có số điện thoại điền sẵn (từ luồng OTP), cập nhật state
+    LaunchedEffect(prefilledPhone) {
+        prefilledPhone?.let {
+            phoneNumber = it
+        }
+    }
+
+    val isButtonEnabled = (if (prefilledPhone != null) true else phoneNumber.isNotBlank()) &&
+                         email.isNotBlank() &&
                          fullName.isNotBlank() &&
                          email.contains("@")
 
@@ -45,7 +53,7 @@ fun SignUpScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(40.dp))
-            
+
             // Title
             Text(
                 text = "Registration",
@@ -61,7 +69,9 @@ fun SignUpScreen(
             PhoneNumberTextField(
                 phoneNumber = phoneNumber,
                 onPhoneNumberChange = { phoneNumber = it },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                // Khóa trường này nếu sđt đã được xác thực
+                enabled = prefilledPhone == null
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -215,7 +225,7 @@ fun SignUpScreen(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Don't have an account? ",
+                    text = "Already have an account? ",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -230,4 +240,3 @@ fun SignUpScreen(
         }
     }
 }
-
