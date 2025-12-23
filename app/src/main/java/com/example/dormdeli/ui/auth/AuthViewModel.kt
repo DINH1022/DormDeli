@@ -10,6 +10,7 @@ import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 
 class AuthViewModel {
     private val authRepository = AuthRepository()
@@ -36,7 +37,6 @@ class AuthViewModel {
     // Callback cho Phone Auth
     val phoneAuthCallback = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-            // Tự động xác minh (trong môi trường test hoặc khi có SMS retriever)
             signInWithPhoneCredential(credential)
         }
 
@@ -59,7 +59,6 @@ class AuthViewModel {
         _errorMessage.value = null
         _phoneNumber.value = phone
 
-        // Format phone number với +84 prefix
         val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
 
         authRepository.sendPhoneVerificationCode(
@@ -89,37 +88,22 @@ class AuthViewModel {
         FirebaseAuth.getInstance().signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Tạo hoặc cập nhật user trong Firestore
                     val firebaseUser = task.result?.user
                     firebaseUser?.let { user ->
-                        // Kiểm tra user đã tồn tại chưa
+                        // Check if user already exists in Firestore
                         userRepository.getUserById(
                             userId = user.uid,
                             onSuccess = { existingUser ->
                                 if (existingUser == null) {
-                                    // Tạo user mới
-                                    val newUser = User(
-                                        phone = _phoneNumber.value,
-                                        email = user.email ?: "",
-                                        fullName = user.displayName ?: ""
-                                    )
-                                    userRepository.createUser(
-                                        userId = user.uid,
-                                        user = newUser,
-                                        onSuccess = {
-                                            _isLoading.value = false
-                                            _isSignedIn.value = true
-                                            onSuccess()
-                                        },
-                                        onFailure = { e ->
-                                            _errorMessage.value = "Lỗi tạo user: ${e.message}"
-                                            _isLoading.value = false
-                                        }
-                                    )
+                                    // NEW USER: User authenticated with phone, but no profile in Firestore.
+                                    // Navigate to SignUp screen to complete registration.
+                                    _isLoading.value = false
+                                    _currentScreen.value = AuthScreen.SignUp
                                 } else {
+                                    // EXISTING USER: Log them in.
                                     _isLoading.value = false
                                     _isSignedIn.value = true
-                                    onSuccess()
+                                    onSuccess() // This will trigger the "Login successful" toast
                                 }
                             },
                             onFailure = { e ->
@@ -150,7 +134,6 @@ class AuthViewModel {
             password = password,
             fullName = fullName,
             onSuccess = {
-                // Tạo user trong Firestore
                 val firebaseUser = authRepository.getCurrentUser()
                 firebaseUser?.let { user ->
                     val newUser = User(
@@ -175,6 +158,52 @@ class AuthViewModel {
             },
             onFailure = { e ->
                 _errorMessage.value = "Đăng ký thất bại: ${e.message}"
+                _isLoading.value = false
+            }
+        )
+    }
+
+    /**
+     * Called from SignUpScreen to complete registration for a new user who has already verified their phone number.
+     */
+    fun completeRegistration(
+        email: String,
+        fullName: String,
+        onSuccess: () -> Unit
+    ) {
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        val firebaseUser = authRepository.getCurrentUser()
+        if (firebaseUser == null) {
+            _errorMessage.value = "Lỗi: Không tìm thấy người dùng đã xác thực."
+            _isLoading.value = false
+            return
+        }
+
+        // 1. Create user profile in Firestore
+        val newUser = User(
+            phone = firebaseUser.phoneNumber ?: _phoneNumber.value, // Use phone from auth or from state
+            email = email,
+            fullName = fullName
+        )
+
+        userRepository.createUser(
+            userId = firebaseUser.uid,
+            user = newUser,
+            onSuccess = {
+                // 2. (Optional but good practice) Update Firebase Auth profile
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(fullName)
+                    .build()
+                firebaseUser.updateProfile(profileUpdates)
+
+                _isLoading.value = false
+                _isSignedIn.value = true
+                onSuccess()
+            },
+            onFailure = { e ->
+                _errorMessage.value = "Lỗi tạo user: ${e.message}"
                 _isLoading.value = false
             }
         )
