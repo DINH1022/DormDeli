@@ -39,7 +39,8 @@ val OrangePrimary = Color(0xFFFF6347)
 fun FoodDetailScreen(
     food: Food,
     onBackClick: () -> Unit = {},
-    onAddToCart: (Int) -> Unit = {} // Trả về số lượng khi bấm nút
+    onAddToCart: (Int) -> Unit = {}, // Trả về số lượng khi bấm nút
+    onSeeReviewsClick: () -> Unit = {}
 ) {
     // State quản lý số lượng
     var quantity by remember { mutableIntStateOf(1) }
@@ -150,22 +151,18 @@ fun FoodDetailScreen(
                 // Rating
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700))
-                    Text(
-                        text = "${food.ratingAvg}",
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                    Text(
-                        text = " (1.205)", // Số lượng review giả lập hoặc lấy từ model nếu có
-                        color = Color.Gray,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                    Text(text = "${food.ratingAvg}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp))
+                    Text(text = " (1.205)", color = Color.Gray, modifier = Modifier.padding(start = 4.dp))
+
                     Spacer(modifier = Modifier.weight(1f))
+
+                    // 2. SỬA DÒNG NÀY: Thêm clickable
                     Text(
                         text = "See all review",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall,
-                        textDecoration = TextDecoration.Underline
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable { onSeeReviewsClick() } // <-- Bắt sự kiện ở đây
                     )
                 }
 
