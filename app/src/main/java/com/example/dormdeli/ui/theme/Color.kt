@@ -17,3 +17,9 @@ val OrangeDark = Color(0xFFCC5529) // Dark orange for hover/pressed states
 // Status colors
 val Green = Color(0xFF2ECC71)
 val Red = Color(0xFFE74C3C)
+
+// ===== Card / Container colors =====
+val CardBackground = Color(0xFFF5F5F5)   // nền xám nhẹ
+val CardBorder = Color(0xFFE0E0E0)       // border nhẹ
+val TextSecondary = Color(0xFF616161)    // text phụ
+val Black = Color(0xFF000000)
