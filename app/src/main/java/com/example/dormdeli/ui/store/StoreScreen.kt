@@ -32,7 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.dormdeli.ui.food.FoodNavigation
 import com.example.dormdeli.ui.theme.CardBackground
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.Green
@@ -159,8 +161,14 @@ fun StoreScreen(
                 contentPadding = PaddingValues(16.dp)
             ) {
                 items(foods.size) { index ->
-                    FoodItem(food = foods[index])
+                    FoodItem(
+                        food = foods[index],
+                        onImageClick = {
+                            // navigation logic
+                        }
+                    )
                 }
+
             }
         }
     }

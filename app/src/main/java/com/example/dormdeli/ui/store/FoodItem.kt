@@ -2,6 +2,7 @@ package com.example.dormdeli.ui.store
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,7 +36,7 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 
 
 @Composable
-fun FoodItem(food: Food) {
+fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -49,7 +50,11 @@ fun FoodItem(food: Food) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .clip(MaterialTheme.shapes.medium),
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable {
+                        onImageClick(food.id)
+                    },
+
                 contentScale = ContentScale.Crop
             )
 
