@@ -2,6 +2,7 @@ package com.example.dormdeli.model
 
 data class Food(
     val storeId: String = "",
+    val id: String = "",
     val name: String = "",
     val description: String = "",
     val price: Long = 0,
