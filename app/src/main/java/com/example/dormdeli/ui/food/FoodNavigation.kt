@@ -52,6 +52,7 @@ fun FoodNavigation() {
             val foodId = backStackEntry.arguments?.getString("foodId")
 
             ReviewScreen(
+                foodId = foodId,
                 onBackClick = {
                     navController.popBackStack()
                 }
@@ -68,7 +69,7 @@ fun getMockFood(): Food {
         name = "Chicken Burger",
         description = "A delicious chicken burger served on a toasted bun with fresh lettuce...",
         price = 6,
-        imageUrl = "https://drive.google.com/uc?export=view&id=18FARlH48S54Au-3rFMkGlVOmLt_1cJFJ",
+        imageUrl = "https://drive.google.com/uc?export=view&id=1GWS0OtkKh8jPOBV28vg_Oqf1nquTdKt-",
         ratingAvg = 4.9,
         category = "Burger"
     )

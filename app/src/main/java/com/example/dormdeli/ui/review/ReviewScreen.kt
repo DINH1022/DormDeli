@@ -34,8 +34,29 @@ val BgGray = Color(0xFFF5F5F5)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
+    foodId: String?,
     onBackClick: () -> Unit
 ) {
+    val originalReviews = remember { getDummyReviews() }
+
+    var selectedFilter by remember { mutableStateOf("All") }
+
+    val filteredReviews by remember(selectedFilter) {
+        derivedStateOf {
+            when (selectedFilter) {
+                "All" -> originalReviews
+                "Positive" -> originalReviews.filter { it.rating >= 4 } // 4, 5 sao
+                "Negative" -> originalReviews.filter { it.rating <= 3 } // 1, 2, 3 sao
+                "5 ★" -> originalReviews.filter { it.rating == 5 }
+                "4 ★" -> originalReviews.filter { it.rating == 4 }
+                "3 ★" -> originalReviews.filter { it.rating == 3 }
+                "2 ★" -> originalReviews.filter { it.rating == 2 }
+                "1 ★" -> originalReviews.filter { it.rating == 1 }
+                else -> originalReviews
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -60,29 +81,37 @@ fun ReviewScreen(
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            // Phần danh sách cuộn (chứa cả Header + List)
             LazyColumn(
                 contentPadding = PaddingValues(24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // 1. HEADER: Tổng điểm và thanh Progress
-                item {
-                    RatingOverviewSection()
-                }
+                // 1. HEADER
+                item { RatingOverviewSection(originalReviews) } // Truyền list gốc để tính điểm trung bình
 
-                // 2. FILTER: Bộ lọc (All, Positive...)
+                // 2. FILTER CHIPS
                 item {
-                    FilterSection()
-                }
-
-                // 3. DANH SÁCH REVIEW
-                items(getDummyReviews()) { review ->
-                    ReviewItem(review)
-                    HorizontalDivider(
-                        modifier = Modifier.padding(top = 16.dp),
-                        thickness = 0.5.dp,
-                        color = Color.LightGray.copy(alpha = 0.5f)
+                    FilterSection(
+                        currentFilter = selectedFilter,
+                        onFilterSelected = { newFilter -> selectedFilter = newFilter }
                     )
+                }
+
+                // 3. DANH SÁCH REVIEW (Dùng list đã lọc)
+                if (filteredReviews.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                            Text("No reviews found for this filter", color = Color.Gray)
+                        }
+                    }
+                } else {
+                    items(filteredReviews) { review ->
+                        ReviewItem(review)
+                        HorizontalDivider(
+                            modifier = Modifier.padding(top = 16.dp),
+                            thickness = 0.5.dp,
+                            color = Color.LightGray.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         }
@@ -91,37 +120,55 @@ fun ReviewScreen(
 
 // --- COMPONENT: Tổng quan điểm số ---
 @Composable
-fun RatingOverviewSection() {
+fun RatingOverviewSection(reviews: List<Review>) {
+    // Tính toán số liệu thực tế từ danh sách
+    val totalReviews = reviews.size
+    val averageRating = if (totalReviews > 0) reviews.map { it.rating }.average() else 0.0
+
+    // Đếm số lượng từng sao để vẽ thanh progress
+    val count5 = reviews.count { it.rating == 5 }.toFloat()
+    val count4 = reviews.count { it.rating == 4 }.toFloat()
+    val count3 = reviews.count { it.rating == 3 }.toFloat()
+    val count2 = reviews.count { it.rating == 2 }.toFloat()
+    val count1 = reviews.count { it.rating == 1 }.toFloat()
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Cột điểm số to bên trái
+        // Cột điểm số to
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(0.8f)
         ) {
-            Text(text = "4.9", fontSize = 48.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = String.format("%.1f", averageRating), // Làm tròn 1 số thập phân
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold
+            )
             Row {
-                repeat(5) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = StarYellow, modifier = Modifier.size(18.dp))
+                repeat(5) { index ->
+                    // Logic tô màu sao dựa trên điểm trung bình
+                    val color = if (index < averageRating.toInt()) StarYellow else Color.LightGray
+                    Icon(Icons.Default.Star, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
                 }
             }
-            Text(text = "(1.205)", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(text = "($totalReviews Reviews)", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
         }
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Cột các thanh Progress bên phải
+        // Cột các thanh Progress (Tính % dựa trên tổng số review)
         Column(
             modifier = Modifier.weight(1.2f),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            RatingBarRow(label = "5", progress = 0.85f)
-            RatingBarRow(label = "4", progress = 0.10f)
-            RatingBarRow(label = "3", progress = 0.03f)
-            RatingBarRow(label = "2", progress = 0.01f)
-            RatingBarRow(label = "1", progress = 0.01f)
+            val safeTotal = if (totalReviews == 0) 1f else totalReviews.toFloat()
+            RatingBarRow(label = "5", progress = count5 / safeTotal)
+            RatingBarRow(label = "4", progress = count4 / safeTotal)
+            RatingBarRow(label = "3", progress = count3 / safeTotal)
+            RatingBarRow(label = "2", progress = count2 / safeTotal)
+            RatingBarRow(label = "1", progress = count1 / safeTotal)
         }
     }
 }
@@ -146,19 +193,21 @@ fun RatingBarRow(label: String, progress: Float) {
 
 // --- COMPONENT: Bộ lọc ---
 @Composable
-fun FilterSection() {
-    val filters = listOf("All", "Positive", "Negative", "5 ★", "4 ★")
-    var selectedFilter by remember { mutableStateOf("All") }
+fun FilterSection(
+    currentFilter: String,
+    onFilterSelected: (String) -> Unit
+) {
+    val filters = listOf("All", "Positive", "Negative", "5 ★", "4 ★", "3 ★", "2 ★", "1 ★")
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(filters) { filter ->
-            val isSelected = filter == selectedFilter
+            val isSelected = filter == currentFilter
             Surface(
-                shape = RoundedCornerShape(8.dp), // Bo góc vuông nhẹ như ảnh
+                shape = RoundedCornerShape(8.dp),
                 color = if (isSelected) PrimaryOrange else BgGray,
-                onClick = { selectedFilter = filter }
+                onClick = { onFilterSelected(filter) } // Gửi sự kiện chọn filter ngược lên trên
             ) {
                 Text(
                     text = filter,

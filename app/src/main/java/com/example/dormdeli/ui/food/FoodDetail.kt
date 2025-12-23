@@ -55,10 +55,23 @@ fun FoodDetailScreen(
 
     var isExpanded by remember { mutableStateOf(false) }
 
+    val totalPrice by remember {
+        derivedStateOf {
+            val optionsPrice = selectedOptions.sumOf { selectedName ->
+                additionalOptions.find { it.first == selectedName }?.second ?: 0.0
+            }
+
+            val unitPrice = food.price.toDouble() + optionsPrice
+
+            unitPrice * quantity
+        }
+    }
+
     Scaffold(
         bottomBar = {
             BottomBarControl(
                 quantity = quantity,
+                totalPrice = totalPrice,
                 onQuantityChange = { newQuantity -> if (newQuantity >= 1) quantity = newQuantity },
                 onAddToCart = { onAddToCart(quantity) }
             )
@@ -131,15 +144,14 @@ fun FoodDetailScreen(
                 // Giá tiền
                 Row(verticalAlignment = Alignment.Bottom) {
                     // Giả sử food.price là giá hiện tại.
-                    // Để giống UI, mình hiển thị giá gốc (giả lập) bị gạch ngang.
                     Text(
-                        text = "£${(food.price * 1.5)}", // Giả lập giá gốc cao hơn
+                        text = "${(food.price * 1.5)} VNĐ", // Giả lập giá gốc cao hơn
                         style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.LineThrough),
                         color = Color.Gray,
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(
-                        text = "£${food.price}",
+                        text = "${food.price} VNĐ",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = OrangePrimary
@@ -235,6 +247,7 @@ fun FoodDetailScreen(
 @Composable
 fun BottomBarControl(
     quantity: Int,
+    totalPrice: Double,
     onQuantityChange: (Int) -> Unit,
     onAddToCart: () -> Unit
 ) {
@@ -243,52 +256,75 @@ fun BottomBarControl(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(24.dp)
         ) {
-            // Bộ chọn số lượng (-, 1, +)
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { onQuantityChange(quantity - 1) }) {
-                    Icon(Icons.Default.Remove, contentDescription = "Decrease")
-                }
                 Text(
-                    text = quantity.toString(),
+                    text = "Total Price:",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    color = Color.Gray
                 )
-                IconButton(onClick = { onQuantityChange(quantity + 1) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Increase")
-                }
+                Text(
+                    text = "${String.format("%.2f", totalPrice)} VNĐ",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = OrangePrimary
+                )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Nút Add to Basket
-            Button(
-                onClick = onAddToCart,
-                colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp)
+            // --- Dòng các nút bấm (Giữ nguyên logic cũ) ---
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_agenda), // Thay bằng icon giỏ hàng của bạn
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Add to Basket", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                // Bộ chọn số lượng
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    IconButton(onClick = { onQuantityChange(quantity - 1) }) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+                    Text(
+                        text = quantity.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                    IconButton(onClick = { onQuantityChange(quantity + 1) }) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Nút Add to Basket
+                Button(
+                    onClick = onAddToCart,
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = android.R.drawable.ic_menu_agenda),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Add to Basket", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
