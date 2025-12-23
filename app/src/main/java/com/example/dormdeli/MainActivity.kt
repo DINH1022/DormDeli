@@ -14,12 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.ui.auth.AuthNavigation
 import com.example.dormdeli.ui.auth.AuthViewModel
+import com.example.dormdeli.ui.store.StoreScreen
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
     private val authViewModel = AuthViewModel()
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -39,6 +40,12 @@ class MainActivity : ComponentActivity() {
                         // Màn hình chính của app (có thể thêm sau)
                         MainScreen()
                     }
+//                    //Test screen directly without login
+//                    StoreScreen(
+//                        storeId = "7ySqoyGPz2iNkO8yZ02D",
+//                        onBack = {}
+//                    ) { }
+//                    //end test
                 }
             }
         }
