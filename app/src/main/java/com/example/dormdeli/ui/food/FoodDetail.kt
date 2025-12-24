@@ -40,7 +40,10 @@ fun FoodDetailScreen(
     food: Food,
     onBackClick: () -> Unit = {},
     onAddToCart: (Int) -> Unit = {}, // Trả về số lượng khi bấm nút
-    onSeeReviewsClick: () -> Unit = {}
+    onSeeReviewsClick: () -> Unit = {},
+    foodId: String,
+    onBack: () -> Unit,
+    onSeeReviews: () -> Unit
 ) {
     // State quản lý số lượng
     var quantity by remember { mutableIntStateOf(1) }

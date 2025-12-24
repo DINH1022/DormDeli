@@ -22,7 +22,9 @@ import com.example.dormdeli.ui.theme.OrangeLight
 fun LoginScreen(
     onSignInClick: (String) -> Unit,
     onRegisterClick: () -> Unit,
-    onSocialLoginClick: (String) -> Unit = {}
+    onSocialLoginClick: (String) -> Unit = {},
+    onSignInSuccess: () -> Unit,
+    onNavigateToSignUp: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }

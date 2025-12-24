@@ -23,7 +23,9 @@ fun SignUpScreen(
     prefilledPhone: String? = null,
     onRegisterClick: (String, String, String) -> Unit,
     onSignInClick: () -> Unit,
-    onSocialSignUpClick: (String) -> Unit = {}
+    onSocialSignUpClick: (String) -> Unit = {},
+    onSignUpSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

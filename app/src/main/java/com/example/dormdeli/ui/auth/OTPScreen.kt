@@ -21,7 +21,8 @@ fun OTPScreen(
     phoneNumber: String,
     onVerifyClick: (String) -> Unit,
     onResendClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOtpVerified: () -> Unit
 ) {
     var otpCode by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
