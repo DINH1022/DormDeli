@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.store
+package com.example.dormdeli.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding

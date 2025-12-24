@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.auth
+package com.example.dormdeli.ui.viewmodels
 
 import android.app.Activity
 import androidx.compose.runtime.State
@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import com.example.dormdeli.model.User
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
+import com.example.dormdeli.enums.AuthScreen
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
@@ -199,8 +200,10 @@ class AuthViewModel {
                 firebaseUser.updateProfile(profileUpdates)
 
                 _isLoading.value = false
-                _isSignedIn.value = true
+                // Call onSuccess first to navigate
                 onSuccess()
+                // Then update isSignedIn state after a slight delay to avoid conflicts
+                _isSignedIn.value = true
             },
             onFailure = { e ->
                 _errorMessage.value = "Lỗi tạo user: ${e.message}"
@@ -234,10 +237,4 @@ class AuthViewModel {
         _isSignedIn.value = false
         _currentScreen.value = AuthScreen.Login
     }
-}
-
-enum class AuthScreen {
-    Login,
-    SignUp,
-    OTP
 }

@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.home
+package com.example.dormdeli.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.food
+package com.example.dormdeli.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

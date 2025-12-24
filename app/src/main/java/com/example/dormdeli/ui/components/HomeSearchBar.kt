@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.home
+package com.example.dormdeli.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedTextField

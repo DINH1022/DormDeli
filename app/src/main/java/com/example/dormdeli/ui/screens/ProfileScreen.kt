@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.profile
+package com.example.dormdeli.ui.screens
 
 import android.widget.Toast
 import androidx.annotation.DrawableRes

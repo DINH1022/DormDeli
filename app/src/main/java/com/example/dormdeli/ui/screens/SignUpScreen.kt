@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.auth
+package com.example.dormdeli.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

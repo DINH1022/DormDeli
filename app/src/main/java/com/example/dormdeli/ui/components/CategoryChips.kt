@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.home
+package com.example.dormdeli.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,20 +30,5 @@ fun CategoryChips(
                 onClick = { onSelect(cat) }
             )
         }
-    }
-}
-
-@Composable
-fun CategoryChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Text(text = text)
     }
 }

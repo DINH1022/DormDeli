@@ -1,7 +1,9 @@
-package com.example.dormdeli.ui.store
+package com.example.dormdeli.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,12 +32,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.dormdeli.ui.food.FoodNavigation
+import com.example.dormdeli.ui.components.*
+import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.example.dormdeli.ui.theme.CardBackground
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.Green
@@ -46,28 +51,45 @@ import com.example.dormdeli.ui.theme.TextSecondary
 fun StoreScreen(
     storeId: String,
     viewModel: StoreViewModel = StoreViewModel(),
-    onBack: () -> Unit, onMenuClick: () -> Unit
+    onBack: () -> Unit, 
+    onMenuClick: () -> Unit
 ) {
     val store by viewModel.store
     val categories = viewModel.categories()
     val selectedCategory by viewModel.selectedCategory
     val foods by viewModel.filteredFoods
+    val isLoading by viewModel.isLoading
 
     LaunchedEffect(storeId) {
         viewModel.loadStore(storeId)
     }
 
-    store?.let {
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else if (store != null) {
+        val storeData = store!!
         Column(modifier = Modifier.fillMaxSize()) {
             StoreNavBar(onBack = onBack, onMenuClick = onMenuClick)
-            Image(
-                painter = rememberAsyncImagePainter(it.imageUrl),
-                contentDescription = null,
+            
+            // Store Image
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp),
-                contentScale = ContentScale.Crop
-            )
+                    .height(220.dp)
+                    .background(Color(0xFFFFE5D0))
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(storeData.imageUrl),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             Card(
                 modifier = Modifier
@@ -91,7 +113,7 @@ fun StoreScreen(
 
                     // Tên nhà hàng
                     Text(
-                        text = it.name,
+                        text = storeData.name,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -110,7 +132,7 @@ fun StoreScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = it.openTime)
+                            Text(text = storeData.openTime)
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -123,14 +145,14 @@ fun StoreScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = it.closeTime)
+                            Text(text = storeData.closeTime)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = it.description,
+                        text = storeData.description,
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -144,7 +166,7 @@ fun StoreScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
                 items(categories.size) { index ->
-                    CategoryChip(
+                    CategoryChip (
                         text = categories[index],
                         isSelected = categories[index] == selectedCategory,
                         onClick = {
@@ -169,6 +191,20 @@ fun StoreScreen(
                     )
                 }
 
+            }
+        }
+    } else {
+        // Show empty state or error message
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Store not found")
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Store ID: $storeId", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.store
+package com.example.dormdeli.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,22 +39,23 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
     Card(
         modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
+            .width(180.dp)
+            .padding(4.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column {
+        Column(
+            modifier = Modifier.clickable {
+                onImageClick(food.id)
+            }
+        ) {
             Image(
                 painter = rememberAsyncImagePainter(food.imageUrl),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .clickable {
-                        onImageClick(food.id)
-                    },
-
+                    .clip(MaterialTheme.shapes.medium),
                 contentScale = ContentScale.Crop
             )
 
@@ -62,7 +63,8 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
             Text(
                 text = food.name,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                maxLines = 1
             )
             Row(
                 modifier = Modifier
@@ -91,14 +93,15 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${food.price} đ",
+                    text = "$${food.price}",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Black
+                    color = Black,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
 
                 Button(
@@ -109,9 +112,9 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
                         contentColor = Color.White
                     ),
                     contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    Text(text = "+")
+                    Text(text = "+", style = MaterialTheme.typography.titleMedium)
                 }
             }
         }

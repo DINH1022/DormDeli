@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.review
+package com.example.dormdeli.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
