@@ -4,6 +4,7 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -11,7 +12,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.enums.AuthScreen
-import com.example.dormdeli.ui.food.FoodDetailScreen
+import com.example.dormdeli.model.Food
+import com.example.dormdeli.ui.screens.FoodDetailScreen
+import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
@@ -24,6 +27,7 @@ import com.example.dormdeli.ui.screens.LocationScreen
 import com.example.dormdeli.ui.screens.AddNewLocationScreen
 import com.example.dormdeli.ui.viewmodels.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
+import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -31,8 +35,9 @@ import com.google.firebase.auth.FirebaseAuth
 fun MainNavigation(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    startDestination: String = Screen.Login.route,
-    cartViewModel: CartViewModel
+    cartViewModel: CartViewModel,
+    favoriteViewModel: FavoriteViewModel, // Added
+    startDestination: String = Screen.Login.route
 ) {
     val context = LocalContext.current
     val currentAuthScreen by authViewModel.currentScreen
@@ -188,6 +193,9 @@ fun MainNavigation(
                 },
                 onCartClick = {
                     navController.navigate(Screen.Cart.route)
+                },
+                onFavoritesClick = { // Added
+                    navController.navigate(Screen.Favorites.route)
                 }
             )
         }
@@ -213,14 +221,14 @@ fun MainNavigation(
                 onSaveClick = { navController.popBackStack() }
             )
         }
-        
+
         composable(
             route = Screen.EditLocation.route,
             arguments = listOf(navArgument("locationId") { type = NavType.StringType })
         ) { backStackEntry ->
             val locationId = backStackEntry.arguments?.getString("locationId")
             val existingAddress = locationId?.let { locationViewModel.getAddress(it) }
-            
+
             AddNewLocationScreen(
                 viewModel = locationViewModel,
                 existingAddress = existingAddress,
@@ -236,11 +244,24 @@ fun MainNavigation(
                 }
             )
         }
-        
+
+
+
         composable(Screen.Cart.route) {
-             // Placeholder for CartScreen if not already implemented/imported
-             // Assuming CartScreen exists or just a placeholder text
-             androidx.compose.material3.Text("Cart Screen Placeholder")
+            MyBasketScreen(
+                cartViewModel = cartViewModel,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Favorites.route) { // Added
+            FavoritesScreen(
+                favoriteViewModel = favoriteViewModel,
+                onBackClick = { navController.popBackStack() },
+                onFoodClick = { foodId ->
+                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                }
+            )
         }
 
         // ==================== STORE SCREENS ====================
@@ -248,8 +269,9 @@ fun MainNavigation(
             route = Screen.StoreDetail.route,
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
+            val storeId = backStackEntry.arguments?.getString("storeId")
             val storeViewModel: StoreViewModel = viewModel()
+
             StoreScreen(
                 storeId = "7ySqoyGPz2iNkO8yZ02D",
                 viewModel = storeViewModel,
@@ -274,17 +296,24 @@ fun MainNavigation(
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
 
+
+            val favoriteItems by favoriteViewModel.favoriteItems.collectAsState()
+            val isFavorite = favoriteItems.any { it.id == foodId }
+
             FoodDetailScreen(
                 foodId = foodId,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onAddToCart = { quantity ->
-                    Toast.makeText(context, "Đã thêm $quantity vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    cartViewModel.addToCart(foodId, quantity)
+                    Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
+                isFavorite = isFavorite,
+                onToggleFavorite = { favoriteViewModel.toggleFavorite(foodId) }
             )
         }
 
@@ -293,7 +322,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId")
-            
+
             ReviewScreen(
                 foodId = foodId,
                 onBackClick = {

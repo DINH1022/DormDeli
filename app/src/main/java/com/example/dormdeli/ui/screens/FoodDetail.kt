@@ -1,5 +1,6 @@
-package com.example.dormdeli.ui.food
+package com.example.dormdeli.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -38,7 +40,9 @@ fun FoodDetailScreen(
     foodId: String,
     onBackClick: () -> Unit = {},
     onAddToCart: (Int) -> Unit = {},
-    onSeeReviewsClick: () -> Unit = {}
+    onSeeReviewsClick: () -> Unit = {},
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit
 ) {
     // 1. Tạo State để chứa dữ liệu món ăn
     var food by remember { mutableStateOf<Food?>(null) }
@@ -81,7 +85,9 @@ fun FoodDetailScreen(
                 food = currentFood,
                 onBackClick = onBackClick,
                 onAddToCart = onAddToCart,
-                onSeeReviewsClick = onSeeReviewsClick
+                onSeeReviewsClick = onSeeReviewsClick,
+                isFavorite = isFavorite,
+                onToggleFavorite = onToggleFavorite
             )
         } ?: run {
             // Trường hợp không tìm thấy món ăn (Food = null)
@@ -99,10 +105,13 @@ fun FoodDetailContent(
     food: Food,
     onBackClick: () -> Unit,
     onAddToCart: (Int) -> Unit,
-    onSeeReviewsClick: () -> Unit
+    onSeeReviewsClick: () -> Unit,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit
 ) {
     var quantity by remember { mutableIntStateOf(1) }
     var isExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val additionalOptions = remember {
         listOf("Add Cheese" to 0.50, "Add Bacon" to 1.00, "Add Meat" to 2.00)
@@ -155,7 +164,10 @@ fun FoodDetailContent(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                 }
                 IconButton(
-                    onClick = { /* Handle favorite */ },
+                    onClick = {
+                        onToggleFavorite()
+                        val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)

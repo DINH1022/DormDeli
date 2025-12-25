@@ -58,7 +58,7 @@ fun MyBasketScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = String.format("Total: %.2f VND", totalPrice.toDouble()),
+                            text = String.format("Total: %.2f £", totalPrice.toDouble()),
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )

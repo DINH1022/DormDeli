@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Food
+import com.example.dormdeli.repository.food.FoodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,20 +15,32 @@ class CartViewModel : ViewModel() {
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems.asStateFlow()
 
-    fun addToCart(food: Food, quantity: Int) {
+    fun addToCart(foodId: String, quantity: Int) {
         viewModelScope.launch {
             val currentCart = _cartItems.value.toMutableList()
-            val existingItem = currentCart.find { it.food.id == food.id }
+
+            val existingItem = currentCart.find { it.food.id == foodId }
 
             if (existingItem != null) {
                 existingItem.quantity += quantity
+                _cartItems.value = currentCart
             } else {
-                currentCart.add(CartItem(food, quantity))
+                val repo =
+                    FoodRepository() // (Tốt nhất nên khai báo repo ở cấp class thay vì ở đây)
+                val food = repo.getFood(foodId) // Hàm này trả về Food? (có thể null)
+
+                // 3. Kiểm tra null an toàn
+                if (food != null) {
+                    // Nếu food không null, thêm vào giỏ
+                    currentCart.add(CartItem(food, quantity))
+                    _cartItems.value = currentCart
+                } else {
+                    // Xử lý nếu không tải được món ăn (ví dụ: lỗi mạng hoặc ID sai)
+                    android.util.Log.e("Cart", "Lỗi: Không tìm thấy món ăn với ID $foodId")
+                }
             }
-            _cartItems.value = currentCart
         }
     }
-
     fun removeFromCart(cartItem: CartItem) {
         viewModelScope.launch {
             val currentCart = _cartItems.value.toMutableList()

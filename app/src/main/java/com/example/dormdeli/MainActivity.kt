@@ -16,11 +16,13 @@ import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.CartViewModel
+import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
     private val authViewModel by viewModels<AuthViewModel>()
     private val cartViewModel by viewModels<CartViewModel>()
+    private val favoriteViewModel by viewModels<FavoriteViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         authViewModel = authViewModel,
                         cartViewModel = cartViewModel,
+                        favoriteViewModel = favoriteViewModel, // Added
                         startDestination = startDestination
                     )
                 }

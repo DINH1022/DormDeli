@@ -26,7 +26,8 @@ fun HomeScreen(
     onFoodClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
     onCartClick: () -> Unit = {},
-    onLocationClick: () -> Unit = {}
+    onLocationClick: () -> Unit = {},
+    onFavoritesClick: () -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf("All") }
@@ -138,7 +139,10 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = {
+                        selectedTab = 1
+                        onFavoritesClick()
+                    },
                     icon = { Icon(Icons.Default.Favorite, contentDescription = "Favorites") },
                     label = { Text("Favorites") },
                     colors = NavigationBarItemDefaults.colors(
