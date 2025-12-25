@@ -238,35 +238,24 @@ fun MainNavigation(
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
 
-            // TODO: Load food from repository
-            val mockFood = Food(
-                id = foodId,
-                storeId = "store_1",
-                name = "Chicken Burger",
-                description = "A delicious chicken burger",
-                price = 6,
-                imageUrl = "https://drive.google.com/uc?export=view&id=1GWS0OtkKh8jPOBV28vg_Oqf1nquTdKt-",
-                ratingAvg = 4.9,
-                category = "Burger"
-            )
 
             val favoriteItems by favoriteViewModel.favoriteItems.collectAsState()
-            val isFavorite = favoriteItems.any { it.id == mockFood.id }
+            val isFavorite = favoriteItems.any { it.id == foodId }
 
             FoodDetailScreen(
-                food = mockFood,
+                foodId = foodId,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onAddToCart = { quantity ->
-                    cartViewModel.addToCart(mockFood, quantity)
-                    Toast.makeText(context, "Đã thêm $quantity ${mockFood.name} vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    cartViewModel.addToCart(foodId, quantity)
+                    Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
                 isFavorite = isFavorite,
-                onToggleFavorite = { favoriteViewModel.toggleFavorite(mockFood) }
+                onToggleFavorite = { favoriteViewModel.toggleFavorite(foodId) }
             )
         }
 
