@@ -11,11 +11,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.enums.AuthScreen
+import com.example.dormdeli.ui.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
 import com.example.dormdeli.ui.screens.SignUpScreen
-import com.example.dormdeli.ui.screens.FoodDetailScreen
 import com.example.dormdeli.ui.screens.HomeScreen
 import com.example.dormdeli.ui.screens.ProfileScreen
 import com.example.dormdeli.ui.screens.ReviewScreen
@@ -192,15 +192,19 @@ fun MainNavigation(
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
             val storeViewModel: StoreViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-            
             StoreScreen(
-                storeId = storeId,
+                storeId = "7ySqoyGPz2iNkO8yZ02D",
                 viewModel = storeViewModel,
                 onBack = {
                     navController.popBackStack()
                 },
                 onMenuClick = {
                     Toast.makeText(context, "Menu clicked", Toast.LENGTH_SHORT).show()
+                } ,
+                onFoodClick = { selectedFoodId ->
+                    if (selectedFoodId.isNotEmpty()) {
+                        navController.navigate(Screen.FoodDetail.createRoute(selectedFoodId))
+                    }
                 }
             )
         }
@@ -211,21 +215,9 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
-            
-            // TODO: Load food from repository
-            val mockFood = Food(
-                id = foodId,
-                storeId = "store_1",
-                name = "Chicken Burger",
-                description = "A delicious chicken burger",
-                price = 6,
-                imageUrl = "https://drive.google.com/uc?export=view&id=1GWS0OtkKh8jPOBV28vg_Oqf1nquTdKt-",
-                ratingAvg = 4.9,
-                category = "Burger"
-            )
 
             FoodDetailScreen(
-                food = mockFood,
+                foodId = foodId,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -235,13 +227,6 @@ fun MainNavigation(
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
-                foodId = foodId,
-                onBack = {
-                    navController.popBackStack()
-                },
-                onSeeReviews = {
-                    navController.navigate(Screen.Reviews.createRoute(foodId))
-                }
             )
         }
 

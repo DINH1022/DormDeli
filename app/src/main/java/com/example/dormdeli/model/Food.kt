@@ -1,8 +1,9 @@
 package com.example.dormdeli.model
-
+import com.google.firebase.firestore.DocumentId
 data class Food(
-    val storeId: String = "",
+    @DocumentId
     val id: String = "",
+    val storeId: String = "",
     val name: String = "",
     val description: String = "",
     val price: Long = 0,
