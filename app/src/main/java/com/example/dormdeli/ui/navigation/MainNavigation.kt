@@ -9,6 +9,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
@@ -19,7 +20,10 @@ import com.example.dormdeli.ui.screens.HomeScreen
 import com.example.dormdeli.ui.screens.ProfileScreen
 import com.example.dormdeli.ui.screens.ReviewScreen
 import com.example.dormdeli.ui.screens.StoreScreen
+import com.example.dormdeli.ui.screens.LocationScreen
+import com.example.dormdeli.ui.screens.AddNewLocationScreen
 import com.example.dormdeli.ui.viewmodels.CartViewModel
+import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -34,6 +38,8 @@ fun MainNavigation(
     val currentAuthScreen by authViewModel.currentScreen
     val errorMessage by authViewModel.errorMessage
     val phoneNumber by authViewModel.phoneNumber
+
+    val locationViewModel: LocationViewModel = viewModel()
 
     // Hiển thị error message
     LaunchedEffect(errorMessage) {
@@ -165,7 +171,9 @@ fun MainNavigation(
 
         // ==================== MAIN SCREENS ====================
         composable(Screen.Home.route) {
+            val selectedAddress by locationViewModel.selectedAddress.collectAsState()
             HomeScreen(
+                selectedAddress = selectedAddress?.label ?: "Select Location",
                 onStoreClick = { storeId ->
                     navController.navigate(Screen.StoreDetail.createRoute(storeId))
                 },
@@ -174,7 +182,50 @@ fun MainNavigation(
                 },
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onLocationClick = {
+                    navController.navigate(Screen.Location.route)
+                },
+                onCartClick = {
+                    navController.navigate(Screen.Cart.route)
                 }
+            )
+        }
+
+        composable(Screen.Location.route) {
+            LocationScreen(
+                viewModel = locationViewModel,
+                onBackClick = { navController.popBackStack() },
+                onAddNewLocation = { navController.navigate(Screen.AddNewLocation.route) },
+                onEditLocation = { id ->
+                    navController.navigate(Screen.EditLocation.createRoute(id))
+                },
+                onDeleteLocation = { id ->
+                    locationViewModel.deleteAddress(id)
+                }
+            )
+        }
+
+        composable(Screen.AddNewLocation.route) {
+            AddNewLocationScreen(
+                viewModel = locationViewModel,
+                onBackClick = { navController.popBackStack() },
+                onSaveClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.EditLocation.route,
+            arguments = listOf(navArgument("locationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val locationId = backStackEntry.arguments?.getString("locationId")
+            val existingAddress = locationId?.let { locationViewModel.getAddress(it) }
+            
+            AddNewLocationScreen(
+                viewModel = locationViewModel,
+                existingAddress = existingAddress,
+                onBackClick = { navController.popBackStack() },
+                onSaveClick = { navController.popBackStack() }
             )
         }
 
@@ -185,6 +236,12 @@ fun MainNavigation(
                 }
             )
         }
+        
+        composable(Screen.Cart.route) {
+             // Placeholder for CartScreen if not already implemented/imported
+             // Assuming CartScreen exists or just a placeholder text
+             androidx.compose.material3.Text("Cart Screen Placeholder")
+        }
 
         // ==================== STORE SCREENS ====================
         composable(
@@ -192,7 +249,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
-            val storeViewModel: StoreViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val storeViewModel: StoreViewModel = viewModel()
             StoreScreen(
                 storeId = "7ySqoyGPz2iNkO8yZ02D",
                 viewModel = storeViewModel,

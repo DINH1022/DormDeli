@@ -21,10 +21,12 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    selectedAddress: String = "Select Location",
     onStoreClick: (String) -> Unit,
     onFoodClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
-    onCartClick: () -> Unit = {}
+    onCartClick: () -> Unit = {},
+    onLocationClick: () -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf("All") }
@@ -184,7 +186,10 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                HomeHeader()
+                HomeHeader(
+                    locationText = selectedAddress,
+                    onLocationClick = onLocationClick
+                )
             }
 
             item {

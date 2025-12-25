@@ -13,6 +13,13 @@ sealed class Screen(val route: String) {
     object Orders : Screen("orders")
     object Favorites : Screen("favorites")
     
+    // Location Screens
+    object Location : Screen("location")
+    object AddNewLocation : Screen("add_new_location")
+    object EditLocation : Screen("edit_location/{locationId}") {
+        fun createRoute(locationId: String) = "edit_location/$locationId"
+    }
+    
     // Store & Food Screens
     object StoreDetail : Screen("store/{storeId}") {
         fun createRoute(storeId: String) = "store/$storeId"
