@@ -40,11 +40,7 @@ fun FoodDetailScreen(
     onAddToCart: (Int) -> Unit,
     onSeeReviewsClick: () -> Unit,
     isFavorite: Boolean,
-    onToggleFavorite: () -> Unit,
-    // Unused parameters kept for nav consistency
-    foodId: String,
-    onBack: () -> Unit,
-    onSeeReviews: () -> Unit
+    onToggleFavorite: () -> Unit
 ) {
     var quantity by remember { mutableStateOf(1) }
     val context = LocalContext.current

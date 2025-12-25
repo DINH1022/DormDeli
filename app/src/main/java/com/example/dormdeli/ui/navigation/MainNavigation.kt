@@ -10,8 +10,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.dormdeli.model.Food
 import com.example.dormdeli.enums.AuthScreen
+import com.example.dormdeli.model.Food
+import com.example.dormdeli.ui.screens.FoodDetailScreen
 import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.CartViewModel
@@ -67,7 +68,6 @@ fun MainNavigation(
                         }
                     }
                 }
-                else -> {}
             }
         }
     }
@@ -109,6 +109,7 @@ fun MainNavigation(
                     if (isPhoneVerified) {
                         authViewModel.completeRegistration(email, fullName) {
                             Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                            // Use post to ensure navigation happens after current frame
                             navController.currentBackStackEntry?.savedStateHandle?.set("navigateToHome", true)
                             navController.navigate(Screen.Home.route) {
                                 popUpTo(0) { inclusive = true }
@@ -210,17 +211,22 @@ fun MainNavigation(
             route = Screen.StoreDetail.route,
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
+            val storeId = backStackEntry.arguments?.getString("storeId")
             val storeViewModel: StoreViewModel = viewModel()
 
             StoreScreen(
-                storeId = storeId,
+                storeId = "7ySqoyGPz2iNkO8yZ02D",
                 viewModel = storeViewModel,
                 onBack = {
                     navController.popBackStack()
                 },
                 onMenuClick = {
                     Toast.makeText(context, "Menu clicked", Toast.LENGTH_SHORT).show()
+                } ,
+                onFoodClick = { selectedFoodId ->
+                    if (selectedFoodId.isNotEmpty()) {
+                        navController.navigate(Screen.FoodDetail.createRoute(selectedFoodId))
+                    }
                 }
             )
         }
@@ -257,13 +263,6 @@ fun MainNavigation(
                     Toast.makeText(context, "Đã thêm $quantity ${mockFood.name} vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {
-                    navController.navigate(Screen.Reviews.createRoute(foodId))
-                },
-                foodId = foodId,
-                onBack = {
-                    navController.popBackStack()
-                },
-                onSeeReviews = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
                 isFavorite = isFavorite,

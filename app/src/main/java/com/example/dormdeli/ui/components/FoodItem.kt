@@ -40,14 +40,15 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
     Card(
         modifier = Modifier
             .width(180.dp)
-            .padding(4.dp),
+            .padding(4.dp)
+            .fillMaxWidth()
+            .clickable {
+                onImageClick(food.id)
+            },
         shape = MaterialTheme.shapes.medium,
         elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.clickable {
-                onImageClick(food.id)
-            }
         ) {
             Image(
                 painter = rememberAsyncImagePainter(food.imageUrl),

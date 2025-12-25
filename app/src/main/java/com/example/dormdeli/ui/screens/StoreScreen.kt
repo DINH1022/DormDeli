@@ -39,20 +39,21 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.components.*
-import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.example.dormdeli.ui.theme.CardBackground
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.Green
 import com.example.dormdeli.ui.theme.Red
 import com.example.dormdeli.ui.theme.TextSecondary
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dormdeli.ui.viewmodels.StoreViewModel
 
 
 @Composable
 fun StoreScreen(
     storeId: String,
-    viewModel: StoreViewModel = StoreViewModel(),
-    onBack: () -> Unit, 
-    onMenuClick: () -> Unit
+    viewModel: StoreViewModel = viewModel(),
+    onBack: () -> Unit, onMenuClick: () -> Unit,
+    onFoodClick: (String) -> Unit
 ) {
     val store by viewModel.store
     val categories = viewModel.categories()
@@ -61,7 +62,9 @@ fun StoreScreen(
     val isLoading by viewModel.isLoading
 
     LaunchedEffect(storeId) {
-        viewModel.loadStore(storeId)
+        if (store == null && storeId.isNotBlank()) {
+            viewModel.loadStore(storeId)
+        }
     }
 
     if (isLoading) {
@@ -185,8 +188,8 @@ fun StoreScreen(
                 items(foods.size) { index ->
                     FoodItem(
                         food = foods[index],
-                        onImageClick = {
-                            // navigation logic
+                        onImageClick = {foodId ->
+                            onFoodClick(foodId)
                         }
                     )
                 }
