@@ -1,21 +1,21 @@
 package com.example.dormdeli.ui.screens
 
-import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.dormdeli.ui.components.*
 import com.example.dormdeli.model.Food
+import com.example.dormdeli.ui.components.*
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,7 +23,8 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 fun HomeScreen(
     onStoreClick: (String) -> Unit,
     onFoodClick: (String) -> Unit,
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onCartClick: () -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf("All") }
@@ -31,13 +32,13 @@ fun HomeScreen(
     val categories = listOf("All", "Hot Dog", "Burger", "Pizza", "Sandwich", "Dessert")
 
     // Mock data for restaurants and food
-    val mockRestaurants = listOf(
+    val mockRestaurants = remember { listOf(
         RestaurantData("store_1", "Rose Garden Restaurant", "Burger · Chicken · Rice · Wings", 4.7, "Free", "20 min"),
         RestaurantData("store_2", "KFC Fast Food", "Fried Chicken · Burger · Wings", 4.5, "$1.99", "15 min"),
         RestaurantData("store_3", "Pizza Hut", "Pizza · Pasta · Salad", 4.8, "Free", "25 min")
-    )
+    ) }
 
-    val mockFoods = listOf(
+    val mockFoods = remember { listOf(
         Food(
             storeId = "store_1",
             id = "food_1",
@@ -82,7 +83,39 @@ fun HomeScreen(
             available = true,
             ratingAvg = 4.6
         )
-    )
+    ) }
+
+    val filteredRestaurants by remember(searchText) {
+        derivedStateOf {
+            if (searchText.isBlank()) {
+                mockRestaurants
+            } else {
+                mockRestaurants.filter {
+                    it.name.contains(searchText, ignoreCase = true) ||
+                    it.tags.contains(searchText, ignoreCase = true)
+                }
+            }
+        }
+    }
+
+    val filteredFoods by remember(searchText, selectedCat) {
+        derivedStateOf {
+            val categoryFiltered = if (selectedCat == "All") {
+                mockFoods
+            } else {
+                mockFoods.filter { it.category.equals(selectedCat, ignoreCase = true) }
+            }
+
+            if (searchText.isBlank()) {
+                categoryFiltered
+            } else {
+                categoryFiltered.filter {
+                    it.name.contains(searchText, ignoreCase = true) ||
+                    it.description.contains(searchText, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -114,7 +147,10 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
+                    onClick = {
+                        selectedTab = 2
+                        onCartClick()
+                    },
                     icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Cart") },
                     label = { Text("Cart") },
                     colors = NavigationBarItemDefaults.colors(
@@ -125,7 +161,7 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
-                    onClick = { 
+                    onClick = {
                         selectedTab = 3
                         onProfileClick()
                     },
@@ -173,7 +209,7 @@ fun HomeScreen(
                 )
             }
 
-            items(mockRestaurants) { restaurant ->
+            items(filteredRestaurants) { restaurant ->
                 RestaurantCard(
                     name = restaurant.name,
                     tags = restaurant.tags,
@@ -195,7 +231,7 @@ fun HomeScreen(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(mockFoods) { food ->
+                    items(filteredFoods) { food ->
                         FoodItem(
                             food = food,
                             onImageClick = onFoodClick

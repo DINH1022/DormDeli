@@ -3,6 +3,7 @@ package com.example.dormdeli.ui.viewmodels
 import android.app.Activity
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
 import com.example.dormdeli.model.User
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
@@ -13,7 +14,7 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 
-class AuthViewModel {
+class AuthViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
 
