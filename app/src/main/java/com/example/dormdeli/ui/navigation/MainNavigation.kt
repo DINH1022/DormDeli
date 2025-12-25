@@ -15,6 +15,7 @@ import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.CartViewModel
+import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -22,7 +23,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun MainNavigation(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    cartViewModel: CartViewModel, // Added
+    cartViewModel: CartViewModel,
+    favoriteViewModel: FavoriteViewModel, // Added
     startDestination: String = Screen.Login.route
 ) {
     val context = LocalContext.current
@@ -41,7 +43,7 @@ fun MainNavigation(
     LaunchedEffect(currentAuthScreen) {
         val currentRoute = navController.currentDestination?.route
         val isInAuthFlow = currentRoute in listOf(Screen.Login.route, Screen.SignUp.route, Screen.OTP.route)
-        
+
         if (isInAuthFlow) {
             when (currentAuthScreen) {
                 AuthScreen.Login -> {
@@ -169,8 +171,11 @@ fun MainNavigation(
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
                 },
-                onCartClick = { // Added
+                onCartClick = {
                     navController.navigate(Screen.Cart.route)
+                },
+                onFavoritesClick = { // Added
+                    navController.navigate(Screen.Favorites.route)
                 }
             )
         }
@@ -182,11 +187,21 @@ fun MainNavigation(
                 }
             )
         }
-        
-        composable(Screen.Cart.route) { // Added
+
+        composable(Screen.Cart.route) {
             MyBasketScreen(
                 cartViewModel = cartViewModel,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Favorites.route) { // Added
+            FavoritesScreen(
+                favoriteViewModel = favoriteViewModel,
+                onBackClick = { navController.popBackStack() },
+                onFoodClick = { foodId ->
+                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                }
             )
         }
 
@@ -197,7 +212,7 @@ fun MainNavigation(
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
             val storeViewModel: StoreViewModel = viewModel()
-            
+
             StoreScreen(
                 storeId = storeId,
                 viewModel = storeViewModel,
@@ -216,7 +231,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
-            
+
             // TODO: Load food from repository
             val mockFood = Food(
                 id = foodId,
@@ -229,12 +244,15 @@ fun MainNavigation(
                 category = "Burger"
             )
 
+            val favoriteItems by favoriteViewModel.favoriteItems.collectAsState()
+            val isFavorite = favoriteItems.any { it.id == mockFood.id }
+
             FoodDetailScreen(
                 food = mockFood,
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAddToCart = { quantity -> 
+                onAddToCart = { quantity ->
                     cartViewModel.addToCart(mockFood, quantity)
                     Toast.makeText(context, "Đã thêm $quantity ${mockFood.name} vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
@@ -247,7 +265,9 @@ fun MainNavigation(
                 },
                 onSeeReviews = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
-                }
+                },
+                isFavorite = isFavorite,
+                onToggleFavorite = { favoriteViewModel.toggleFavorite(mockFood) }
             )
         }
 
@@ -256,7 +276,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId")
-            
+
             ReviewScreen(
                 foodId = foodId,
                 onBackClick = {
