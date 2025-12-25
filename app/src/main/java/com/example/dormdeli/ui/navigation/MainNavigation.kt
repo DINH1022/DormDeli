@@ -4,15 +4,12 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.dormdeli.model.Food
 import com.example.dormdeli.enums.AuthScreen
-<<<<<<< HEAD
 import com.example.dormdeli.ui.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
@@ -22,11 +19,7 @@ import com.example.dormdeli.ui.screens.HomeScreen
 import com.example.dormdeli.ui.screens.ProfileScreen
 import com.example.dormdeli.ui.screens.ReviewScreen
 import com.example.dormdeli.ui.screens.StoreScreen
-=======
-import com.example.dormdeli.ui.screens.*
-import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.CartViewModel
->>>>>>> b4eecad9b536e1a7edeac148a95ffa528fc9abcb
 import com.example.dormdeli.ui.viewmodels.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -34,8 +27,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun MainNavigation(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    cartViewModel: CartViewModel, // Added
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.Login.route,
+    cartViewModel: CartViewModel
 ) {
     val context = LocalContext.current
     val currentAuthScreen by authViewModel.currentScreen
@@ -53,7 +46,7 @@ fun MainNavigation(
     LaunchedEffect(currentAuthScreen) {
         val currentRoute = navController.currentDestination?.route
         val isInAuthFlow = currentRoute in listOf(Screen.Login.route, Screen.SignUp.route, Screen.OTP.route)
-        
+
         if (isInAuthFlow) {
             when (currentAuthScreen) {
                 AuthScreen.Login -> {
@@ -119,6 +112,7 @@ fun MainNavigation(
                     if (isPhoneVerified) {
                         authViewModel.completeRegistration(email, fullName) {
                             Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                            // Use post to ensure navigation happens after current frame
                             navController.currentBackStackEntry?.savedStateHandle?.set("navigateToHome", true)
                             navController.navigate(Screen.Home.route) {
                                 popUpTo(0) { inclusive = true }
@@ -180,9 +174,6 @@ fun MainNavigation(
                 },
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
-                },
-                onCartClick = { // Added
-                    navController.navigate(Screen.Cart.route)
                 }
             )
         }
@@ -194,13 +185,6 @@ fun MainNavigation(
                 }
             )
         }
-        
-        composable(Screen.Cart.route) { // Added
-            MyBasketScreen(
-                cartViewModel = cartViewModel,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
 
         // ==================== STORE SCREENS ====================
         composable(
@@ -208,12 +192,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
-<<<<<<< HEAD
             val storeViewModel: StoreViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-=======
-            val storeViewModel: StoreViewModel = viewModel()
-            
->>>>>>> b4eecad9b536e1a7edeac148a95ffa528fc9abcb
             StoreScreen(
                 storeId = "7ySqoyGPz2iNkO8yZ02D",
                 viewModel = storeViewModel,
@@ -243,9 +222,8 @@ fun MainNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAddToCart = { quantity -> 
-                    cartViewModel.addToCart(mockFood, quantity)
-                    Toast.makeText(context, "Đã thêm $quantity ${mockFood.name} vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                onAddToCart = { quantity ->
+                    Toast.makeText(context, "Đã thêm $quantity vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
