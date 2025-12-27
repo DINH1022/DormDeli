@@ -1,0 +1,13 @@
+package com.example.dormdeli.enums
+
+enum class CollectionName(val value: String) {
+    USERS("users"),
+    STORES("stores"),
+    FOODS("foods"),
+    REVIEWS("reviews"),
+    FAVORITES("favorites"),
+    SHIPPER_PROFILE("shipperProfile"),
+    ORDERS("orders"),
+    CART_ITEM("cartItem"),
+    ORDER_ITEM("orderItem")
+}

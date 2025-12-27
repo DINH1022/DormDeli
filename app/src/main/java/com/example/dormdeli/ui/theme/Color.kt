@@ -23,3 +23,7 @@ val CardBackground = Color(0xFFF5F5F5)   // nền xám nhẹ
 val CardBorder = Color(0xFFE0E0E0)       // border nhẹ
 val TextSecondary = Color(0xFF616161)    // text phụ
 val Black = Color(0xFF000000)
+
+val BackgroundGray = Color(0xFFF8F8F8)   // nền tổng thể
+val WarningLight = Color(0xFFFFF4E6)     // nền cho time badge (cam nhạt)
+val SuccessLight = Color(0xFFE8F5E9)
