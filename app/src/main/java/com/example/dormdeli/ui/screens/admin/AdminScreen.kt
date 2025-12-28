@@ -1,8 +1,10 @@
 package com.example.dormdeli.ui.screens.admin
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,11 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.ui.components.admin.AdminFeatureChip
-import com.example.dormdeli.ui.screens.admin.features.AdminDashboardScreen
+import com.example.dormdeli.ui.screens.admin.features.shipper.AdminShipperManagementScreen
 import com.example.dormdeli.ui.viewmodels.admin.AdminViewModel
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import com.example.dormdeli.ui.screens.admin.features.AdminUserManagementScreen
 
 @Composable
 fun AdminScreen(
@@ -56,7 +55,7 @@ fun AdminScreen(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            AdminUserManagementScreen()
+            AdminShipperManagementScreen()
         }
     }
 }

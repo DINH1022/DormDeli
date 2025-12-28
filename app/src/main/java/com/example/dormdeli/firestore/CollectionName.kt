@@ -1,4 +1,4 @@
-package com.example.dormdeli.enums
+package com.example.dormdeli.firestore
 
 enum class CollectionName(val value: String) {
     USERS("users"),

@@ -1,6 +1,6 @@
 package com.example.dormdeli.repository.admin
 
-import com.example.dormdeli.enums.CollectionName
+import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.model.User
 import com.google.firebase.firestore.FirebaseFirestore

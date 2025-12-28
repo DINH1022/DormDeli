@@ -72,14 +72,13 @@ fun AdminUserManagementScreen(
             .background(Color.White)
             .padding(16.dp)
     ) {
-        // Search Bar - Đã sửa lỗi TextFieldDefaults và onSearchTermChange
         OutlinedTextField(
             value = searchTerm,
             onValueChange = { viewModel.onSearchTermChange(it) }, // Đã sửa tên hàm
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Tìm kiếm khách hàng...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            colors = OutlinedTextFieldDefaults.colors( // Cách viết của Material3
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = OrangePrimary,
                 unfocusedBorderColor = CardBorder,
                 cursorColor = OrangePrimary,

@@ -19,11 +19,16 @@ val Green = Color(0xFF2ECC71)
 val Red = Color(0xFFE74C3C)
 
 // ===== Card / Container colors =====
-val CardBackground = Color(0xFFF5F5F5)   // nền xám nhẹ
-val CardBorder = Color(0xFFE0E0E0)       // border nhẹ
-val TextSecondary = Color(0xFF616161)    // text phụ
+val CardBackground = Color(0xFFF5F5F5)
+val CardBorder = Color(0xFFE0E0E0)
+val TextSecondary = Color(0xFF616161)
 val Black = Color(0xFF000000)
 
-val BackgroundGray = Color(0xFFF8F8F8)   // nền tổng thể
-val WarningLight = Color(0xFFFFF4E6)     // nền cho time badge (cam nhạt)
+val BackgroundGray = Color(0xFFF8F8F8)
+val WarningLight = Color(0xFFFFF4E6)
 val SuccessLight = Color(0xFFE8F5E9)
+
+val StarYellow = Color(0xFFFFB300)
+val StatusGreenBg = Color(0xFFE8F5E9)
+val White = Color(0xFFFFFFFF)
+val ErrorLight = Color(0xFFFFEBEE)

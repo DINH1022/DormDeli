@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository.admin
 
+import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -128,13 +129,25 @@ class AdminOrderRepository {
     }
 
     suspend fun getUserSpendingStats(uid: String): Pair<Int, Long> {
-        val orders = FirebaseFirestore.getInstance().collection("orders")
-            .whereEqualTo("userId", uid)
+        val orders = orderCol
+            .whereEqualTo(ModelFields.Order.USER_ID, uid)
             .get()
             .await()
 
         val count = orders.size()
         val totalSpent = orders.documents.sumOf { it.getLong("totalPrice") ?: 0L }
         return count to totalSpent
+    }
+
+    suspend fun countStoreOrdersByStoreId(storeId: String): Int {
+        return try {
+            val snapshot = orderCol
+                .whereEqualTo(ModelFields.Order.STORE_ID, storeId)
+                .get()
+                .await()
+            snapshot.size()
+        } catch (e: Exception) {
+            0
+        }
     }
 }

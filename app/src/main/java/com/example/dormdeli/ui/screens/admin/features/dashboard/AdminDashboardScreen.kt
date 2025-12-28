@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.admin.features
+package com.example.dormdeli.ui.screens.admin.features.dashboard
 
 import android.annotation.SuppressLint
 import com.example.dormdeli.ui.theme.*
@@ -54,6 +54,7 @@ import com.example.dormdeli.ui.viewmodels.admin.AdminDashboardViewModel
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.ui.graphics.Path
+import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -588,7 +589,7 @@ fun BarChart(
 
 @Composable
 fun TopStoresSection(
-    stores: List<com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue>,
+    stores: List<TopStoreRevenue>,
     modifier: Modifier = Modifier
 ) {
     Card(
