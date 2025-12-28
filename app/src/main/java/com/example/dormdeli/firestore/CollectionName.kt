@@ -9,5 +9,7 @@ enum class CollectionName(val value: String) {
     SHIPPER_PROFILE("shipperProfile"),
     ORDERS("orders"),
     CART_ITEM("cartItem"),
-    ORDER_ITEM("orderItem")
+    ORDER_ITEM("orderItem"),
+
+    NOTIFICATION("notifications")
 }

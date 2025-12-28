@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.viewmodels.admin.state
+package com.example.dormdeli.ui.viewmodels.admin.dashboard
 
 import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
 

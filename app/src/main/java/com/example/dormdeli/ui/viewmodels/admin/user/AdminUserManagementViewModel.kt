@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.viewmodels.admin
+package com.example.dormdeli.ui.viewmodels.admin.user
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

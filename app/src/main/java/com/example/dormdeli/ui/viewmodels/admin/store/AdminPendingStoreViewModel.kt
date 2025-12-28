@@ -53,9 +53,8 @@ class AdminPendingStoresViewModel(
     fun approveStore(store: Store) {
         viewModelScope.launch {
             try {
-                repository.approveStore(store.ownerId)
+                repository.approveStore(store.id)
 
-                // Remove from pending list
                 _uiState.update { currentState ->
                     currentState.copy(
                         pendingStores = currentState.pendingStores.filter {

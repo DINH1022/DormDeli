@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.admin.features.noti
+package com.example.dormdeli.ui.screens.admin.features.store
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,19 +28,19 @@ import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.theme.TextSecondary
 import com.example.dormdeli.ui.theme.White
-import com.example.dormdeli.ui.viewmodels.admin.noti.AdminNotiManagementViewModel
-import com.example.dormdeli.ui.viewmodels.admin.noti.NotiTabs
+import com.example.dormdeli.ui.viewmodels.admin.store.AdminStoreManagementViewModel
+import com.example.dormdeli.ui.viewmodels.admin.store.StoreTabs
 
 @Composable
-fun AdminNotiManagementScreen(
-    viewModel: AdminNotiManagementViewModel = viewModel()
+fun AdminStoreManagementScreen(
+    viewModel: AdminStoreManagementViewModel = viewModel()
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val tabs = viewModel.tabs
 
     val screenMapping: Map<String, @Composable () -> Unit> = mapOf(
-        NotiTabs.CREATE to { AdminCreateNotiScreen() },
-        NotiTabs.SHOW_LIST to { AdminListNotificationScreen() }
+        StoreTabs.PENDING to { AdminPendingStoresScreen() },
+        StoreTabs.APPROVED to { AdminApprovedStoreScreen() }
     )
 
     Column(
@@ -48,7 +48,6 @@ fun AdminNotiManagementScreen(
             .fillMaxSize()
             .background(BackgroundGray)
     ) {
-        // --- Tab Selector Section ---
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,7 +58,7 @@ fun AdminNotiManagementScreen(
             items(tabs) { tab ->
                 val isSelected = (tab == selectedTab)
 
-                NotiTabChip(
+                StoreTabChip(
                     text = tab,
                     isSelected = isSelected,
                     onClick = { viewModel.selectTab(tab) }
@@ -67,20 +66,18 @@ fun AdminNotiManagementScreen(
             }
         }
 
-        // --- Content Section ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // Hiển thị màn hình tương ứng với Tab đang chọn
             screenMapping[selectedTab]?.invoke()
         }
     }
 }
 
 @Composable
-fun NotiTabChip(
+fun StoreTabChip(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -88,10 +85,7 @@ fun NotiTabChip(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(
-                if (isSelected) OrangePrimary
-                else CardBorder.copy(alpha = 0.5f)
-            )
+            .background(if (isSelected) OrangePrimary else CardBorder.copy(alpha = 0.5f))
             .clickable { onClick() }
             .padding(horizontal = 20.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center

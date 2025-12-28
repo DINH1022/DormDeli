@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.admin.features
+package com.example.dormdeli.ui.screens.admin.features.user
 
 
 // Import các màu sắc bạn đã định nghĩa
@@ -55,8 +55,8 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.theme.Purple40
 import com.example.dormdeli.ui.theme.Red
 import com.example.dormdeli.ui.theme.TextSecondary
-import com.example.dormdeli.ui.viewmodels.admin.AdminUserManagementViewModel
-import com.example.dormdeli.ui.viewmodels.admin.UserUIState
+import com.example.dormdeli.ui.viewmodels.admin.user.AdminUserManagementViewModel
+import com.example.dormdeli.ui.viewmodels.admin.user.UserUIState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

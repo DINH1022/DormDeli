@@ -20,12 +20,12 @@ enum class AdminFeature(
         title = "Quản lý người dùng",
         icon = Icons.Default.People
     ),
-    SHIPPER_APPROVAL(
-        title = "Duyệt shipper",
+    SHIPPER_MANAGEMENT(
+        title = "Quản lý shipper",
         icon = Icons.Default.DeliveryDining
     ),
-    STORE_APPROVAL(
-        title = "Duyệt quán ăn",
+    STORE_MANAGEMENT(
+        title = "Quản lý quán ăn",
         icon = Icons.Default.Store
     ),
     NOTIFICATION(

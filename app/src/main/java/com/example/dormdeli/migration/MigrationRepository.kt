@@ -3,10 +3,12 @@ package com.example.dormdeli.migration
 import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.enums.DeliveryType
 import com.example.dormdeli.enums.FoodCategory
+import com.example.dormdeli.enums.NotificationTarget
 import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.model.Favorite
 import com.example.dormdeli.model.Food
+import com.example.dormdeli.model.Notification
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.example.dormdeli.model.Review
@@ -27,6 +29,7 @@ class MigrationRepository {
     private val shipperCol = db.collection(CollectionName.SHIPPER_PROFILE.value)
     private val orderCol = db.collection(CollectionName.ORDERS.value)
     private val orderItemCol = db.collection(CollectionName.ORDER_ITEM.value)
+    private val notiCol = db.collection(CollectionName.NOTIFICATION.value)
 
     private val imageUrl = "https://github.com/shadcn.png"
 
@@ -40,7 +43,8 @@ class MigrationRepository {
                 favoriteCol,
                 orderCol,
                 orderItemCol,
-                reviewCol
+                reviewCol,
+                notiCol
             )
         for (col in collections) {
             val documents = col.get().await()
@@ -62,6 +66,7 @@ class MigrationRepository {
         mockFavorites()
         mockOrders()
         mockReviews()
+        mockNotifications()
     }
 
     private suspend fun mockUsers() {
@@ -112,6 +117,17 @@ class MigrationRepository {
             ),
             User(
                 "u_seller_2",
+                "Nguyễn Thị Mai",
+                "seller2@test.com",
+                "0874567890",
+                "",
+                "",
+                UserRole.SELLER.value,
+                imageUrl
+            ),
+
+            User(
+                "u_seller_3",
                 "Nguyễn Thị Mai",
                 "seller2@test.com",
                 "0874567890",
@@ -567,7 +583,7 @@ class MigrationRepository {
     private suspend fun mockShippers() {
         val batch = db.batch()
         val shippers = listOf(
-            ShipperProfile("u_shipper_1", false, 150, 3000000),
+            ShipperProfile("u_shipper_1", false, 0, 0),
             ShipperProfile("u_shipper_2", true, 200, 4000000),
             ShipperProfile("u_shipper_3", true, 100, 2000000)
         )
@@ -917,6 +933,74 @@ class MigrationRepository {
             )
         )
         reviews.forEach { batch.set(reviewCol.document(it.id), it) }
+        batch.commit().await()
+    }
+
+    private suspend fun mockNotifications() {
+        val batch = db.batch()
+
+        val notifications = listOf(
+            // ===== ALL =====
+            Notification(
+                id = "noti_all_1",
+                target = NotificationTarget.EVERYONE.value,
+                subject = "Thông báo hệ thống",
+                message = "Hệ thống sẽ bảo trì vào 23:00 tối nay."
+            ),
+            Notification(
+                id = "noti_all_2",
+                target = NotificationTarget.EVERYONE.value,
+                subject = "Cập nhật phiên bản",
+                message = "Ứng dụng đã được cập nhật phiên bản mới."
+            ),
+
+            // ===== USER =====
+            Notification(
+                id = "noti_user_1",
+                target = NotificationTarget.USER.value,
+                subject = "Đơn hàng đã xác nhận",
+                message = "Đơn hàng của bạn đã được cửa hàng xác nhận."
+            ),
+            Notification(
+                id = "noti_user_2",
+                target = NotificationTarget.USER.value,
+                subject = "Đơn hàng đang giao",
+                message = "Shipper đang trên đường giao đơn hàng cho bạn."
+            ),
+
+            // ===== STORE =====
+            Notification(
+                id = "noti_store_1",
+                target = NotificationTarget.STORE.value,
+                subject = "Đơn hàng mới",
+                message = "Bạn có một đơn hàng mới cần xác nhận."
+            ),
+            Notification(
+                id = "noti_store_2",
+                target = NotificationTarget.STORE.value,
+                subject = "Doanh thu hôm nay",
+                message = "Doanh thu cửa hàng hôm nay đã được cập nhật."
+            ),
+
+            // ===== SHIPPER =====
+            Notification(
+                id = "noti_shipper_1",
+                target = NotificationTarget.SHIPPER.value,
+                subject = "Đơn giao mới",
+                message = "Có đơn hàng mới đang chờ bạn nhận."
+            ),
+            Notification(
+                id = "noti_shipper_2",
+                target = NotificationTarget.SHIPPER.value,
+                subject = "Hoàn thành đơn giao",
+                message = "Bạn đã hoàn thành một đơn giao thành công."
+            )
+        )
+
+        notifications.forEach { noti ->
+            batch.set(notiCol.document(noti.id), noti)
+        }
+
         batch.commit().await()
     }
 }

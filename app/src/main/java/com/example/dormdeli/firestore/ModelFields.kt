@@ -111,4 +111,12 @@ object ModelFields {
         const val TOTAL_ORDERS = "totalOrders"
         const val TOTAL_INCOME = "totalIncome"
     }
+
+    object Notification {
+        const val ID = "id"
+        const val TARGET = "target"
+        const val SUBJECT = "subject"
+        const val MESSAGE = "message"
+        const val CREATED_AT = "createdAt"
+    }
 }

@@ -50,7 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.dormdeli.ui.viewmodels.admin.AdminDashboardViewModel
+import com.example.dormdeli.ui.viewmodels.admin.dashboard.AdminDashboardViewModel
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.ui.graphics.Path

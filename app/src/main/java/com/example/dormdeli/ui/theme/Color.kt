@@ -32,3 +32,7 @@ val StarYellow = Color(0xFFFFB300)
 val StatusGreenBg = Color(0xFFE8F5E9)
 val White = Color(0xFFFFFFFF)
 val ErrorLight = Color(0xFFFFEBEE)
+val BluePrimary = Color(0xFF2979FF)
+val UserLight = Color(0xFFE3F2FD)   // Xanh dương rất nhạt cho nền
+val ShipperLight = Color(0xFFEDE7F6) // Tím rất nhạt cho nền
+val RedDark = Color(0xFFC0392B)      // Đỏ đậm cho chữ khi có lỗi

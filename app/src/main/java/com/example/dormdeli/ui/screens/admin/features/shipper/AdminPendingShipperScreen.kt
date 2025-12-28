@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +34,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +46,6 @@ import com.example.dormdeli.ui.theme.BackgroundGray
 import com.example.dormdeli.ui.theme.Black
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.OrangeDark
-import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.theme.Red
 import com.example.dormdeli.ui.theme.TextSecondary
@@ -61,55 +58,12 @@ import com.example.dormdeli.ui.viewmodels.admin.shipper.AdminPendingShipperViewM
 fun AdminPendingShipperScreen(
     viewModel: AdminPendingShipperViewModel = viewModel()
 ) {
+    val pendingList = viewModel.uiState
+
     Scaffold(
         topBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-                shadowElevation = 6.dp,
-                color = Color.Transparent
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    OrangeDark,
-                                    OrangePrimary
-                                )
-                            )
-                        )
-                        .statusBarsPadding()
-                ) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "DUYỆT SHIPPER",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        color = White,
-                                        fontWeight = FontWeight.Black,
-                                        letterSpacing = 1.5.sp // Làm chữ thưa ra nhìn hiện đại hơn
-                                    )
-                                )
-                                // Một đường gạch chân nhỏ trang trí (Optional)
-                                Box(
-                                    modifier = Modifier
-                                        .padding(top = 2.dp)
-                                        .width(30.dp)
-                                        .height(2.dp)
-                                        .background(White.copy(alpha = 0.7f), CircleShape)
-                                )
-                            }
-                        },
-                        navigationIcon = {
-                        },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = Color.Transparent // Bắt buộc để lộ Gradient
-                        )
-                    )
-                }
-            }
+            // Sử dụng Header đã tách riêng
+            PendingShipperHeader(count = pendingList.size)
         },
         containerColor = BackgroundGray
     ) { padding ->
@@ -118,7 +72,6 @@ fun AdminPendingShipperScreen(
                 CircularProgressIndicator(color = OrangePrimary)
             }
         } else {
-            val pendingList = viewModel.uiState
             if (pendingList.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -133,15 +86,71 @@ fun AdminPendingShipperScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(pendingList) { (user, profile) ->
+                    items(pendingList) { (user, _) ->
                         ShipperRequestItem(
                             user = user,
-                            onApprove = { viewModel.approveShipper(user.uid) }, // Đã fix: user.uid
+                            onApprove = { viewModel.approveShipper(user.uid) },
                             onReject = { viewModel.rejectShipper(user.uid) }
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PendingShipperHeader(count: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        // Bo góc dưới 32.dp giống bên ApprovedShipperHeader
+        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+        shadowElevation = 8.dp,
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(OrangeDark, OrangePrimary)
+                    )
+                )
+                .statusBarsPadding()
+                .padding(bottom = 8.dp)
+        ) {
+            CenterAlignedTopAppBar(
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "DUYỆT SHIPPER",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = White,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.5.sp
+                            )
+                        )
+
+                        // Badge hiển thị số lượng đơn đang chờ
+                        Surface(
+                            color = White.copy(alpha = 0.2f),
+                            shape = CircleShape,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text(
+                                text = "$count yêu cầu chờ duyệt",
+                                color = White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
         }
     }
 }
@@ -183,6 +192,7 @@ fun ShipperRequestItem(
                 }
             }
 
+            // ... (Phần nội dung khu vực và nút bấm giữ nguyên như cũ)
             Spacer(modifier = Modifier.height(12.dp))
             Surface(
                 color = WarningLight,
@@ -199,7 +209,6 @@ fun ShipperRequestItem(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Khu vực nút bấm Duyệt / Từ chối
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)

@@ -1,22 +1,21 @@
-package com.example.dormdeli.ui.viewmodels.admin
+package com.example.dormdeli.ui.viewmodels.admin.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.dormdeli.repository.admin.AdminStoreRepository
 import com.example.dormdeli.repository.admin.AdminOrderRepository
-import com.example.dormdeli.repository.admin.ShipperRepository
+import com.example.dormdeli.repository.admin.AdminStoreRepository
 import com.example.dormdeli.repository.admin.AdminUserRepository
-import com.example.dormdeli.ui.viewmodels.admin.state.AdminDashboardState
+import com.example.dormdeli.repository.admin.ShipperRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AdminDashboardViewModel(
-    private val storeRepo: AdminStoreRepository= AdminStoreRepository(),
-    private val shipperRepo:ShipperRepository = ShipperRepository(),
-    private val userRepo:AdminUserRepository= AdminUserRepository(),
-    private val orderRepo:AdminOrderRepository = AdminOrderRepository(),
+    private val storeRepo: AdminStoreRepository = AdminStoreRepository(),
+    private val shipperRepo: ShipperRepository = ShipperRepository(),
+    private val userRepo: AdminUserRepository = AdminUserRepository(),
+    private val orderRepo: AdminOrderRepository = AdminOrderRepository(),
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminDashboardState(isLoading = true))

@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository.admin
 
+import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -8,8 +9,8 @@ import java.util.Calendar
 
 class AdminOrderRepository {
     private val db = FirebaseFirestore.getInstance()
-    private val orderCol = db.collection("orders")
-    private val storeCol = db.collection("stores")
+    private val orderCol = db.collection(CollectionName.ORDERS.value)
+    private val storeCol = db.collection(CollectionName.STORES.value)
 
     suspend fun getTopStoresByRevenue(limit: Int): List<TopStoreRevenue> {
         val ordersSnapshot = orderCol
