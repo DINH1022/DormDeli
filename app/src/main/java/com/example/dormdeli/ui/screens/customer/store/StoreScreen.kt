@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.store
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -36,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.components.*
 import com.example.dormdeli.ui.theme.CardBackground
@@ -45,7 +44,8 @@ import com.example.dormdeli.ui.theme.Green
 import com.example.dormdeli.ui.theme.Red
 import com.example.dormdeli.ui.theme.TextSecondary
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.dormdeli.ui.viewmodels.StoreViewModel
+import com.example.dormdeli.model.Food
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 
 @Composable
@@ -188,8 +188,8 @@ fun StoreScreen(
                 items(foods.size) { index ->
                     FoodItem(
                         food = foods[index],
-                        onImageClick = {foodId ->
-                            onFoodClick(foodId)
+                        onImageClick = {food ->
+                            onFoodClick(food)
                         }
                     )
                 }

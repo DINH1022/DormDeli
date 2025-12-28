@@ -1,44 +1,41 @@
-package com.example.dormdeli.ui.viewmodels
+package com.example.dormdeli.ui.viewmodels.customer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.repository.food.FoodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.collections.plus
 
 class CartViewModel : ViewModel() {
 
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems.asStateFlow()
 
-    fun addToCart(foodId: String, quantity: Int) {
+    fun addToCart(food: Food, quantity: Int) {
         viewModelScope.launch {
-            val currentCart = _cartItems.value.toMutableList()
+            _cartItems.update { currentList ->
+                val existingItem = currentList.find { it.food.id == food.id }
 
-            val existingItem = currentCart.find { it.food.id == foodId }
-
-            if (existingItem != null) {
-                existingItem.quantity += quantity
-                _cartItems.value = currentCart
-            } else {
-                val repo =
-                    FoodRepository() // (Tốt nhất nên khai báo repo ở cấp class thay vì ở đây)
-                val food = repo.getFood(foodId) // Hàm này trả về Food? (có thể null)
-
-                // 3. Kiểm tra null an toàn
-                if (food != null) {
-                    // Nếu food không null, thêm vào giỏ
-                    currentCart.add(CartItem(food, quantity))
-                    _cartItems.value = currentCart
+                if (existingItem != null) {
+                    currentList.map { item ->
+                        if (item.food.id == food.id) {
+                            item.copy(quantity = item.quantity + quantity)
+                        } else {
+                            item
+                        }
+                    }
                 } else {
-                    // Xử lý nếu không tải được món ăn (ví dụ: lỗi mạng hoặc ID sai)
-                    android.util.Log.e("Cart", "Lỗi: Không tìm thấy món ăn với ID $foodId")
+                    currentList + CartItem(food, quantity)
                 }
             }
+
+            // Log để kiểm tra
+            println("Giỏ hàng hiện tại: ${_cartItems.value.size} món")
         }
     }
     fun removeFromCart(cartItem: CartItem) {

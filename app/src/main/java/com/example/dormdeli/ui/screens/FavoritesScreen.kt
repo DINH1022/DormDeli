@@ -11,9 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.FoodItem
 import com.example.dormdeli.ui.components.HomeSearchBar
-import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
+import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

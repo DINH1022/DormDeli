@@ -1,9 +1,8 @@
-package com.example.dormdeli.ui.viewmodels
+package com.example.dormdeli.ui.viewmodels.customer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.repository.food.FoodRepository // Cần import Repo để tải dữ liệu
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,25 +19,18 @@ class FavoriteViewModel : ViewModel() {
     }
 
     // Hàm xử lý chính: Chỉ nhận vào ID
-    fun toggleFavorite(foodId: String) {
+    fun toggleFavorite(food: Food) {
         viewModelScope.launch {
             val currentFavorites = _favoriteItems.value.toMutableList()
 
-            val existingItem = currentFavorites.find { it.id == foodId }
+            val existingItem = currentFavorites.find { it == food }
 
             if (existingItem != null) {
                 currentFavorites.remove(existingItem)
                 _favoriteItems.value = currentFavorites
             } else {
-                val repo = FoodRepository()
-                val foodFromDb = repo.getFood(foodId)
-
-                if (foodFromDb != null) {
-                    currentFavorites.add(foodFromDb)
-                    _favoriteItems.value = currentFavorites
-                } else {
-                    android.util.Log.e("FavoriteVM", "Không tìm thấy món ăn với ID: $foodId")
-                }
+                currentFavorites.add(food)
+                _favoriteItems.value = currentFavorites
             }
         }
     }

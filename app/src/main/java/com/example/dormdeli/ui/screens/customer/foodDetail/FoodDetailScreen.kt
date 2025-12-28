@@ -1,5 +1,7 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.foodDetail
 
+import android.R
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -19,7 +21,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -29,57 +30,52 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.repository.food.FoodRepository
+import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 val OrangePrimary = Color(0xFFFF6347)
 
 @Composable
 fun FoodDetailScreen(
     foodId: String,
+    viewModel: FoodViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onAddToCart: (Int) -> Unit = {},
+    onAddToCart: (Food, Int) -> Unit,
     onSeeReviewsClick: () -> Unit = {},
     isFavorite: Boolean,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: (Food) -> Unit
 ) {
-    // 1. Tạo State để chứa dữ liệu món ăn
-    var food by remember { mutableStateOf<Food?>(null) }
-    var isLoading by remember { mutableStateOf(true) } // State để hiện Loading
-
-    // 2. Gọi Repository trong LaunchedEffect (Chạy ngầm để không đơ ứng dụng)
+    val food = viewModel.food.value
+    var isLoading by remember { mutableStateOf(true) }
     LaunchedEffect(foodId) {
-        val repo = FoodRepository()
         try {
             // Log ID đang gọi để kiểm tra
-            android.util.Log.d("FoodDetail", "Đang tải món ăn với ID: $foodId")
+            Log.d("FoodDetail", "Đang tải món ăn với ID: $foodId")
 
-            food = repo.getFood(foodId)
+            viewModel.getFood(foodId)
 
             if (food == null) {
-                android.util.Log.e("FoodDetail", "Firebase trả về null (Không tìm thấy món)")
+                Log.e("FoodDetail", "Firebase trả về null (Không tìm thấy món)")
             } else {
-                android.util.Log.d("FoodDetail", "Đã tải thành công: ${food?.name}")
+                Log.d("FoodDetail", "Đã tải thành công: ${food?.name}")
             }
         } catch (e: Exception) {
-            // Bắt lỗi crash (như lỗi SecurityException trong log)
-            android.util.Log.e("FoodDetail", "Lỗi khi gọi Firestore: ${e.message}")
+            Log.e("FoodDetail", "Lỗi khi gọi Firestore: ${e.message}")
             e.printStackTrace()
         } finally {
-            // Luôn tắt loading dù thành công hay thất bại
             isLoading = false
         }
     }
 
-    // 3. Logic hiển thị
     if (isLoading) {
-        // Màn hình Loading khi đang tải dữ liệu
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = OrangePrimary)
         }
     } else {
-        // Khi tải xong, kiểm tra nếu food khác null thì hiển thị
         food?.let { currentFood ->
             FoodDetailContent(
                 food = currentFood,
@@ -90,7 +86,6 @@ fun FoodDetailScreen(
                 onToggleFavorite = onToggleFavorite
             )
         } ?: run {
-            // Trường hợp không tìm thấy món ăn (Food = null)
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Food not found", color = Color.Gray)
                 Button(onClick = onBackClick) { Text("Go Back") }
@@ -99,15 +94,14 @@ fun FoodDetailScreen(
     }
 }
 
-// Tách phần giao diện chính ra hàm riêng cho code gọn gàng
 @Composable
 fun FoodDetailContent(
     food: Food,
     onBackClick: () -> Unit,
-    onAddToCart: (Int) -> Unit,
+    onAddToCart: (Food, Int) -> Unit,
     onSeeReviewsClick: () -> Unit,
     isFavorite: Boolean,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: (Food) -> Unit
 ) {
     var quantity by remember { mutableIntStateOf(1) }
     var isExpanded by remember { mutableStateOf(false) }
@@ -135,7 +129,7 @@ fun FoodDetailContent(
                 quantity = quantity,
                 totalPrice = totalPrice,
                 onQuantityChange = { newQuantity -> if (newQuantity >= 1) quantity = newQuantity },
-                onAddToCart = { onAddToCart(quantity) }
+                onAddToCart = { onAddToCart(food, quantity) }
             )
         }
     ) { paddingValues ->
@@ -165,7 +159,7 @@ fun FoodDetailContent(
                 }
                 IconButton(
                     onClick = {
-                        onToggleFavorite()
+                        onToggleFavorite(food)
                         val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                     modifier = Modifier
@@ -257,7 +251,6 @@ fun FoodDetailContent(
     }
 }
 
-// Giữ nguyên hàm BottomBarControl của bạn (không cần sửa)
 @Composable
 fun BottomBarControl(
     quantity: Int,
@@ -265,7 +258,6 @@ fun BottomBarControl(
     onQuantityChange: (Int) -> Unit,
     onAddToCart: () -> Unit
 ) {
-    // ... Code cũ của bạn ...
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -330,7 +322,7 @@ fun BottomBarControl(
                         .height(50.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = android.R.drawable.ic_menu_agenda),
+                        painter = painterResource(id = R.drawable.ic_menu_agenda),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )

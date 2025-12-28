@@ -15,8 +15,8 @@ import com.example.dormdeli.ui.navigation.MainNavigation
 import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.viewmodels.CartViewModel
-import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
+import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {

@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.model.CartItem
-import com.example.dormdeli.ui.viewmodels.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -54,6 +54,9 @@ object ModelFields {
         const val ACTIVE = "active"
         const val REJECTED = "rejected"
         const val CREATED_AT = "createdAt"
+        const val RATING = "rating"
+        const val DELIVERY_FEE = "deliveryFee"
+        const val DELIVERY_TIME = "deliveryTime"
     }
 
     // --- ORDER ---

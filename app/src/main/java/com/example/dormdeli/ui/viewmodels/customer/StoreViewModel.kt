@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.viewmodels
+package com.example.dormdeli.ui.viewmodels.customer
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -15,6 +15,9 @@ class StoreViewModel(
 ) : ViewModel() {
     private val _store = mutableStateOf<Store?>(null)
     val store: State<Store?> = _store
+
+    private val _stores = mutableStateOf<List<Store>>(emptyList())
+    val stores: State<List<Store>> = _stores
 
     private val _foods = mutableStateOf<List<Food>>(emptyList())
     val foods: State<List<Food>> = _foods
@@ -41,6 +44,19 @@ class StoreViewModel(
         )
     }
 
+    fun loadAllStores() {
+        _isLoading.value = true
+        storeRepository.getAllStores(
+            onSuccess = { list ->
+                _stores.value = list
+                _isLoading.value = false
+            },
+            onFailure = {
+                _isLoading.value = false
+                // Xử lý lỗi (log hoặc hiện thông báo)
+            }
+        )
+    }
     fun selectCategory(category: String) {
         try {
             _selectedCategory.value = category

@@ -10,25 +10,23 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.enums.AuthScreen
-import com.example.dormdeli.model.Food
-import com.example.dormdeli.ui.screens.FoodDetailScreen
+import com.example.dormdeli.ui.screens.customer.foodDetail.FoodDetailScreen
 import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
 import com.example.dormdeli.ui.screens.SignUpScreen
-import com.example.dormdeli.ui.screens.HomeScreen
+import com.example.dormdeli.ui.screens.customer.home.HomeScreen
 import com.example.dormdeli.ui.screens.ProfileScreen
 import com.example.dormdeli.ui.screens.ReviewScreen
-import com.example.dormdeli.ui.screens.StoreScreen
+import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
 import com.example.dormdeli.ui.screens.AddNewLocationScreen
-import com.example.dormdeli.ui.viewmodels.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
-import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
-import com.example.dormdeli.ui.viewmodels.StoreViewModel
+import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -273,7 +271,7 @@ fun MainNavigation(
             val storeViewModel: StoreViewModel = viewModel()
 
             StoreScreen(
-                storeId = "7ySqoyGPz2iNkO8yZ02D",
+                storeId = "$storeId",
                 viewModel = storeViewModel,
                 onBack = {
                     navController.popBackStack()
@@ -281,10 +279,8 @@ fun MainNavigation(
                 onMenuClick = {
                     Toast.makeText(context, "Menu clicked", Toast.LENGTH_SHORT).show()
                 } ,
-                onFoodClick = { selectedFoodId ->
-                    if (selectedFoodId.isNotEmpty()) {
-                        navController.navigate(Screen.FoodDetail.createRoute(selectedFoodId))
-                    }
+                onFoodClick = { foodId ->
+                        navController.navigate(Screen.FoodDetail.createRoute(foodId))
                 }
             )
         }
@@ -296,7 +292,6 @@ fun MainNavigation(
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
 
-
             val favoriteItems by favoriteViewModel.favoriteItems.collectAsState()
             val isFavorite = favoriteItems.any { it.id == foodId }
 
@@ -305,15 +300,15 @@ fun MainNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAddToCart = { quantity ->
-                    cartViewModel.addToCart(foodId, quantity)
+                onAddToCart = {food, quantity ->
+                    cartViewModel.addToCart( food, quantity)
                     Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
                 isFavorite = isFavorite,
-                onToggleFavorite = { favoriteViewModel.toggleFavorite(foodId) }
+                onToggleFavorite = {food ->  favoriteViewModel.toggleFavorite(food) }
             )
         }
 
