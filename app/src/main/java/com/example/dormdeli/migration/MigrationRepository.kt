@@ -1,11 +1,11 @@
 package com.example.dormdeli.migration
 
-import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.enums.DeliveryType
 import com.example.dormdeli.enums.FoodCategory
 import com.example.dormdeli.enums.NotificationTarget
 import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.model.Favorite
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.model.Notification
@@ -36,7 +36,7 @@ class MigrationRepository {
     suspend fun clearOldData() {
         val collections =
             listOf(
-                userCol,
+//                userCol,
                 storeCol,
                 foodCol,
                 shipperCol,
@@ -59,7 +59,7 @@ class MigrationRepository {
 
     suspend fun mockData() {
         clearOldData()
-        mockUsers()
+//        mockUsers()
         mockStores()
         mockFoods()
         mockShippers()
@@ -620,124 +620,327 @@ class MigrationRepository {
     }
 
     private suspend fun mockOrders() {
+        val DAY_IN_MS = 86400000L
+        val now = System.currentTimeMillis()
+
         val orders = listOf(
+            // --- HÔM NAY (Day 0) ---
             Order(
-                id = "o_1",
+                id = "o_today_1",
                 userId = "u_student_1",
                 storeId = "s_com_tam",
                 shipperId = "u_shipper_1",
-                status = OrderStatus.COMPLETED.value,
+                status = OrderStatus.DELIVERING.value,
                 deliveryType = DeliveryType.ROOM.value,
                 deliveryNote = "Gọi cửa 2 tiếng",
                 totalPrice = 65000,
                 paymentMethod = "Cash",
-                createdAt = System.currentTimeMillis() - 86400000
+                createdAt = now - 1800000 // 30 phút trước
             ),
             Order(
-                id = "o_2",
+                id = "o_today_2",
                 userId = "u_student_2",
                 storeId = "s_tra_sua",
                 shipperId = "u_shipper_2",
-                status = OrderStatus.COMPLETED.value,
+                status = OrderStatus.CONFIRMED.value,
                 deliveryType = DeliveryType.ROOM.value,
                 deliveryNote = "",
-                totalPrice = 75000,
+                totalPrice = 45000,
                 paymentMethod = "Momo",
-                createdAt = System.currentTimeMillis() - 172800000
+                createdAt = now - 3600000 // 1 giờ trước
             ),
+
+            // --- 1 NGÀY TRƯỚC (Day 1) ---
             Order(
-                id = "o_3",
+                id = "o_1d_1",
                 userId = "u_student_3",
                 storeId = "s_pho",
                 shipperId = "u_shipper_1",
                 status = OrderStatus.COMPLETED.value,
                 deliveryType = DeliveryType.PICKUP.value,
                 deliveryNote = "",
-                totalPrice = 80000,
+                totalPrice = 55000,
                 paymentMethod = "ZaloPay",
-                createdAt = System.currentTimeMillis() - 259200000
+                createdAt = now - (1 * DAY_IN_MS + 7200000)
             ),
+
+            // --- 2 NGÀY TRƯỚC (Day 2) ---
             Order(
-                id = "o_4",
+                id = "o_2d_1",
                 userId = "u_student_4",
                 storeId = "s_ga_ran",
                 shipperId = "u_shipper_3",
-                status = OrderStatus.DELIVERING.value,
+                status = OrderStatus.COMPLETED.value,
                 deliveryType = DeliveryType.ROOM.value,
                 deliveryNote = "Để trước cửa",
-                totalPrice = 95000,
+                totalPrice = 120000,
                 paymentMethod = "Cash",
-                createdAt = System.currentTimeMillis() - 1800000
+                createdAt = now - (2 * DAY_IN_MS + 10800000)
             ),
             Order(
-                id = "o_5",
+                id = "o_2d_2",
                 userId = "u_student_5",
                 storeId = "s_bun",
                 shipperId = "u_shipper_2",
-                status = OrderStatus.CONFIRMED.value,
+                status = OrderStatus.COMPLETED.value,
                 deliveryType = DeliveryType.ROOM.value,
                 deliveryNote = "",
-                totalPrice = 75000,
+                totalPrice = 40000,
                 paymentMethod = "Momo",
-                createdAt = System.currentTimeMillis() - 900000
+                createdAt = now - (2 * DAY_IN_MS + 14400000)
+            ),
+            Order(
+                id = "o_2d_3",
+                userId = "u_student_1",
+                storeId = "s_tra_sua",
+                shipperId = "u_shipper_1",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.ROOM.value,
+                deliveryNote = "Ít đường",
+                totalPrice = 35000,
+                paymentMethod = "Cash",
+                createdAt = now - (2 * DAY_IN_MS + 18000000)
+            ),
+
+            // --- 3 NGÀY TRƯỚC (Day 3) ---
+            Order(
+                id = "o_3d_1",
+                userId = "u_student_2",
+                storeId = "s_com_tam",
+                shipperId = "u_shipper_3",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.PICKUP.value,
+                deliveryNote = "",
+                totalPrice = 65000,
+                paymentMethod = "Momo",
+                createdAt = now - (3 * DAY_IN_MS + 21600000)
+            ),
+
+            // --- 4 NGÀY TRƯỚC (Day 4) ---
+            Order(
+                id = "o_4d_1",
+                userId = "u_student_4",
+                storeId = "s_pho",
+                shipperId = "u_shipper_1",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.ROOM.value,
+                deliveryNote = "",
+                totalPrice = 80000,
+                paymentMethod = "ZaloPay",
+                createdAt = now - (4 * DAY_IN_MS + 25200000)
+            ),
+            Order(
+                id = "o_4d_2",
+                userId = "u_student_3",
+                storeId = "s_bun",
+                shipperId = "u_shipper_2",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.ROOM.value,
+                deliveryNote = "Không hành",
+                totalPrice = 45000,
+                paymentMethod = "Cash",
+                createdAt = now - (4 * DAY_IN_MS + 28800000)
+            ),
+
+            // --- 5 NGÀY TRƯỚC (Day 5) ---
+            Order(
+                id = "o_5d_1",
+                userId = "u_student_5",
+                storeId = "s_ga_ran",
+                shipperId = "u_shipper_3",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.ROOM.value,
+                deliveryNote = "",
+                totalPrice = 150000,
+                paymentMethod = "Momo",
+                createdAt = now - (5 * DAY_IN_MS + 32400000)
+            ),
+
+            // --- 6 NGÀY TRƯỚC (Day 6) ---
+            Order(
+                id = "o_6d_1",
+                userId = "u_student_1",
+                storeId = "s_tra_sua",
+                shipperId = "u_shipper_1",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.PICKUP.value,
+                deliveryNote = "",
+                totalPrice = 70000,
+                paymentMethod = "ZaloPay",
+                createdAt = now - (6 * DAY_IN_MS + 36000000)
+            ),
+            Order(
+                id = "o_6d_2",
+                userId = "u_student_2",
+                storeId = "s_com_tam",
+                shipperId = "u_shipper_2",
+                status = OrderStatus.COMPLETED.value,
+                deliveryType = DeliveryType.ROOM.value,
+                deliveryNote = "Xin thêm nước mắm",
+                totalPrice = 65000,
+                paymentMethod = "Cash",
+                createdAt = now - (6 * DAY_IN_MS + 39600000)
             )
         )
 
-        // 2. Danh sách các OrderItems (Sử dụng orderId để liên kết)
         val orderItems = listOf(
-            // Items cho Order 1
+            // Items cho o_today_1 (totalPrice = 65000)
             OrderItem(
-                orderId = "o_1",
+                orderId = "o_today_1",
                 foodId = "f_com_suon",
                 foodName = "Cơm Sườn",
+                price = 35000,
+                quantity = 1
+            ),
+            OrderItem(
+                orderId = "o_today_1",
+                foodId = "f_tra_da",
+                foodName = "Trà Đá",
+                price = 30000,
+                quantity = 1
+            ),
+
+            // Items cho o_today_2 (totalPrice = 45000)
+            OrderItem(
+                orderId = "o_today_2",
+                foodId = "f_tra_sua_o_long",
+                foodName = "Trà Sữa Ô Long",
+                price = 25000,
+                quantity = 1
+            ),
+            OrderItem(
+                orderId = "o_today_2",
+                foodId = "f_tra_dao",
+                foodName = "Trà Đào",
+                price = 20000,
+                quantity = 1
+            ),
+
+            // Items cho o_1d_1 (totalPrice = 55000)
+            OrderItem(
+                orderId = "o_1d_1",
+                foodId = "f_pho_dac_biet",
+                foodName = "Phở Đặc Biệt",
+                price = 55000,
+                quantity = 1
+            ),
+
+            // Items cho o_2d_1 (totalPrice = 120000)
+            OrderItem(
+                orderId = "o_2d_1",
+                foodId = "f_ga_ran_6_mieng",
+                foodName = "Gà Rán 6 Miếng",
+                price = 120000,
+                quantity = 1
+            ),
+
+            // Items cho o_2d_2 (totalPrice = 40000)
+            OrderItem(
+                orderId = "o_2d_2",
+                foodId = "f_bun_cha",
+                foodName = "Bún Chả",
+                price = 40000,
+                quantity = 1
+            ),
+
+            // Items cho o_2d_3 (totalPrice = 35000)
+            OrderItem(
+                orderId = "o_2d_3",
+                foodId = "f_tra_sua_truyen_thong",
+                foodName = "Trà Sữa Truyền Thống",
+                price = 35000,
+                quantity = 1,
+                note = "Ít đường"
+            ),
+
+            // Items cho o_3d_1 (totalPrice = 65000)
+            OrderItem(
+                orderId = "o_3d_1",
+                foodId = "f_com_tam_suon_bi",
+                foodName = "Cơm Tấm Sườn Bì",
+                price = 40000,
+                quantity = 1
+            ),
+            OrderItem(
+                orderId = "o_3d_1",
+                foodId = "f_com_tam_ga",
+                foodName = "Cơm Tấm Gà",
+                price = 25000,
+                quantity = 1
+            ),
+
+            // Items cho o_4d_1 (totalPrice = 80000)
+            OrderItem(
+                orderId = "o_4d_1",
+                foodId = "f_pho_tai_nam",
+                foodName = "Phở Tái Nạm",
+                price = 50000,
+                quantity = 1
+            ),
+            OrderItem(
+                orderId = "o_4d_1",
+                foodId = "f_pho_ga",
+                foodName = "Phở Gà",
+                price = 30000,
+                quantity = 1
+            ),
+
+            // Items cho o_4d_2 (totalPrice = 45000)
+            OrderItem(
+                orderId = "o_4d_2",
+                foodId = "f_bun_bo_hue",
+                foodName = "Bún Bò Huế",
+                price = 45000,
+                quantity = 1,
+                note = "Không hành"
+            ),
+
+            // Items cho o_5d_1 (totalPrice = 150000)
+            OrderItem(
+                orderId = "o_5d_1",
+                foodId = "f_ga_ran_9_mieng",
+                foodName = "Gà Rán 9 Miếng",
+                price = 100000,
+                quantity = 1
+            ),
+            OrderItem(
+                orderId = "o_5d_1",
+                foodId = "f_khoai_tay_chien",
+                foodName = "Khoai Tây Chiên",
                 price = 30000,
                 quantity = 1
             ),
             OrderItem(
-                orderId = "o_1",
-                foodId = "f_com_ga",
-                foodName = "Cơm Gà",
-                price = 35000,
+                orderId = "o_5d_1",
+                foodId = "f_pepsi",
+                foodName = "Pepsi",
+                price = 20000,
                 quantity = 1
             ),
-            // Items cho Order 2
+
+            // Items cho o_6d_1 (totalPrice = 70000)
             OrderItem(
-                orderId = "o_2",
-                foodId = "f_tra_sua_o_long",
-                foodName = "Trà Sữa Ô Long",
-                price = 25000,
+                orderId = "o_6d_1",
+                foodId = "f_tra_sua_matcha",
+                foodName = "Trà Sữa Matcha",
+                price = 35000,
                 quantity = 2
             ),
+
+            // Items cho o_6d_2 (totalPrice = 65000)
             OrderItem(
-                orderId = "o_2",
-                foodId = "f_che_ba_mau",
-                foodName = "Chè Ba Màu",
-                price = 18000,
-                quantity = 1,
-                note = "Ít đường"
-            ),
-            // Items cho Order 3
-            OrderItem(
-                orderId = "o_3",
-                foodId = "f_pho_dac_biet",
-                foodName = "Phở Đặc Biệt",
+                orderId = "o_6d_2",
+                foodId = "f_com_tam_suon_trung",
+                foodName = "Cơm Tấm Sườn Trứng",
                 price = 45000,
-                quantity = 1
+                quantity = 1,
+                note = "Xin thêm nước mắm"
             ),
-            // Items cho Order 4
             OrderItem(
-                orderId = "o_4",
-                foodId = "f_ga_ran_3_mieng",
-                foodName = "Gà Rán 3 Miếng",
-                price = 65000,
-                quantity = 1
-            ),
-            // Items cho Order 5
-            OrderItem(
-                orderId = "o_5",
-                foodId = "f_bun_bo_hue",
-                foodName = "Bún Bò Huế",
-                price = 35000,
+                orderId = "o_6d_2",
+                foodId = "f_nuoc_ngot",
+                foodName = "Nước Ngọt",
+                price = 20000,
                 quantity = 1
             )
         )

@@ -125,7 +125,7 @@ fun AdminDashboardScreen(
                         val todayOrders = uiState.weeklyOrders.lastOrNull() ?: 0
                         StatCard(
                             title = "Đơn hàng tuần này",
-                            value = formatNumber(uiState.weeklyOrders.sum()),
+                            value = formatNumber(todayOrders),
                             change = "$todayOrders đơn hôm nay",
                             icon = Icons.Default.Receipt,
                             iconColor = OrangePrimary,

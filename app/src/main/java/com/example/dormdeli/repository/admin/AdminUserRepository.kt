@@ -2,6 +2,7 @@ package com.example.dormdeli.repository.admin
 
 import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.model.User
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -17,7 +18,7 @@ class AdminUserRepository {
             System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
 
         return userCol
-            .whereGreaterThanOrEqualTo("createdAt", sevenDaysAgo)
+            .whereGreaterThanOrEqualTo(ModelFields.User.CREATED_AT, sevenDaysAgo)
             .get()
             .await()
             .size()
@@ -25,7 +26,7 @@ class AdminUserRepository {
 
     suspend fun getPureUsers(): List<User> {
         val allUsers = db.collection(CollectionName.USERS.value)
-            .whereNotEqualTo("role", UserRole.ADMIN.value)
+            .whereNotEqualTo(ModelFields.User.ROLE, UserRole.ADMIN.value)
             .get().await().toObjects(User::class.java)
 
         val shipperIds = shipperCol
@@ -45,7 +46,7 @@ class AdminUserRepository {
     suspend fun updateUserStatus(uid: String, isActive: Boolean) {
         FirebaseFirestore.getInstance().collection(CollectionName.USERS.value)
             .document(uid)
-            .update("active", isActive)
+            .update(ModelFields.User.ACTIVE, isActive)
             .await()
     }
 

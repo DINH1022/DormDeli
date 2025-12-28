@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository.admin
 
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
@@ -14,15 +15,15 @@ class AdminOrderRepository {
 
     suspend fun getTopStoresByRevenue(limit: Int): List<TopStoreRevenue> {
         val ordersSnapshot = orderCol
-            .whereEqualTo("status", "completed")
+            .whereEqualTo(ModelFields.Order.STATUS, OrderStatus.COMPLETED.value)
             .get()
             .await()
 
         val revenueMap = mutableMapOf<String, Pair<Long, Int>>()
 
         for (doc in ordersSnapshot.documents) {
-            val storeId = doc.getString("storeId") ?: continue
-            val price = doc.getLong("totalPrice") ?: 0
+            val storeId = doc.getString(ModelFields.Order.STORE_ID) ?: continue
+            val price = doc.getLong(ModelFields.Order.TOTAL_PRICE) ?: 0
 
             val current = revenueMap[storeId]
             if (current == null) {
@@ -52,38 +53,40 @@ class AdminOrderRepository {
                 )
             )
         }
-
+        println("Found ${result.size} top stores")
         return result
     }
 
     suspend fun getWeeklyRevenue(): List<Long> {
         val calendar = Calendar.getInstance()
+        calendar.firstDayOfWeek = Calendar.MONDAY
 
-        // Đưa về đầu tuần (Thứ 2)
-        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
+
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        if (calendar.timeInMillis > System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, -7)
+        }
 
         val startOfWeek = calendar.timeInMillis
         val today = System.currentTimeMillis()
 
         val revenuePerDay = MutableList(7) { 0L }
 
-        // Lấy tất cả orders từ đầu tuần, filter trong code thay vì query phức tạp
         val orders = orderCol
-            .whereGreaterThanOrEqualTo("createdAt", startOfWeek)
+            .whereGreaterThanOrEqualTo(ModelFields.Order.CREATED_AT, startOfWeek)
             .get()
             .await()
 
         for (doc in orders.documents) {
-            val createdAt = doc.getLong("createdAt") ?: continue
-            val status = doc.getString("status") ?: continue
-            val price = doc.getLong("totalPrice") ?: 0
+            val createdAt = doc.getLong(ModelFields.Order.CREATED_AT) ?: continue
+            val status = doc.getString(ModelFields.Order.STATUS) ?: continue
+            val price = doc.getLong(ModelFields.Order.TOTAL_PRICE) ?: 0
 
-            // Chỉ tính đơn đã hoàn thành
-            if (status != "completed") continue
+            if (status != OrderStatus.COMPLETED.value) continue
             if (createdAt > today) continue
 
             val diffDay = ((createdAt - startOfWeek) / (1000 * 60 * 60 * 24)).toInt()
@@ -92,31 +95,37 @@ class AdminOrderRepository {
                 revenuePerDay[diffDay] += price
             }
         }
-
+        println("Found ${revenuePerDay.size} revenue days")
         return revenuePerDay
     }
 
     suspend fun getWeeklyOrderCount(): List<Int> {
         val calendar = Calendar.getInstance()
-        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        calendar.firstDayOfWeek = Calendar.MONDAY
+
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
 
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        if (calendar.timeInMillis > System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, -7)
+        }
+
         val startOfWeek = calendar.timeInMillis
         val today = System.currentTimeMillis()
-
+        println("Start of the week ${startOfWeek}")
+        println("Today time ${today}")
         val ordersPerDay = MutableList(7) { 0 }
 
-        // Query đơn giản hơn, không cần composite index
         val orders = orderCol
-            .whereGreaterThanOrEqualTo("createdAt", startOfWeek)
+            .whereGreaterThanOrEqualTo(ModelFields.Order.CREATED_AT, startOfWeek)
             .get()
             .await()
-
+        println("Number of orders in this week ${orders.size()}")
         for (doc in orders.documents) {
-            val createdAt = doc.getLong("createdAt") ?: continue
+            val createdAt = doc.getLong(ModelFields.Order.CREATED_AT) ?: continue
             if (createdAt > today) continue
 
             val diffDay = ((createdAt - startOfWeek) / (1000 * 60 * 60 * 24)).toInt()
@@ -125,7 +134,7 @@ class AdminOrderRepository {
                 ordersPerDay[diffDay]++
             }
         }
-
+        println("Total orders in week ${ordersPerDay.sum()}")
         return ordersPerDay
     }
 

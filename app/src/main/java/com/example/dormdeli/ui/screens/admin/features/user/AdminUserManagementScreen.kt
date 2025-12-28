@@ -1,9 +1,5 @@
 package com.example.dormdeli.ui.screens.admin.features.user
 
-
-// Import các màu sắc bạn đã định nghĩa
-
-// Import ViewModel và Model
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +25,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,6 +62,8 @@ fun AdminUserManagementScreen(
 ) {
     val users by viewModel.displayUsers.collectAsState()
     val searchTerm by viewModel.searchTerm.collectAsState()
+    // Thêm state loading từ ViewModel
+    val isLoading by viewModel.isLoading.collectAsState()
 
     Column(
         modifier = Modifier
@@ -74,7 +73,7 @@ fun AdminUserManagementScreen(
     ) {
         OutlinedTextField(
             value = searchTerm,
-            onValueChange = { viewModel.onSearchTermChange(it) }, // Đã sửa tên hàm
+            onValueChange = { viewModel.onSearchTermChange(it) },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Tìm kiếm khách hàng...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -89,15 +88,25 @@ fun AdminUserManagementScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
-            items(users) { userState ->
-                UserItemCard(
-                    userState = userState,
-                    onToggleStatus = { viewModel.toggleUserStatus(userState) }
-                )
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = OrangePrimary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(users) { userState ->
+                    UserItemCard(
+                        userState = userState,
+                        onToggleStatus = { viewModel.toggleUserStatus(userState) }
+                    )
+                }
             }
         }
     }
@@ -124,9 +133,9 @@ fun UserItemCard(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically // Căn giữa theo chiều dọc cho toàn bộ Row
         ) {
-            // Avatar Placeholder
+            // Avatar
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -136,19 +145,26 @@ fun UserItemCard(
                 Icon(Icons.Default.Person, contentDescription = null, tint = Purple40)
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Nội dung chính
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
                     Text(
                         text = user.fullName,
-                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                        maxLines = 1,
+                        // Quan trọng: Giúp text không chiếm hết không gian của tag
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-
-                    // Status Tag
                     StatusTag(isActive = user.active)
                 }
+
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(text = user.email, color = TextSecondary, fontSize = 13.sp)
 
@@ -156,16 +172,20 @@ fun UserItemCard(
                     text = "Khách hàng • ${userState.orderCount} đơn hàng",
                     color = TextSecondary,
                     fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
 
-            // Lock/Unlock Button
-            IconButton(onClick = onToggleStatus) {
+            // Nút chuyển đổi trạng thái
+            IconButton(
+                onClick = onToggleStatus,
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(
                     imageVector = if (user.active) Icons.Default.LockOpen else Icons.Default.Lock,
                     contentDescription = null,
-                    tint = if (user.active) Green else Red
+                    tint = if (user.active) Green else Red,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -180,12 +200,18 @@ fun StatusTag(isActive: Boolean) {
 
     Surface(
         color = bgColor,
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(6.dp) // Bo góc nhẹ hơn nhìn sẽ hiện đại hơn
     ) {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = TextStyle(color = textColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = TextStyle(
+                color = textColor,
+                fontSize = 10.sp, // Giảm nhẹ size để tránh bị thô
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            ),
+            maxLines = 1
         )
     }
 }
