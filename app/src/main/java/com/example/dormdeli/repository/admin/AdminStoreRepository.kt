@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository.admin
 
+import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.model.Store
@@ -10,6 +11,7 @@ import kotlinx.coroutines.tasks.await
 class AdminStoreRepository {
     private val db = FirebaseFirestore.getInstance()
     private val storeCol= db.collection(CollectionName.STORES.value)
+    private val userCol= db.collection(CollectionName.USERS.value)
 
     suspend fun countPendingStores(): Int {
         return storeCol
@@ -40,15 +42,18 @@ class AdminStoreRepository {
      */
     suspend fun approveStore(storeId: String) {
         try {
-            storeCol.document(storeId)
-                .update(
-                    mapOf(
-                        ModelFields.Store.APPROVED to true
-                    )
-                )
-                .await()
+            val storeSnapshot = storeCol.document(storeId).get().await()
+            val ownerId = storeSnapshot.getString(ModelFields.Store.OWNER_ID)
+                ?: throw Exception("Không tìm thấy mã chủ sở hữu của cửa hàng này.")
+            db.runTransaction { transaction ->
+                val storeRef = storeCol.document(storeId)
+                val userRef = userCol.document(ownerId)
+                transaction.update(storeRef, ModelFields.Store.APPROVED, true)
+                transaction.update(userRef, ModelFields.User.ROLE, UserRole.SELLER.value)
+            }.await()
+
         } catch (e: Exception) {
-            throw Exception("Không thể duyệt cửa hàng: ${e.message}")
+            throw Exception("Lỗi khi duyệt cửa hàng: ${e.message}")
         }
     }
 

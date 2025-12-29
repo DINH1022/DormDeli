@@ -7,11 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.ShipperProfile
 import com.example.dormdeli.model.User
-import com.example.dormdeli.repository.admin.ShipperRepository
+import com.example.dormdeli.repository.admin.AdminShipperRepository
 import kotlinx.coroutines.launch
 
 class ApprovedShipperViewModel(
-    private val shipperRepo: ShipperRepository = ShipperRepository()
+    private val shipperRepo: AdminShipperRepository = AdminShipperRepository()
 ) : ViewModel() {
 
     var uiState by mutableStateOf<ApprovedShipperUiState>(ApprovedShipperUiState.Loading)

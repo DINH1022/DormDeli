@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository.admin
 
+import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.firestore.ModelFields
 import com.example.dormdeli.model.ShipperProfile
@@ -7,7 +8,7 @@ import com.example.dormdeli.model.User
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-class ShipperRepository {
+class AdminShipperRepository {
     private val db = FirebaseFirestore.getInstance()
     private val shipperCol = db.collection(CollectionName.SHIPPER_PROFILE.value)
     private val userCol = db.collection(CollectionName.USERS.value)
@@ -56,7 +57,16 @@ class ShipperRepository {
     }
 
     suspend fun approveShipper(userId: String) {
-        shipperCol.document(userId).update(ModelFields.ShipperProfile.IS_APPROVED, true).await()
+        try {
+            db.runTransaction { transaction ->
+                val shipperRef = shipperCol.document(userId)
+                val userRef = userCol.document(userId)
+                transaction.update(shipperRef, ModelFields.ShipperProfile.IS_APPROVED, true)
+                transaction.update(userRef, ModelFields.User.ROLE, UserRole.SHIPPER.value)
+            }.await()
+        } catch (e: Exception) {
+            throw Exception("Không thể duyệt shipper: ${e.message}")
+        }
     }
 
     suspend fun rejectShipper(userId: String) {

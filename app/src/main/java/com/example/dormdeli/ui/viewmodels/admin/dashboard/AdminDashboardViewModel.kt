@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.repository.admin.AdminOrderRepository
 import com.example.dormdeli.repository.admin.AdminStoreRepository
 import com.example.dormdeli.repository.admin.AdminUserRepository
-import com.example.dormdeli.repository.admin.ShipperRepository
+import com.example.dormdeli.repository.admin.AdminShipperRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class AdminDashboardViewModel(
     private val storeRepo: AdminStoreRepository = AdminStoreRepository(),
-    private val shipperRepo: ShipperRepository = ShipperRepository(),
+    private val shipperRepo: AdminShipperRepository = AdminShipperRepository(),
     private val userRepo: AdminUserRepository = AdminUserRepository(),
     private val orderRepo: AdminOrderRepository = AdminOrderRepository(),
 ): ViewModel() {
