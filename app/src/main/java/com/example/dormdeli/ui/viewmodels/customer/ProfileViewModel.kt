@@ -1,12 +1,14 @@
-package com.example.dormdeli.model
+package com.example.dormdeli.ui.viewmodels.customer
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.model.User
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
 
-class ProfileView : ViewModel() {
+class ProfileViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
 
@@ -22,12 +24,23 @@ class ProfileView : ViewModel() {
     private val _updateSuccess = mutableStateOf(false)
     val updateSuccess: State<Boolean> = _updateSuccess
 
+    val mockUser = User(
+        "u_student_1",
+        "Nguyễn Văn An",
+        "student1@test.com",
+        "0901234567",
+        "A1",
+        "402",
+        UserRole.STUDENT.value,
+        ""
+    )
+
     init {
         loadUserProfile()
     }
 
     fun loadUserProfile() {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = mockUser//authRepository.getCurrentUser()
         if (currentUser != null) {
             _isLoading.value = true
             userRepository.getUserById(
@@ -45,7 +58,7 @@ class ProfileView : ViewModel() {
     }
 
     fun updateUserProfile(fullName: String, email: String, dormBlock: String, roomNumber: String, avatarUrl: String) {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = mockUser//authRepository.getCurrentUser()
         if (currentUser != null) {
             _isLoading.value = true
             _updateSuccess.value = false

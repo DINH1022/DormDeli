@@ -18,7 +18,7 @@ import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
 import com.example.dormdeli.ui.screens.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
-import com.example.dormdeli.ui.screens.ProfileScreen
+import com.example.dormdeli.ui.screens.customer.profile.ProfileScreen
 import com.example.dormdeli.ui.screens.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
