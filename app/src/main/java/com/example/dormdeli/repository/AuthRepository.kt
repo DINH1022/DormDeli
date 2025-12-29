@@ -1,6 +1,8 @@
 package com.example.dormdeli.repository
 
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -63,6 +65,23 @@ class AuthRepository {
             }
     }
 
+    // Sign in with Google Credential
+    fun signInWithGoogle(
+        account: GoogleSignInAccount,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onSuccess()
+                } else {
+                    onFailure(task.exception ?: Exception("Google sign in failed"))
+                }
+            }
+    }
+
     // Gửi OTP đến số điện thoại
     fun sendPhoneVerificationCode(
         phoneNumber: String,
@@ -120,4 +139,3 @@ class AuthRepository {
     // Kiểm tra đã đăng nhập chưa
     fun isSignedIn(): Boolean = auth.currentUser != null
 }
-
