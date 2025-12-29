@@ -1,12 +1,13 @@
 package com.example.dormdeli.repository
 
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import java.util.concurrent.TimeUnit
-
+import com.google.firebase.auth.GoogleAuthProvider
 class AuthRepository {
 
     private val auth = FirebaseAuth.getInstance()
@@ -59,6 +60,22 @@ class AuthRepository {
                         }
                 } else {
                     onFailure(task.exception ?: Exception("Đăng ký thất bại"))
+                }
+            }
+    }
+
+    fun signInWithGoogle(
+        account: GoogleSignInAccount,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onSuccess()
+                } else {
+                    onFailure(task.exception ?: Exception("Google sign in failed"))
                 }
             }
     }

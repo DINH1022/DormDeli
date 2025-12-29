@@ -55,7 +55,7 @@ class MigrationRepository {
 
     suspend fun mockData() {
         clearOldData()
-        mockUsers()
+        //mockUsers()
         mockStores()
         mockFoods()
         mockShippers()
@@ -64,113 +64,113 @@ class MigrationRepository {
         mockReviews()
     }
 
-    private suspend fun mockUsers() {
-        val batch = db.batch()
-        val users = listOf(
-            // Students: Có đầy đủ thông tin phòng
-            User(
-                "u_student_1",
-                "Nguyễn Văn An",
-                "student1@test.com",
-                "0901234567",
-                "A1",
-                "402",
-                UserRole.STUDENT.value,
-                imageUrl
-            ),
-            User(
-                "u_student_2",
-                "Trần Thị Bình",
-                "student2@test.com",
-                "0902345678",
-                "B2",
-                "305",
-                UserRole.STUDENT.value,
-                imageUrl
-            ),
-            User(
-                "u_student_3",
-                "Lê Minh Châu",
-                "student3@test.com",
-                "0903456789",
-                "A1",
-                "501",
-                UserRole.STUDENT.value,
-                imageUrl
-            ),
-
-            // Sellers: Không có số phòng (để trống dormBlock, roomNumber)
-            User(
-                "u_seller_1",
-                "Trần Chủ Quán",
-                "seller1@test.com",
-                "0873232980",
-                "",
-                "",
-                UserRole.SELLER.value,
-                imageUrl
-            ),
-            User(
-                "u_seller_2",
-                "Nguyễn Thị Mai",
-                "seller2@test.com",
-                "0874567890",
-                "",
-                "",
-                UserRole.SELLER.value,
-                imageUrl
-            ),
-
-            // Shippers
-            User(
-                "u_shipper_1",
-                "Lê Giao Hàng",
-                "shipper2@test.com",
-                "0881234567",
-                "B2",
-                "17",
-                UserRole.SHIPPER.value,
-                imageUrl
-            ),
-            User(
-                "u_shipper_2",
-                "Lê Giao Hàng 2",
-                "shipper1@test.com",
-                "0881234567",
-                "B2",
-                "17",
-                UserRole.SHIPPER.value,
-                imageUrl
-            ),
-            User(
-                "u_shipper_3",
-                "Lê Giao Hàng 3",
-                "shipper3@test.com",
-                "0881234567",
-                "B2",
-                "17",
-                UserRole.SHIPPER.value,
-                imageUrl
-            ),
-
-            // Admin
-            User(
-                "u_admin_1",
-                "Admin System",
-                "admin@test.com",
-                "0890000000",
-                "B3",
-                "A5",
-                UserRole.ADMIN.value,
-                imageUrl
-            )
-        )
-
-        users.forEach { user ->
-            batch.set(userCol.document(user.uid), user)
-        }
-        batch.commit().await()
-    }
+//    private suspend fun mockUsers() {
+//        val batch = db.batch()
+//        val users = listOf(
+//            // Students: Có đầy đủ thông tin phòng
+//            User(
+//                "u_student_1",
+//                "Nguyễn Văn An",
+//                "student1@test.com",
+//                "0901234567",
+//                "A1",
+//                "402",
+//                UserRole.STUDENT.value,
+//                imageUrl
+//            ),
+//            User(
+//                "u_student_2",
+//                "Trần Thị Bình",
+//                "student2@test.com",
+//                "0902345678",
+//                "B2",
+//                "305",
+//                UserRole.STUDENT.value,
+//                imageUrl
+//            ),
+//            User(
+//                "u_student_3",
+//                "Lê Minh Châu",
+//                "student3@test.com",
+//                "0903456789",
+//                "A1",
+//                "501",
+//                UserRole.STUDENT.value,
+//                imageUrl
+//            ),
+//
+//            // Sellers: Không có số phòng (để trống dormBlock, roomNumber)
+//            User(
+//                "u_seller_1",
+//                "Trần Chủ Quán",
+//                "seller1@test.com",
+//                "0873232980",
+//                "",
+//                "",
+//                UserRole.SELLER.value,
+//                imageUrl
+//            ),
+//            User(
+//                "u_seller_2",
+//                "Nguyễn Thị Mai",
+//                "seller2@test.com",
+//                "0874567890",
+//                "",
+//                "",
+//                UserRole.SELLER.value,
+//                imageUrl
+//            ),
+//
+//            // Shippers
+//            User(
+//                "u_shipper_1",
+//                "Lê Giao Hàng",
+//                "shipper2@test.com",
+//                "0881234567",
+//                "B2",
+//                "17",
+//                UserRole.SHIPPER.value,
+//                imageUrl
+//            ),
+//            User(
+//                "u_shipper_2",
+//                "Lê Giao Hàng 2",
+//                "shipper1@test.com",
+//                "0881234567",
+//                "B2",
+//                "17",
+//                UserRole.SHIPPER.value,
+//                imageUrl
+//            ),
+//            User(
+//                "u_shipper_3",
+//                "Lê Giao Hàng 3",
+//                "shipper3@test.com",
+//                "0881234567",
+//                "B2",
+//                "17",
+//                UserRole.SHIPPER.value,
+//                imageUrl
+//            ),
+//
+//            // Admin
+//            User(
+//                "u_admin_1",
+//                "Admin System",
+//                "admin@test.com",
+//                "0890000000",
+//                "B3",
+//                "A5",
+//                UserRole.ADMIN.value,
+//                imageUrl
+//            )
+//        )
+//
+//        users.forEach { user ->
+//            batch.set(userCol.document(user.uid), user)
+//        }
+//        batch.commit().await()
+//    }
 
     private suspend fun mockStores() {
         val batch = db.batch()

@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
 
     private fun initCloudinary() {
         val config = HashMap<String, String>()
-        config["cloud_name"] = "dfg6uxyuf" // Thay Cloud Name vào đây
+        config["cloud_name"] = "dfg6uxyuf"
         config["api_key"] = "967575127986714"
         config["secure"] = "true"
         MediaManager.init(this, config)

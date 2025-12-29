@@ -161,11 +161,7 @@ fun HomeScreen(
             } else {
                 items(filteredRestaurants) { restaurant ->
                     RestaurantCard(
-                        name = restaurant.name,
-                        tags = restaurant.tags,
-                        rating = restaurant.rating,
-                        deliveryFee = restaurant.deliveryFee,
-                        deliveryTime = restaurant.deliveryTime,
+                        restaurant,
                         onClick = { onStoreClick(restaurant.id) }
                     )
                 }

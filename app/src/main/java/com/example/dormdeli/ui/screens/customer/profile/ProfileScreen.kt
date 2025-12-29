@@ -38,12 +38,15 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.R
 import com.example.dormdeli.repository.image.CloudinaryHelper
+import androidx.compose.material.icons.filled.Logout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
+
 ) {
     val user by viewModel.userState
     val isLoading by viewModel.isLoading
@@ -209,6 +212,15 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Logout",
+                            tint = Color.Red
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)

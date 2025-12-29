@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.customer.foodDetail
+package com.example.dormdeli.ui.screens.customer.food
 
 import android.R
 import android.util.Log
@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
@@ -33,9 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.repository.food.FoodRepository
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
-import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 val OrangePrimary = Color(0xFFFF6347)
 
@@ -47,7 +46,7 @@ fun FoodDetailScreen(
     onAddToCart: (Food, Int) -> Unit,
     onSeeReviewsClick: () -> Unit = {},
     isFavorite: Boolean,
-    onToggleFavorite: (Food) -> Unit
+    onToggleFavorite: (String) -> Unit
 ) {
     val food = viewModel.food.value
     var isLoading by remember { mutableStateOf(true) }
@@ -101,11 +100,13 @@ fun FoodDetailContent(
     onAddToCart: (Food, Int) -> Unit,
     onSeeReviewsClick: () -> Unit,
     isFavorite: Boolean,
-    onToggleFavorite: (Food) -> Unit
+    onToggleFavorite: (String) -> Unit
 ) {
     var quantity by remember { mutableIntStateOf(1) }
     var isExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    var localIsFavorite by remember { mutableStateOf(isFavorite) }
 
     val additionalOptions = remember {
         listOf("Add Cheese" to 0.50, "Add Bacon" to 1.00, "Add Meat" to 2.00)
@@ -121,6 +122,10 @@ fun FoodDetailContent(
             val unitPrice = food.price.toDouble() + optionsPrice
             unitPrice * quantity
         }
+    }
+
+    LaunchedEffect(isFavorite) {
+        localIsFavorite = isFavorite
     }
 
     Scaffold(
@@ -159,7 +164,8 @@ fun FoodDetailContent(
                 }
                 IconButton(
                     onClick = {
-                        onToggleFavorite(food)
+                        localIsFavorite = !localIsFavorite
+                        onToggleFavorite(food.id)
                         val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                     modifier = Modifier
@@ -167,7 +173,11 @@ fun FoodDetailContent(
                         .padding(16.dp)
                         .background(Color.White, CircleShape)
                 ) {
-                    Icon(Icons.Default.FavoriteBorder, "Favorite", tint = OrangePrimary)
+                    Icon(
+                        imageVector = if (localIsFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) Color.Red else Color.Gray
+                    )
                 }
             }
 

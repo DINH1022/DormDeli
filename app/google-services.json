@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "819432234132-g1plsntkc1vct3ke10bs1f4b143r0j3h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dormdeli",
+            "certificate_hash": "9b780d45ccd45ced8a216ce4b508b45fbb952ea8"
+          }
+        },
+        {
           "client_id": "819432234132-bp3pa5udt8j2do4pjh694d3r6ua68gi4.apps.googleusercontent.com",
           "client_type": 3
         }

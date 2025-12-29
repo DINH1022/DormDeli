@@ -11,7 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.dormdeli.enums.AuthScreen
-import com.example.dormdeli.ui.screens.customer.foodDetail.FoodDetailScreen
+import com.example.dormdeli.ui.screens.customer.food.FoodDetailScreen
 import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
@@ -23,6 +23,7 @@ import com.example.dormdeli.ui.screens.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
 import com.example.dormdeli.ui.screens.AddNewLocationScreen
+import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -91,8 +92,12 @@ fun MainNavigation(
         // ==================== AUTH SCREENS ====================
         composable(Screen.Login.route) {
             LoginScreen(
-                onSignInClick = { phone ->
-                    authViewModel.signInWithPhone(phone, context as Activity)
+                onSignInClick = { phone, password ->
+                    authViewModel.loginWithPhoneAndPassword(phone, password) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
                 },
                 onRegisterClick = {
                     authViewModel.navigateToSignUp()
@@ -116,27 +121,10 @@ fun MainNavigation(
             val isPhoneVerified = firebaseUser != null && firebaseUser.phoneNumber != null
 
             SignUpScreen(
+                authViewModel = authViewModel,
                 prefilledPhone = if (isPhoneVerified) firebaseUser.phoneNumber else null,
-                onRegisterClick = { phone, email, fullName ->
-                    if (isPhoneVerified) {
-                        authViewModel.completeRegistration(email, fullName) {
-                            Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                            // Use post to ensure navigation happens after current frame
-                            navController.currentBackStackEntry?.savedStateHandle?.set("navigateToHome", true)
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    } else {
-                        authViewModel.signUpWithEmail(email, "", fullName, phone) {
-                            Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    }
+                onRegisterClick = { phone, email, fullName, password ->
+                    authViewModel.registerUser(phone, email, fullName, password, context as Activity)
                 },
                 onSignInClick = {
                     authViewModel.navigateToLogin()
@@ -160,14 +148,17 @@ fun MainNavigation(
                 phoneNumber = phoneNumber,
                 onVerifyClick = { code ->
                     authViewModel.verifyOTP(code) {
-                        authViewModel.navigateToSignUp()
+                        Toast.makeText(context, "Đăng ký tài khoản thành công!", Toast.LENGTH_SHORT).show()
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 },
                 onResendClick = {
                     authViewModel.resendOTP(context as Activity)
                 },
                 onOtpVerified = {
-                    authViewModel.navigateToSignUp()
+                    //authViewModel.navigateToSignUp()
                 }
             )
         }
@@ -239,6 +230,12 @@ fun MainNavigation(
             ProfileScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true } // Clear backstack
+                    }
                 }
             )
         }
@@ -258,6 +255,9 @@ fun MainNavigation(
                 onBackClick = { navController.popBackStack() },
                 onFoodClick = { foodId ->
                     navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                },
+                onStoreClick = { storeId ->
+                    navController.navigate(Screen.StoreDetail.createRoute(storeId))
                 }
             )
         }
@@ -292,8 +292,9 @@ fun MainNavigation(
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
 
-            val favoriteItems by favoriteViewModel.favoriteItems.collectAsState()
-            val isFavorite = favoriteItems.any { it.id == foodId }
+            val favoriteViewModel: FavoriteViewModel = viewModel()
+            val favIds by favoriteViewModel.favoriteFoodIds.collectAsState()
+            val isFav = if (foodId != null) favIds.contains(foodId) else false
 
             FoodDetailScreen(
                 foodId = foodId,
@@ -307,8 +308,11 @@ fun MainNavigation(
                 onSeeReviewsClick = {
                     navController.navigate(Screen.Reviews.createRoute(foodId))
                 },
-                isFavorite = isFavorite,
-                onToggleFavorite = {food ->  favoriteViewModel.toggleFavorite(food) }
+                isFavorite = isFav,
+                onToggleFavorite = {
+                    if (foodId != null) {
+                    favoriteViewModel.toggleFavorite(foodId)
+                } }
             )
         }
 
