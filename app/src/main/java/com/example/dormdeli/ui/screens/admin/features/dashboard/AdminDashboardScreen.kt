@@ -55,6 +55,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.ui.graphics.Path
 import com.example.dormdeli.repository.admin.dataclass.TopStoreRevenue
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,10 +123,13 @@ fun AdminDashboardScreen(
                 ) {
                     // Card Đơn hàng
                     item {
-                        val todayOrders = uiState.weeklyOrders.lastOrNull() ?: 0
+                        val calendar = Calendar.getInstance()
+                        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                        val todayIndex = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - 2
+                        val todayOrders = uiState.weeklyOrders.getOrNull(todayIndex) ?: 0
                         StatCard(
                             title = "Đơn hàng tuần này",
-                            value = formatNumber(todayOrders),
+                            value = formatNumber(uiState.weeklyOrders.sum()),
                             change = "$todayOrders đơn hôm nay",
                             icon = Icons.Default.Receipt,
                             iconColor = OrangePrimary,

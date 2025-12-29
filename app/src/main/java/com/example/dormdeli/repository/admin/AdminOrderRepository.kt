@@ -57,21 +57,28 @@ class AdminOrderRepository {
         return result
     }
 
-    suspend fun getWeeklyRevenue(): List<Long> {
+    private fun getStartOfCurrentWeek(): Long {
         val calendar = Calendar.getInstance()
-        calendar.firstDayOfWeek = Calendar.MONDAY
 
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
 
+        calendar.firstDayOfWeek = Calendar.MONDAY
+
         calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+
         if (calendar.timeInMillis > System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, -7)
+            calendar.add(Calendar.WEEK_OF_YEAR, -1)
         }
 
-        val startOfWeek = calendar.timeInMillis
+        return calendar.timeInMillis
+    }
+
+    suspend fun getWeeklyRevenue(): List<Long> {
+
+        val startOfWeek = getStartOfCurrentWeek()
         val today = System.currentTimeMillis()
 
         val revenuePerDay = MutableList(7) { 0L }
@@ -80,7 +87,7 @@ class AdminOrderRepository {
             .whereGreaterThanOrEqualTo(ModelFields.Order.CREATED_AT, startOfWeek)
             .get()
             .await()
-
+        println("Found ${orders.size()} orders weekly revenue this week")
         for (doc in orders.documents) {
             val createdAt = doc.getLong(ModelFields.Order.CREATED_AT) ?: continue
             val status = doc.getString(ModelFields.Order.STATUS) ?: continue
@@ -100,20 +107,7 @@ class AdminOrderRepository {
     }
 
     suspend fun getWeeklyOrderCount(): List<Int> {
-        val calendar = Calendar.getInstance()
-        calendar.firstDayOfWeek = Calendar.MONDAY
-
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-
-        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-        if (calendar.timeInMillis > System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, -7)
-        }
-
-        val startOfWeek = calendar.timeInMillis
+        val startOfWeek = getStartOfCurrentWeek()
         val today = System.currentTimeMillis()
         println("Start of the week ${startOfWeek}")
         println("Today time ${today}")
@@ -126,7 +120,9 @@ class AdminOrderRepository {
         println("Number of orders in this week ${orders.size()}")
         for (doc in orders.documents) {
             val createdAt = doc.getLong(ModelFields.Order.CREATED_AT) ?: continue
+            val status = doc.getString(ModelFields.Order.STATUS) ?: continue
             if (createdAt > today) continue
+            if (status != OrderStatus.COMPLETED.value) continue
 
             val diffDay = ((createdAt - startOfWeek) / (1000 * 60 * 60 * 24)).toInt()
 

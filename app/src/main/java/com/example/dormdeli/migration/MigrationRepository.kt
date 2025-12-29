@@ -37,14 +37,14 @@ class MigrationRepository {
         val collections =
             listOf(
 //                userCol,
-                storeCol,
-                foodCol,
-                shipperCol,
-                favoriteCol,
+//                storeCol,
+//                foodCol,
+//                shipperCol,
+//                favoriteCol,
                 orderCol,
                 orderItemCol,
-                reviewCol,
-                notiCol
+//                reviewCol,
+//                notiCol
             )
         for (col in collections) {
             val documents = col.get().await()
@@ -59,14 +59,14 @@ class MigrationRepository {
 
     suspend fun mockData() {
         clearOldData()
-//        mockUsers()
-        mockStores()
-        mockFoods()
-        mockShippers()
-        mockFavorites()
         mockOrders()
-        mockReviews()
-        mockNotifications()
+//        mockUsers()
+//        mockStores()
+//        mockFoods()
+//        mockShippers()
+//        mockFavorites()
+//        mockReviews()
+//        mockNotifications()
     }
 
     private suspend fun mockUsers() {
