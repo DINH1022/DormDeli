@@ -20,6 +20,12 @@ data class UserUIState(
     val totalSpent: Long = 0L
 )
 
+enum class UserStatusFilter {
+    ALL,        // Tất cả
+    ACTIVE,     // Đang hoạt động
+    LOCKED      // Bị khóa
+}
+
 class AdminUserManagementViewModel(
     private val userRepository: AdminUserRepository = AdminUserRepository(),
     private val orderRepository: AdminOrderRepository = AdminOrderRepository()
@@ -28,21 +34,35 @@ class AdminUserManagementViewModel(
     private val _searchTerm = MutableStateFlow("")
     val searchTerm = _searchTerm.asStateFlow()
 
+    private val _statusFilter = MutableStateFlow(UserStatusFilter.ALL)
+    val statusFilter = _statusFilter.asStateFlow()
+
     private val _userList = MutableStateFlow<List<UserUIState>>(emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
-    // Flow để thông báo lỗi cho UI hiển thị Toast
     private val _errorEvent = MutableSharedFlow<String>()
     val errorEvent = _errorEvent.asSharedFlow()
 
-    val displayUsers = combine(_userList, _searchTerm) { list, query ->
-        list.filter { it.user.fullName.contains(query, ignoreCase = true) }
+    val displayUsers = combine(_userList, _searchTerm, _statusFilter) { list, query, filter ->
+        list.filter { userState ->
+            val matchesSearch = userState.user.fullName.contains(query, ignoreCase = true)
+            val matchesFilter = when (filter) {
+                UserStatusFilter.ALL -> true
+                UserStatusFilter.ACTIVE -> userState.user.active
+                UserStatusFilter.LOCKED -> !userState.user.active
+            }
+            matchesSearch && matchesFilter
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onSearchTermChange(newTerm: String) {
         _searchTerm.value = newTerm
+    }
+
+    fun onStatusFilterChange(filter: UserStatusFilter) {
+        _statusFilter.value = filter
     }
 
     fun loadUsers() {
