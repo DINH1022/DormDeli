@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "819432234132",
+    "project_id": "dormdeli",
+    "storage_bucket": "dormdeli.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:819432234132:android:81e4323182ede17c956881",
+        "android_client_info": {
+          "package_name": "com.example.dormdeli"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "819432234132-2tnmfu786lnq93da2fvsuqrk4hni91j0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dormdeli",
+            "certificate_hash": "59b419bf69fd0a0ed96b4c6f9d2b1e2c3ad371c0"
+          }
+        },
+        {
+          "client_id": "819432234132-cule3b6s2l8avbnokp872511uapti31a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dormdeli",
+            "certificate_hash": "31dd141fef12b1efc56cfdd07ce8edc36dc0547c"
+          }
+        },
+        {
+          "client_id": "819432234132-g1plsntkc1vct3ke10bs1f4b143r0j3h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dormdeli",
+            "certificate_hash": "9b780d45ccd45ced8a216ce4b508b45fbb952ea8"
+          }
+        },
+        {
+          "client_id": "819432234132-bp3pa5udt8j2do4pjh694d3r6ua68gi4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxGV5XbAc1eV_Y7-NEOiaW7eymz_8moY8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "819432234132-bp3pa5udt8j2do4pjh694d3r6ua68gi4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
