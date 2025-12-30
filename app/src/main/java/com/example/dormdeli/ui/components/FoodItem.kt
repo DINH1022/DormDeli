@@ -36,7 +36,7 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 
 
 @Composable
-fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
+fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> Unit) {
     Card(
         modifier = Modifier
             .width(180.dp)
@@ -99,14 +99,14 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$${food.price}",
+                    text = "${food.price} VNĐ",
                     style = MaterialTheme.typography.titleMedium,
                     color = Black,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
 
                 Button(
-                    onClick = { /* TODO: add to cart */ },
+                    onClick = { onAddToCart(food) },
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = OrangePrimary,

@@ -1,7 +1,5 @@
 package com.example.dormdeli.ui.screens.customer.food
 
-import android.R
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -35,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
+import com.example.dormdeli.R // Đảm bảo import đúng R của project bạn
 
 val OrangePrimary = Color(0xFFFF6347)
 
@@ -43,31 +42,18 @@ fun FoodDetailScreen(
     foodId: String,
     viewModel: FoodViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onAddToCart: (Food, Int) -> Unit,
+    // Cập nhật: Hàm này nhận thêm danh sách options
+    onAddToCart: (Food, Int, List<Pair<String, Double>>) -> Unit,
     onSeeReviewsClick: () -> Unit = {},
     isFavorite: Boolean,
     onToggleFavorite: (String) -> Unit
 ) {
     val food = viewModel.food.value
     var isLoading by remember { mutableStateOf(true) }
+
     LaunchedEffect(foodId) {
-        try {
-            // Log ID đang gọi để kiểm tra
-            Log.d("FoodDetail", "Đang tải món ăn với ID: $foodId")
-
-            viewModel.getFood(foodId)
-
-            if (food == null) {
-                Log.e("FoodDetail", "Firebase trả về null (Không tìm thấy món)")
-            } else {
-                Log.d("FoodDetail", "Đã tải thành công: ${food?.name}")
-            }
-        } catch (e: Exception) {
-            Log.e("FoodDetail", "Lỗi khi gọi Firestore: ${e.message}")
-            e.printStackTrace()
-        } finally {
-            isLoading = false
-        }
+        viewModel.getFood(foodId)
+        isLoading = false
     }
 
     if (isLoading) {
@@ -97,7 +83,7 @@ fun FoodDetailScreen(
 fun FoodDetailContent(
     food: Food,
     onBackClick: () -> Unit,
-    onAddToCart: (Food, Int) -> Unit,
+    onAddToCart: (Food, Int, List<Pair<String, Double>>) -> Unit,
     onSeeReviewsClick: () -> Unit,
     isFavorite: Boolean,
     onToggleFavorite: (String) -> Unit
@@ -108,18 +94,17 @@ fun FoodDetailContent(
 
     var localIsFavorite by remember { mutableStateOf(isFavorite) }
 
-    val additionalOptions = remember {
-        listOf("Add Cheese" to 0.50, "Add Bacon" to 1.00, "Add Meat" to 2.00)
-    }
-    val selectedOptions = remember { mutableStateListOf<String>() }
+    // Danh sách tùy chọn có sẵn (Hardcode ví dụ, thực tế có thể lấy từ Food model)
+    val additionalOptions = food.toppings
 
+    // State lưu các tùy chọn đã tick (Lưu cả Tên và Giá)
+    val selectedOptions = remember { mutableStateListOf<Pair<String, Double>>() }
+
+    // Tính tổng tiền = (Giá món + Giá các options đã chọn) * Số lượng
     val totalPrice by remember {
         derivedStateOf {
-            val optionsPrice = selectedOptions.sumOf { selectedName ->
-                additionalOptions.find { it.first == selectedName }?.second ?: 0.0
-            }
-            // Đảm bảo food.price được xử lý đúng kiểu Double
-            val unitPrice = food.price.toDouble() + optionsPrice
+            val optionsPrice = selectedOptions.sumOf { it.second }
+            val unitPrice = food.price + optionsPrice
             unitPrice * quantity
         }
     }
@@ -134,7 +119,11 @@ fun FoodDetailContent(
                 quantity = quantity,
                 totalPrice = totalPrice,
                 onQuantityChange = { newQuantity -> if (newQuantity >= 1) quantity = newQuantity },
-                onAddToCart = { onAddToCart(food, quantity) }
+                // Truyền selectedOptions vào hàm onAddToCart
+                onAddToCart = {
+                    onAddToCart(food, quantity, selectedOptions.toList())
+                    Toast.makeText(context, "Added to basket", Toast.LENGTH_SHORT).show()
+                }
             )
         }
     ) { paddingValues ->
@@ -145,7 +134,7 @@ fun FoodDetailContent(
                 .verticalScroll(rememberScrollState())
                 .background(Color.White)
         ) {
-            // Header Image
+            // --- HEADER IMAGE ---
             Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
                 AsyncImage(
                     model = food.imageUrl,
@@ -166,8 +155,9 @@ fun FoodDetailContent(
                     onClick = {
                         localIsFavorite = !localIsFavorite
                         onToggleFavorite(food.id)
-                        val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
+                        val message = if (!localIsFavorite) "Removed from favorites" else "Added to favorites"
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
@@ -176,12 +166,12 @@ fun FoodDetailContent(
                     Icon(
                         imageVector = if (localIsFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) Color.Red else Color.Gray
+                        tint = if (localIsFavorite) Color.Red else Color.Gray
                     )
                 }
             }
 
-            // Body Content
+            // --- BODY CONTENT ---
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = food.name, fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
@@ -189,7 +179,7 @@ fun FoodDetailContent(
 
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "${(food.price * 1.5)} VNĐ",
+                        text = "${(food.price * 1.5)}", // Giả lập giá gốc
                         style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.LineThrough),
                         color = Color.Gray,
                         modifier = Modifier.padding(end = 8.dp)
@@ -204,13 +194,14 @@ fun FoodDetailContent(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Rating Row
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
                     Text(text = "${food.ratingAvg}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-                    Text(text = "(1.205)", color = Color.Gray)
+                    Text(text = "(1.205 reviews)", color = Color.Gray)
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = "See all review",
+                        text = "See reviews",
                         color = Color.Gray,
                         textDecoration = TextDecoration.Underline,
                         modifier = Modifier.clickable { onSeeReviewsClick() }
@@ -240,22 +231,50 @@ fun FoodDetailContent(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Options
-                Text("Additional Options :", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                additionalOptions.forEach { (name, price) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = name, modifier = Modifier.weight(1f))
-                        Text(text = "+ £$price", fontWeight = FontWeight.Bold)
-                        Checkbox(
-                            checked = selectedOptions.contains(name),
-                            onCheckedChange = { if (it) selectedOptions.add(name) else selectedOptions.remove(name) },
-                            colors = CheckboxDefaults.colors(checkedColor = OrangePrimary)
-                        )
+                // --- OPTIONS SECTION (Đã sửa logic) ---
+                if (additionalOptions.isNotEmpty()) {
+                    Text("Additional Options:", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    additionalOptions.forEach { topping ->
+                        // Kiểm tra xem topping này đã được chọn chưa
+                        val isSelected = selectedOptions.any { it.first == topping.name }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isSelected) {
+                                        selectedOptions.removeAll { it.first == topping.name }
+                                    } else {
+                                        selectedOptions.add(topping.name to topping.price)
+                                    }
+                                }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = topping.name, modifier = Modifier.weight(1f))
+                            Text(
+                                text = "+ ${String.format("%.2f", topping.price)} VNĐ",
+                                fontWeight = FontWeight.Bold
+                            )
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        selectedOptions.add(topping.name to topping.price)
+                                    } else {
+                                        selectedOptions.removeAll { it.first == topping.name }
+                                    }
+                                },
+                                colors = CheckboxDefaults.colors(checkedColor = OrangePrimary)
+                            )
+                        }
                     }
                 }
+
+                // Khoảng trống để nội dung không bị BottomBar che
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -301,6 +320,7 @@ fun BottomBarControl(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Quantity Controller
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -323,6 +343,7 @@ fun BottomBarControl(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
+                // Add to Basket Button
                 Button(
                     onClick = onAddToCart,
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
@@ -332,7 +353,7 @@ fun BottomBarControl(
                         .height(50.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_menu_agenda),
+                        painter = painterResource(id = android.R.drawable.ic_menu_agenda), // Đảm bảo bạn có icon này
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )

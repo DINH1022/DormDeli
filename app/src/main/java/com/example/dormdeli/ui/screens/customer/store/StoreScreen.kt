@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.*
 import com.example.dormdeli.ui.theme.*
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -38,7 +39,8 @@ fun StoreScreen(
     favoriteViewModel: FavoriteViewModel = viewModel(),
     onBack: () -> Unit,
     onMenuClick: () -> Unit,
-    onFoodClick: (String) -> Unit
+    onFoodClick: (String) -> Unit,
+    onAddToCart: (Food) -> Unit
 ) {
     val store by viewModel.store
     val categories = viewModel.categories()
@@ -181,7 +183,8 @@ fun StoreScreen(
                     val food = foods[index]
                     FoodItem(
                         food = food,
-                        onImageClick = { onFoodClick(food.id) }
+                        onImageClick = { onFoodClick(food.id) },
+                        onAddToCart = { food -> onAddToCart(food) }
                     )
                 }
             }

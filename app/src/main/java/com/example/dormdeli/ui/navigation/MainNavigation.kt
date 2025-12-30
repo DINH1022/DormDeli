@@ -12,7 +12,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.screens.customer.food.FoodDetailScreen
-import com.example.dormdeli.ui.screens.*
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
@@ -24,6 +23,7 @@ import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
 import com.example.dormdeli.ui.screens.AddNewLocationScreen
 import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
+import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -185,7 +185,11 @@ fun MainNavigation(
                 },
                 onFavoritesClick = { // Added
                     navController.navigate(Screen.Favorites.route)
-                }
+                },
+                onAddToCart = {food ->
+                    cartViewModel.addToCart( food, 1, emptyList())
+                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                },
             )
         }
 
@@ -258,7 +262,11 @@ fun MainNavigation(
                 },
                 onStoreClick = { storeId ->
                     navController.navigate(Screen.StoreDetail.createRoute(storeId))
-                }
+                },
+                onAddToCart = {food ->
+                    cartViewModel.addToCart( food, 1, emptyList())
+                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                },
             )
         }
 
@@ -281,7 +289,11 @@ fun MainNavigation(
                 } ,
                 onFoodClick = { foodId ->
                         navController.navigate(Screen.FoodDetail.createRoute(foodId))
-                }
+                },
+                onAddToCart = {food ->
+                    cartViewModel.addToCart( food, 1, emptyList())
+                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                },
             )
         }
 
@@ -301,8 +313,8 @@ fun MainNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAddToCart = {food, quantity ->
-                    cartViewModel.addToCart( food, quantity)
+                onAddToCart = {food, quantity, options ->
+                    cartViewModel.addToCart( food, quantity, options)
                     Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = {

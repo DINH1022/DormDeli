@@ -31,6 +31,7 @@ fun HomeScreen(
     onCartClick: () -> Unit = {},
     onLocationClick: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
+    onAddToCart: (Food) -> Unit,
     storeViewModel: StoreViewModel = viewModel(),
     foodViewModel: FoodViewModel = viewModel()
 ) {
@@ -179,7 +180,7 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 4.dp) // Thêm chút padding để không bị cắt bóng đổ
                 ) {
                     items(filteredFoods) { food ->
-                        FoodItem(food = food, onImageClick = { onFoodClick(food.id) })
+                        FoodItem(food = food, onImageClick = { onFoodClick(food.id) }, onAddToCart = onAddToCart)
                     }
                 }
             }

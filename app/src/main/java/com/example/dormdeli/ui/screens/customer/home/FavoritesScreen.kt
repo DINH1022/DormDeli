@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.FoodItem
 import com.example.dormdeli.ui.components.HomeSearchBar
 // Giả định bạn đã có component này từ các bước trước
@@ -31,6 +32,7 @@ fun FavoritesScreen(
     onBackClick: () -> Unit,
     onFoodClick: (String) -> Unit,
     onStoreClick: (String) -> Unit, // Thêm callback khi click vào Store
+    onAddToCart: (Food) -> Unit,
     favoriteViewModel: FavoriteViewModel = viewModel()
 ) {
     // 1. Lấy dữ liệu từ ViewModel
@@ -121,7 +123,8 @@ fun FavoritesScreen(
                                 items = filteredFoods,
                                 emptyText = "No favorite foods found.",
                                 itemContent = { food ->
-                                    FoodItem(food = food, onImageClick = { onFoodClick(food.id) })
+                                    FoodItem(food = food, onImageClick = { onFoodClick(food.id) },
+                                    onAddToCart = onAddToCart)
                                 }
                             )
                         }
