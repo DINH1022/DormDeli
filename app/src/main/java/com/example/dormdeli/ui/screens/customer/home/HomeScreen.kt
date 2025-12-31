@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel // Cần import thư viện này
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.*
+import com.example.dormdeli.ui.components.customer.FoodItem
+import com.example.dormdeli.ui.components.customer.RestaurantCard
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel // Import ViewModel của bạn
@@ -180,7 +182,11 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 4.dp) // Thêm chút padding để không bị cắt bóng đổ
                 ) {
                     items(filteredFoods) { food ->
-                        FoodItem(food = food, onImageClick = { onFoodClick(food.id) }, onAddToCart = onAddToCart)
+                        FoodItem(
+                            food = food,
+                            onImageClick = { onFoodClick(food.id) },
+                            onAddToCart = onAddToCart
+                        )
                     }
                 }
             }

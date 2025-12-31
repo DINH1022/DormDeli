@@ -5,6 +5,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -100,6 +103,10 @@ fun FoodDetailContent(
     // State lưu các tùy chọn đã tick (Lưu cả Tên và Giá)
     val selectedOptions = remember { mutableStateListOf<Pair<String, Double>>() }
 
+    val displayImages = remember(food) {
+        if (food.images.isNotEmpty()) food.images else listOf(food.imageUrl)
+    }
+
     // Tính tổng tiền = (Giá món + Giá các options đã chọn) * Số lượng
     val totalPrice by remember {
         derivedStateOf {
@@ -135,29 +142,30 @@ fun FoodDetailContent(
                 .background(Color.White)
         ) {
             // --- HEADER IMAGE ---
-            Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
-                AsyncImage(
-                    model = food.imageUrl,
-                    contentDescription = food.name,
-                    contentScale = ContentScale.Crop,
+            Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+
+                // Gọi Slider
+                FoodImageSlider(
+                    images = displayImages,
                     modifier = Modifier.fillMaxSize()
                 )
+
+                // Nút Back (Giữ nguyên vị trí đè lên ảnh)
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(16.dp)
+                        .offset(y = (-16).dp)
+                        .statusBarsPadding() // Tránh bị tai thỏ che
                         .background(Color.Black.copy(alpha = 0.3f), CircleShape)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                 }
+
+                // Nút Favorite (Giữ nguyên vị trí)
                 IconButton(
-                    onClick = {
-                        localIsFavorite = !localIsFavorite
-                        onToggleFavorite(food.id)
-                        val message = if (!localIsFavorite) "Removed from favorites" else "Added to favorites"
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    },
+                    onClick = { /* Logic like */ },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
@@ -359,6 +367,52 @@ fun BottomBarControl(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "Add to Basket", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FoodImageSlider(
+    images: List<String>,
+    modifier: Modifier = Modifier
+) {
+    if (images.isEmpty()) return
+
+    val pagerState = rememberPagerState(pageCount = { images.size })
+
+    Box(modifier = modifier) {
+        // 1. Slider lướt ảnh
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            AsyncImage(
+                model = images[page],
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // 2. Indicator (Dấu chấm tròn ở dưới)
+        if (images.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(images.size) { iteration ->
+                    val color = if (pagerState.currentPage == iteration) OrangePrimary else Color.White.copy(alpha = 0.5f)
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .size(8.dp)
+                    )
                 }
             }
         }

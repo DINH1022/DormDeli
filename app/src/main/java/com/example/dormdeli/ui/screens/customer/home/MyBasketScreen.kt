@@ -162,7 +162,7 @@ fun CartItemCardDesign(
             Row(modifier = Modifier.fillMaxWidth()) {
                 // Ảnh món ăn
                 AsyncImage(
-                    model = item.food.imageUrl,
+                    model = item.food.thumbnail,
                     contentDescription = null,
                     modifier = Modifier
                         .size(70.dp)
@@ -195,14 +195,14 @@ fun CartItemCardDesign(
                     // Giá tiền (Giả lập giá gốc và giá khuyến mãi)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "£${item.food.price * 1.2}", // Giá gốc giả định
+                            "${item.food.price * 1.2} VNĐ", // Giá gốc giả định
                             style = TextStyle(textDecoration = TextDecoration.LineThrough),
                             color = Color.Gray,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "£${item.food.price}",
+                            "${item.food.price} VNĐ",
                             color = OrangePrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
@@ -225,7 +225,7 @@ fun CartItemCardDesign(
                     if (item.selectedOptions.isNotEmpty()) {
                         item.selectedOptions.forEach { (name, price) ->
                             Text(
-                                text = "$name (+£${String.format("%.2f", price)})",
+                                text = "$name (+${String.format("%.2f", price)} VNĐ)",
                                 fontSize = 12.sp,
                                 color = Color.Gray,
                                 modifier = Modifier.padding(bottom = 2.dp)
@@ -319,7 +319,7 @@ fun PriceBreakdownCard(subtotal: Double, delivery: Double, discount: Double) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Total", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("£${String.format("%.2f", subtotal + delivery - discount)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("${String.format("%.2f", subtotal + delivery - discount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
         }
     }
@@ -332,7 +332,7 @@ fun PriceRow(label: String, amount: Double) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label, color = Color.Gray, fontSize = 14.sp)
-        Text("£${String.format("%.2f", amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text("${String.format("%.2f", amount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
@@ -351,7 +351,7 @@ fun BottomCheckoutBar(total: Double, onPlaceOrder: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "£${String.format("%.2f", total)}",
+                "${String.format("%.2f", total)} VNĐ",
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp
             )

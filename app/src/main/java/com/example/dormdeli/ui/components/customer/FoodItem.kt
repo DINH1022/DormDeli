@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.components
+package com.example.dormdeli.ui.components.customer
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.model.Food
@@ -46,12 +48,12 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> 
                 onImageClick(food.id)
             },
         shape = MaterialTheme.shapes.medium,
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
         ) {
             Image(
-                painter = rememberAsyncImagePainter(food.imageUrl),
+                painter = rememberAsyncImagePainter(food.thumbnail),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,7 +104,7 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> 
                     text = "${food.price} VNĐ",
                     style = MaterialTheme.typography.titleMedium,
                     color = Black,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
 
                 Button(

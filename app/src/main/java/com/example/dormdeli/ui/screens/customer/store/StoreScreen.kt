@@ -3,7 +3,6 @@ package com.example.dormdeli.ui.screens.customer.store
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -28,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.*
+import com.example.dormdeli.ui.components.customer.FoodItem
 import com.example.dormdeli.ui.theme.*
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel

@@ -16,10 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.ui.components.FoodItem
+import com.example.dormdeli.ui.components.customer.FoodItem
 import com.example.dormdeli.ui.components.HomeSearchBar
 // Giả định bạn đã có component này từ các bước trước
-import com.example.dormdeli.ui.components.RestaurantCard
+import com.example.dormdeli.ui.components.customer.RestaurantCard
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 
