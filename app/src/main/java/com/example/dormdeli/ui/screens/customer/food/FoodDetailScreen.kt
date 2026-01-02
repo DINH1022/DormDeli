@@ -206,7 +206,7 @@ fun FoodDetailContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
                     Text(text = "${food.ratingAvg}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-                    Text(text = "(1.205 reviews)", color = Color.Gray)
+                    Text(text = "${food.ratingCount} reviews", color = Color.Gray)
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
                         text = "See reviews",

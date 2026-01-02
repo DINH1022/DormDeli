@@ -1,5 +1,6 @@
 package com.example.dormdeli.ui.screens.customer.home
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -35,15 +37,21 @@ import coil.compose.AsyncImage
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBasketScreen(
     onBackClick: () -> Unit,
-    cartViewModel: CartViewModel = viewModel()
+    orderViewModel: OrderViewModel = viewModel(),
+    cartViewModel: CartViewModel = viewModel(),
+    onOrderSuccess: () -> Unit = {}
 ) {
     val cartItems by cartViewModel.cartItems.collectAsState()
+
+    val isLoading by orderViewModel.isLoading.collectAsState()
+    val context = LocalContext.current
 
     // Tính toán giả lập các loại phí (Logic thực tế tùy bạn)
     val subtotal = remember(cartItems) { cartItems.sumOf { 1.0 * it.food.price * it.quantity } }
@@ -51,7 +59,11 @@ fun MyBasketScreen(
     val discount = 0.0    // Giảm giá ví dụ
     val total = subtotal + deliveryFee - discount
 
-    val df = DecimalFormat("#.00")
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = OrangePrimary)
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFFF8F9FA),
@@ -68,7 +80,39 @@ fun MyBasketScreen(
         },
         bottomBar = {
             if (cartItems.isNotEmpty()) {
-                BottomCheckoutBar(total = total, onPlaceOrder = cartViewModel::clearCart)
+                BottomCheckoutBar(
+                    total = total,
+                    // [MỚI] Logic đặt hàng
+                    onPlaceOrder = {
+                        val firstItem = cartItems.firstOrNull()
+                        if (firstItem != null) {
+                            orderViewModel.placeOrder(
+                                cartItems = cartItems,
+                                total = total,
+                                deliveryNote = "", // Có thể lấy từ TextField nhập ghi chú
+                                paymentMethod = "Cash", // Hoặc lấy từ biến state chọn phương thức
+                                onSuccess = {
+                                    Toast.makeText(
+                                        context,
+                                        "Order Placed Successfully!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    cartViewModel.clearCart() // Xóa giỏ hàng
+                                    onOrderSuccess() // Chuyển trang
+                                },
+                                onFail = {
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to place order. Try again.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
+                        } else {
+                            Toast.makeText(context, "Cart is empty!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
             }
         }
     ) { paddingValues ->

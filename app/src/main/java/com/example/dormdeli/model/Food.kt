@@ -11,6 +11,7 @@ data class Food(
     val imageUrl: String = "",
     val available: Boolean = true,
     val ratingAvg: Double = 0.0,
+    val ratingCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val toppings: List<Topping> = emptyList(),
     val images: List<String> = emptyList() // Danh sách ảnh

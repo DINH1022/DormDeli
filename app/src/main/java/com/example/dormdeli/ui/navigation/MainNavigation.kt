@@ -18,15 +18,19 @@ import com.example.dormdeli.ui.screens.OTPScreen
 import com.example.dormdeli.ui.screens.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
 import com.example.dormdeli.ui.screens.customer.profile.ProfileScreen
-import com.example.dormdeli.ui.screens.ReviewScreen
+import com.example.dormdeli.ui.screens.customer.review.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
 import com.example.dormdeli.ui.screens.AddNewLocationScreen
 import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
 import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
+import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
+import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
+import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -186,6 +190,7 @@ fun MainNavigation(
                 onFavoritesClick = { // Added
                     navController.navigate(Screen.Favorites.route)
                 },
+                onOrdersClick = { navController.navigate(Screen.Orders.route) },
                 onAddToCart = {food ->
                     cartViewModel.addToCart( food, 1, emptyList())
                     Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
@@ -249,7 +254,12 @@ fun MainNavigation(
         composable(Screen.Cart.route) {
             MyBasketScreen(
                 cartViewModel = cartViewModel,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onOrderSuccess = {
+                    navController.navigate(Screen.Orders.route) {
+                        popUpTo(Screen.Home.route)
+                    }
+                }
             )
         }
 
@@ -267,6 +277,49 @@ fun MainNavigation(
                     cartViewModel.addToCart( food, 1, emptyList())
                     Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
+            )
+        }
+
+        composable(Screen.Orders.route) {
+            MyOrdersScreen(
+                onBackClick = { navController.popBackStack() },
+                onOrderClick = { orderId ->
+                    navController.navigate(Screen.OrderDetail.createRoute(orderId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.OrderDetail.route,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+
+            val orderViewModel: OrderViewModel = viewModel()
+
+            OrderDetailScreen(
+                orderId = orderId,
+                onBackClick = { navController.popBackStack() },
+                viewModel = orderViewModel,
+                onReviewClick = { foodId ->
+                    // Điều hướng sang trang ReviewScreen (đã có sẵn trong code của bạn)
+                    navController.navigate(Screen.WriteReview.createRoute(foodId))
+                }
+            )
+        }
+
+        composable(
+            route = "write_review/{foodId}",
+            arguments = listOf(navArgument("foodId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
+
+            WriteReviewScreen(
+                foodId = foodId,
+                onBackClick = { navController.popBackStack() },
+                onReviewSubmitted = {
+                    navController.popBackStack()
+                }
             )
         }
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -33,6 +34,7 @@ fun HomeScreen(
     onCartClick: () -> Unit = {},
     onLocationClick: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
+    onOrdersClick: () -> Unit = {},
     onAddToCart: (Food) -> Unit,
     storeViewModel: StoreViewModel = viewModel(),
     foodViewModel: FoodViewModel = viewModel()
@@ -105,6 +107,14 @@ fun HomeScreen(
                     onClick = { selectedTab = 2; onCartClick() },
                     icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Cart") },
                     label = { Text("Cart") },
+                    colors = NavigationBarItemDefaults.colors(selectedIconColor = OrangePrimary, selectedTextColor = OrangePrimary, indicatorColor = OrangePrimary.copy(alpha = 0.1f))
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3; onOrdersClick() },
+                    // Dùng icon List (dạng danh sách đơn hàng)
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Orders") },
+                    label = { Text("Orders") },
                     colors = NavigationBarItemDefaults.colors(selectedIconColor = OrangePrimary, selectedTextColor = OrangePrimary, indicatorColor = OrangePrimary.copy(alpha = 0.1f))
                 )
                 NavigationBarItem(

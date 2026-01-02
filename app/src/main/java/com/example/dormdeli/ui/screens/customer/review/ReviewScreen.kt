@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.review
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,8 +21,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.Review
+import com.example.dormdeli.ui.viewmodels.customer.ReviewViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,18 +37,29 @@ val BgGray = Color(0xFFF5F5F5)
 @Composable
 fun ReviewScreen(
     foodId: String?,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    // [THÊM] Inject ViewModel
+    viewModel: ReviewViewModel = viewModel()
 ) {
-    val originalReviews = remember { getDummyReviews() }
-
+    // 1. Lấy dữ liệu từ ViewModel
+    val originalReviews by viewModel.reviews.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var selectedFilter by remember { mutableStateOf("All") }
 
-    val filteredReviews by remember(selectedFilter) {
+    // 2. Gọi hàm load data khi foodId thay đổi
+    LaunchedEffect(foodId) {
+        if (foodId != null) {
+            viewModel.loadReviews(foodId)
+        }
+    }
+
+    // 3. Logic lọc (Giữ nguyên nhưng dùng originalReviews thật)
+    val filteredReviews by remember(selectedFilter, originalReviews) {
         derivedStateOf {
             when (selectedFilter) {
                 "All" -> originalReviews
-                "Positive" -> originalReviews.filter { it.rating >= 4 } // 4, 5 sao
-                "Negative" -> originalReviews.filter { it.rating <= 3 } // 1, 2, 3 sao
+                "Positive" -> originalReviews.filter { it.rating >= 4 }
+                "Negative" -> originalReviews.filter { it.rating <= 3 }
                 "5 ★" -> originalReviews.filter { it.rating == 5 }
                 "4 ★" -> originalReviews.filter { it.rating == 4 }
                 "3 ★" -> originalReviews.filter { it.rating == 3 }
@@ -63,7 +76,7 @@ fun ReviewScreen(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Reviews", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("Chicken Burger", fontSize = 14.sp, color = Color.Gray)
+                        // Có thể thêm tên món ăn nếu truyền vào hoặc load thêm
                     }
                 },
                 navigationIcon = {
@@ -81,43 +94,52 @@ fun ReviewScreen(
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // 1. HEADER
-                item { RatingOverviewSection(originalReviews) } // Truyền list gốc để tính điểm trung bình
-
-                // 2. FILTER CHIPS
-                item {
-                    FilterSection(
-                        currentFilter = selectedFilter,
-                        onFilterSelected = { newFilter -> selectedFilter = newFilter }
-                    )
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryOrange)
                 }
+            } else if (originalReviews.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No reviews yet. Be the first to review!", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // 1. HEADER (Tổng quan điểm)
+                    item { RatingOverviewSection(originalReviews) }
 
-                // 3. DANH SÁCH REVIEW (Dùng list đã lọc)
-                if (filteredReviews.isEmpty()) {
+                    // 2. FILTER CHIPS
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                            Text("No reviews found for this filter", color = Color.Gray)
-                        }
-                    }
-                } else {
-                    items(filteredReviews) { review ->
-                        ReviewItem(review)
-                        HorizontalDivider(
-                            modifier = Modifier.padding(top = 16.dp),
-                            thickness = 0.5.dp,
-                            color = Color.LightGray.copy(alpha = 0.5f)
+                        FilterSection(
+                            currentFilter = selectedFilter,
+                            onFilterSelected = { newFilter -> selectedFilter = newFilter }
                         )
+                    }
+
+                    // 3. DANH SÁCH REVIEW
+                    if (filteredReviews.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                                Text("No reviews found for this filter", color = Color.Gray)
+                            }
+                        }
+                    } else {
+                        items(filteredReviews) { review ->
+                            ReviewItem(review)
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 16.dp),
+                                thickness = 0.5.dp,
+                                color = Color.LightGray.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
-
 // --- COMPONENT: Tổng quan điểm số ---
 @Composable
 fun RatingOverviewSection(reviews: List<Review>) {
@@ -290,28 +312,4 @@ fun ReviewItem(review: Review) {
 fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
-}
-
-// --- Data Giả lập để test ---
-fun getDummyReviews(): List<Review> {
-    return listOf(
-        Review(
-            id = "1", userName = "John Doe", rating = 5,
-            userAvatarUrl = "https://i.pravatar.cc/150?u=1",
-            comment = "Delicious chicken burger! Loved the crispy chicken and the bun was perfectly toasted. Definitely a new favorite!",
-            createdAt = System.currentTimeMillis()
-        ),
-        Review(
-            id = "2", userName = "James", rating = 4,
-            userAvatarUrl = "https://i.pravatar.cc/150?u=2",
-            comment = "The chicken burger was okay, but it was a bit overcooked for my liking. The toppings were fresh, though.",
-            createdAt = System.currentTimeMillis() - 86400000 // Trừ 1 ngày
-        ),
-        Review(
-            id = "3", userName = "David", rating = 5,
-            userAvatarUrl = "https://i.pravatar.cc/150?u=3",
-            comment = "Absolutely delicious! The chicken burger was juicy and flavorful. Highly recommend!",
-            createdAt = System.currentTimeMillis() - 172800000 // Trừ 2 ngày
-        )
-    )
 }
