@@ -1,8 +1,11 @@
 package com.example.dormdeli.ui.seller.model
 
+import com.google.firebase.firestore.DocumentId
+
 data class MenuItem(
-    val id: String,
-    val name: String,
-    val price: Double,
-    val isAvailable: Boolean
+    @DocumentId val id: String = "",
+    val name: String = "",
+    val price: Double = 0.0,
+    val isAvailable: Boolean = true,
+    val imageUrl: String = ""
 )
