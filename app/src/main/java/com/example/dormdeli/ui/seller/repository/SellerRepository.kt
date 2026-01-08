@@ -54,6 +54,13 @@ class SellerRepository {
         Result.failure(e)
     }
 
+    suspend fun updateRestaurant(restaurant: Restaurant): Result<Unit> = try {
+        restaurantsCollection.document(restaurant.id).set(restaurant).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     suspend fun deleteRestaurant(restaurantId: String): Result<Unit> = try {
         restaurantsCollection.document(restaurantId).delete().await()
         Result.success(Unit)
@@ -87,7 +94,12 @@ class SellerRepository {
     }
 
     suspend fun addMenuItem(restaurantId: String, item: MenuItem): Result<Unit> = try {
-        restaurantsCollection.document(restaurantId).collection("menuItems").add(item).await()
+        // Dùng .document(item.id).set(item) để đồng bộ ID
+        restaurantsCollection.document(restaurantId)
+            .collection("menuItems")
+            .document(item.id) // Đảm bảo ID trên Firestore khớp với ID trong object
+            .set(item)
+            .await()
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

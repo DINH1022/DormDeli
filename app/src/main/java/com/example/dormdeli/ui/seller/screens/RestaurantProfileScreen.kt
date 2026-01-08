@@ -1,47 +1,29 @@
 package com.example.dormdeli.ui.seller.screens
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.dormdeli.R
+import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
@@ -74,7 +56,7 @@ fun RestaurantProfileScreen(viewModel: SellerViewModel) {
                 RestaurantStatus.NONE -> RegistrationForm(viewModel)
                 RestaurantStatus.PENDING -> PendingScreen()
                 RestaurantStatus.APPROVED -> {
-                    restaurant?.let { ApprovedRestaurantProfile(it) }
+                    restaurant?.let { ApprovedRestaurantProfile(it, viewModel) }
                 }
                 RestaurantStatus.REJECTED -> RejectedScreen(viewModel)
             }
@@ -144,13 +126,19 @@ fun RejectedScreen(viewModel: SellerViewModel) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApprovedRestaurantProfile(restaurant: Restaurant) {
-    var name by remember { mutableStateOf(restaurant.name) }
-    var description by remember { mutableStateOf(restaurant.description) }
-    var location by remember { mutableStateOf(restaurant.location) }
-    var openingHours by remember { mutableStateOf(restaurant.openingHours) }
+fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel) {
+    var name by remember(restaurant) { mutableStateOf(restaurant.name) }
+    var description by remember(restaurant) { mutableStateOf(restaurant.description) }
+    var location by remember(restaurant) { mutableStateOf(restaurant.location) }
+    var openingHours by remember(restaurant) { mutableStateOf(restaurant.openingHours) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? -> imageUri = uri }
+    )
 
     Column(
         modifier = Modifier
@@ -160,31 +148,43 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant) {
     ) {
         Box(modifier = Modifier.size(120.dp)) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = rememberAsyncImagePainter(
+                    model = imageUri ?: restaurant.imageUrl,
+                ),
                 contentDescription = "Restaurant Image",
-                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                modifier = Modifier.fillMaxSize().clip(CircleShape).clickable { imagePickerLauncher.launch("image/*") },
+                contentScale = ContentScale.Crop
             )
-            IconButton(
-                onClick = { /* TODO: Handle image edit */ },
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .background(Color.White, CircleShape)
                     .size(32.dp)
+                    .clickable { imagePickerLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Image")
+                Icon(Icons.Default.Edit, contentDescription = "Edit Image", tint = Color.Black)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Restaurant Name") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next))
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tên quán ăn") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next), enabled = !isLoading)
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next))
+        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Mô tả") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next), enabled = !isLoading)
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next))
+        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Địa chỉ") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next), enabled = !isLoading)
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = openingHours, onValueChange = { openingHours = it }, label = { Text("Opening Hours") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done))
+        OutlinedTextField(value = openingHours, onValueChange = { openingHours = it }, label = { Text("Giờ mở cửa") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done), enabled = !isLoading)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { /*TODO*/ }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save")
+        Button(
+            onClick = { viewModel.updateRestaurantProfile(name, description, location, openingHours, imageUri) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("Lưu")
+            }
         }
     }
 }

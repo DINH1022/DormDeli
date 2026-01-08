@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,6 +48,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.R
 import com.example.dormdeli.ui.seller.model.MenuItem
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +87,7 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(menuItems) { item ->
+            items(menuItems, key = { it.id }) { item ->
                 MenuItemRow(
                     item = item,
                     onEditClick = {
@@ -124,9 +127,22 @@ fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Un
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("$${item.price}", fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = NumberFormat.getCurrencyInstance(Locale.US).format(item.price),
+                    fontSize = 14.sp, 
+                    color = Color.DarkGray
+                )
+                if (item.description.isNotBlank()) {
+                    Text(
+                        text = item.description,
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = if (item.isAvailable) "Available" else "Unavailable",
                     color = if (item.isAvailable) Color(0xFF34A853) else Color.Red,

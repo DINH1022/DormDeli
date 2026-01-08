@@ -6,34 +6,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,24 +26,13 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     val editingMenuItem by viewModel.editingMenuItem.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var isAvailable by remember { mutableStateOf(true) }
+    var name by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.name ?: "") }
+    var price by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.price?.toString() ?: "") }
+    var description by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.description ?: "") }
+    var isAvailable by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.isAvailable ?: true) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Pre-fill fields if editing
-    LaunchedEffect(editingMenuItem) {
-        editingMenuItem?.let {
-            name = it.name
-            price = it.price.toString()
-            description = "" // Assuming description is not in MenuItem model yet
-            isAvailable = it.isAvailable
-            if (it.imageUrl.isNotEmpty()) {
-                imageUri = Uri.parse(it.imageUrl)
-            }
-        }
-    }
+    val displayImage: Any? = imageUri ?: editingMenuItem?.imageUrl
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -77,11 +43,11 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
         topBar = {
             TopAppBar(title = { Text(if (editingMenuItem == null) "Add Food" else "Edit Food") })
         }
-    ) {
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
+                .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -93,10 +59,10 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                     .clickable(enabled = !isLoading) { imagePickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                if (imageUri != null) {
+                if (displayImage != null && displayImage.toString().isNotBlank()) {
                     Image(
-                        painter = rememberAsyncImagePainter(imageUri),
-                        contentDescription = "Selected Food Image",
+                        painter = rememberAsyncImagePainter(model = displayImage),
+                        contentDescription = "Food Image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -107,7 +73,14 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Food Name") }, modifier = Modifier.fillMaxWidth(), enabled = !isLoading)
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), enabled = !isLoading)
+            OutlinedTextField(
+                value = price,
+                onValueChange = { price = it },
+                label = { Text("Price") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                enabled = !isLoading
+            )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), maxLines = 3, enabled = !isLoading)
             Spacer(modifier = Modifier.height(16.dp))
@@ -121,12 +94,20 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { 
-                    viewModel.saveMenuItem(name, price.toDoubleOrNull() ?: 0.0, isAvailable, imageUri) {
+                onClick = {
+                    viewModel.saveMenuItem(
+                        name = name,
+                        description = description,
+                        price = price.toDoubleOrNull() ?: 0.0,
+                        isAvailable = isAvailable,
+                        imageUri = imageUri
+                    ) {
                         onNavigateBack()
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) {

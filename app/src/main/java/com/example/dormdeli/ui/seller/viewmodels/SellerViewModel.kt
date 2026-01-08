@@ -43,6 +43,7 @@ class SellerViewModel : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RestaurantStatus.NONE)
 
+    // This is now the single source of truth for menu items, directly from the repository flow
     val menuItems: StateFlow<List<MenuItem>> = restaurant.flatMapLatest { restaurant ->
         restaurant?.id?.let { repository.getMenuItemsFlow(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -70,13 +71,42 @@ class SellerViewModel : ViewModel() {
         }
     }
 
+    fun updateRestaurantProfile(name: String, description: String, location: String, openingHours: String, imageUri: Uri?) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            val currentRestaurant = restaurant.value
+            if (currentRestaurant == null) {
+                _error.value = "Restaurant not found."
+                _isLoading.value = false
+                return@launch
+            }
+
+            val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: currentRestaurant.imageUrl
+
+            val updatedRestaurant = currentRestaurant.copy(
+                name = name,
+                description = description,
+                location = location,
+                openingHours = openingHours,
+                imageUrl = imageUrl
+            )
+
+            val result = repository.updateRestaurant(updatedRestaurant)
+            if (result.isFailure) {
+                _error.value = result.exceptionOrNull()?.message ?: "Failed to update profile."
+            }
+            _isLoading.value = false
+        }
+    }
+
     fun deleteCurrentRestaurant() {
         viewModelScope.launch {
             restaurant.value?.id?.let { repository.deleteRestaurant(it) }
         }
     }
 
-    fun saveMenuItem(name: String, price: Double, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
+    fun saveMenuItem(name: String, description: String, price: Double, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -91,10 +121,11 @@ class SellerViewModel : ViewModel() {
 
             val itemToSave = editingMenuItem.value?.copy(
                 name = name,
+                description = description,
                 price = price,
                 isAvailable = isAvailable,
                 imageUrl = imageUrl
-            ) ?: MenuItem(name = name, price = price, isAvailable = isAvailable, imageUrl = imageUrl)
+            ) ?: MenuItem(name = name, description = description, price = price, isAvailable = isAvailable, imageUrl = imageUrl)
 
             val result = if (editingMenuItem.value == null) {
                 repository.addMenuItem(currentRestaurantId, itemToSave)
