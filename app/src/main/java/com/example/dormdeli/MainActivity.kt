@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
 
         // Seed sample data for testing (Comment this out after first run)
-        SampleData.seedSampleOrders(this)
+        //SampleData.seedSampleOrders(this)
 
         setContent {
             DormDeliTheme {

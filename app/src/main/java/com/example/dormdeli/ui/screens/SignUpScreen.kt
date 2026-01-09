@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.ui.components.customer.RoleSelectionButton
+import com.example.dormdeli.ui.components.customer.PhoneNumberTextField
+import com.example.dormdeli.ui.components.customer.SocialLoginButton
 
 @Composable
 fun SignUpScreen(
@@ -274,20 +276,8 @@ fun SignUpScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SocialLoginButton(
-                    iconRes = android.R.drawable.ic_dialog_email, // Replace with actual icon
+                    iconRes = com.example.dormdeli.R.drawable.ic_google,
                     onClick = { onSocialSignUpClick("google") },
-                    enabled = isButtonEnabled
-                )
-                Spacer(modifier = Modifier.width(24.dp))
-                SocialLoginButton(
-                    iconRes = android.R.drawable.ic_dialog_email, // Replace with actual icon
-                    onClick = { onSocialSignUpClick("facebook") },
-                    enabled = isButtonEnabled
-                )
-                Spacer(modifier = Modifier.width(24.dp))
-                SocialLoginButton(
-                    iconRes = android.R.drawable.ic_dialog_email, // Replace with actual icon
-                    onClick = { onSocialSignUpClick("apple") },
                     enabled = isButtonEnabled
                 )
             }

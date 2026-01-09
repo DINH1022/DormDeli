@@ -52,7 +52,6 @@ fun MainNavigation(
 
     val locationViewModel: LocationViewModel = viewModel()
 
-    // Function to navigate after login based on role
     val navigateAfterLogin: () -> Unit = {
         val role = authViewModel.selectedRole.value.value
         if (role == "shipper") {
@@ -66,14 +65,12 @@ fun MainNavigation(
         }
     }
 
-    // Hiển thị error message
     LaunchedEffect(errorMessage) {
         errorMessage?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
         }
     }
 
-    // Theo dõi thay đổi của Auth screen
     LaunchedEffect(currentAuthScreen) {
         val currentRoute = navController.currentDestination?.route
         val isInAuthFlow = currentRoute in listOf(Screen.Login.route, Screen.SignUp.route, Screen.OTP.route)
@@ -110,20 +107,16 @@ fun MainNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        // ==================== AUTH SCREENS ====================
         composable(Screen.Login.route) {
             LoginScreen(
                 authViewModel = authViewModel,
-                onSignInClick = { phone, password ->
-                    authViewModel.loginWithPhoneAndPassword(phone, password) {
+                onSignInClick = { email, password ->
+                    authViewModel.loginWithEmail(email, password) {
                         navigateAfterLogin()
                     }
                 },
                 onRegisterClick = {
                     authViewModel.navigateToSignUp()
-                },
-                onSocialLoginClick = { provider ->
-                    Toast.makeText(context, "Đăng nhập với $provider (chưa triển khai)", Toast.LENGTH_SHORT).show()
                 },
                 onSignInSuccess = {
                     navigateAfterLogin()
@@ -147,9 +140,6 @@ fun MainNavigation(
                 onSignInClick = {
                     authViewModel.navigateToLogin()
                 },
-                onSocialSignUpClick = { provider ->
-                    Toast.makeText(context, "Đăng ký với $provider (chưa triển khai)", Toast.LENGTH_SHORT).show()
-                },
                 onSignUpSuccess = {
                     navigateAfterLogin()
                 },
@@ -164,7 +154,7 @@ fun MainNavigation(
                 phoneNumber = phoneNumber,
                 onVerifyClick = { code ->
                     authViewModel.verifyOTP(code) {
-                        Toast.makeText(context, "Đăng ký tài khoản thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
                         navigateAfterLogin()
                     }
                 },
@@ -175,7 +165,6 @@ fun MainNavigation(
             )
         }
 
-        // ==================== CUSTOMER SCREENS ====================
         composable(Screen.Home.route) {
             val selectedAddress by locationViewModel.selectedAddress.collectAsState()
             HomeScreen(
@@ -372,7 +361,6 @@ fun MainNavigation(
             ReviewScreen(foodId = foodId, onBackClick = { navController.popBackStack() })
         }
 
-        // ==================== SHIPPER SCREENS ====================
         composable(Screen.ShipperHome.route) {
             val shipperViewModel: ShipperViewModel = viewModel()
             ShipperHomeScreen(

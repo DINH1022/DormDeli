@@ -4,13 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ShipperViewModel : ViewModel() {
     private val repository = ShipperRepository()
 
+    // Chuyển sang sử dụng StateFlow được cập nhật từ Repository Flow
     private val _availableOrders = MutableStateFlow<List<Order>>(emptyList())
     val availableOrders: StateFlow<List<Order>> = _availableOrders
 
@@ -24,16 +24,23 @@ class ShipperViewModel : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading
 
     init {
-        refreshOrders()
+        observeOrders()
     }
 
-    fun refreshOrders() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _availableOrders.value = repository.getAvailableOrders()
-            _myDeliveries.value = repository.getMyDeliveries()
-            _isLoading.value = false
-        }
+    private fun observeOrders() {
+        // Lắng nghe đơn hàng mới theo thời gian thực
+        repository.getAvailableOrdersFlow()
+            .onStart { _isLoading.value = true }
+            .onEach { 
+                _availableOrders.value = it 
+                _isLoading.value = false
+            }
+            .launchIn(viewModelScope)
+
+        // Lắng nghe đơn hàng đang giao theo thời gian thực
+        repository.getMyDeliveriesFlow()
+            .onEach { _myDeliveries.value = it }
+            .launchIn(viewModelScope)
     }
 
     fun fetchOrderDetails(orderId: String) {
@@ -48,7 +55,6 @@ class ShipperViewModel : ViewModel() {
         viewModelScope.launch {
             val success = repository.acceptOrder(orderId)
             if (success) {
-                refreshOrders()
                 onComplete()
             }
         }
@@ -58,7 +64,6 @@ class ShipperViewModel : ViewModel() {
         viewModelScope.launch {
             val success = repository.updateOrderStatus(orderId, status)
             if (success) {
-                refreshOrders()
                 // Update current order state if we are in detail screen
                 if (_currentOrder.value?.id == orderId) {
                     _currentOrder.value = _currentOrder.value?.copy(status = status)
