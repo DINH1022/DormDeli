@@ -1,23 +1,24 @@
 package com.example.dormdeli.ui.seller.repository
 
 import android.net.Uri
+import com.example.dormdeli.repository.image.CloudinaryHelper
 import com.example.dormdeli.ui.seller.model.MenuItem
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
+import java.util.*
+import kotlin.coroutines.resume
 
 class SellerRepository {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
     private val restaurantsCollection = db.collection("restaurants")
 
     private fun getCurrentUserId(): String = "TEST_SELLER_ID" // Hardcoded for testing
@@ -70,15 +71,22 @@ class SellerRepository {
 
     // === Menu Item Functions ===
 
-    suspend fun uploadImage(uri: Uri): Result<String> = try {
-        val fileName = "menu_items/${UUID.randomUUID()}"
-        val storageRef = storage.reference.child(fileName)
-        storageRef.putFile(uri).await()
-        val downloadUri = storageRef.downloadUrl.await()
-        Result.success(downloadUri.toString())
-    } catch (e: Exception) {
-        Result.failure(e)
+    suspend fun uploadImage(uri: Uri): Result<String> = suspendCancellableCoroutine { continuation ->
+        CloudinaryHelper.uploadImage(
+            uri = uri,
+            onSuccess = { imageUrl ->
+                if (continuation.isActive) {
+                    continuation.resume(Result.success(imageUrl))
+                }
+            },
+            onError = { error ->
+                if (continuation.isActive) {
+                    continuation.resume(Result.failure(Exception(error)))
+                }
+            }
+        )
     }
+
 
     fun getMenuItemsFlow(restaurantId: String): Flow<List<MenuItem>> = callbackFlow {
         val menuItemsCollection = restaurantsCollection.document(restaurantId).collection("menuItems")

@@ -1,6 +1,5 @@
 package com.example.dormdeli.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,27 +9,40 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.theme.OrangeLight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import com.example.dormdeli.ui.viewmodels.AuthViewModel
+import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.ui.components.customer.RoleSelectionButton
 
 @Composable
 fun SignUpScreen(
     prefilledPhone: String? = null,
-    onRegisterClick: (String, String, String) -> Unit,
+    onRegisterClick: (String, String, String, String) -> Unit, // phone, email, fullname, password
     onSignInClick: () -> Unit,
     onSocialSignUpClick: (String) -> Unit = {},
     onSignUpSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    authViewModel: AuthViewModel? = null
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+
+    // Determine the current role from ViewModel or default
+    val currentRole = authViewModel?.selectedRole?.value ?: UserRole.STUDENT
 
     // Nếu có số điện thoại điền sẵn (từ luồng OTP), cập nhật state
     LaunchedEffect(prefilledPhone) {
@@ -42,7 +54,9 @@ fun SignUpScreen(
     val isButtonEnabled = (if (prefilledPhone != null) true else phoneNumber.isNotBlank()) &&
                          email.isNotBlank() &&
                          fullName.isNotBlank() &&
-                         email.contains("@")
+                         password.isNotBlank() &&
+                         email.contains("@") &&
+                         password.length >= 6
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -62,8 +76,29 @@ fun SignUpScreen(
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = OrangePrimary,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            // Role Selection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                RoleSelectionButton(
+                    text = "Customer",
+                    isSelected = currentRole == UserRole.STUDENT,
+                    onClick = { authViewModel?.setRole(UserRole.STUDENT) }
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                RoleSelectionButton(
+                    text = "Shipper",
+                    isSelected = currentRole == UserRole.SHIPPER,
+                    onClick = { authViewModel?.setRole(UserRole.SHIPPER) }
+                )
+            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -132,6 +167,46 @@ fun SignUpScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Password Input
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                placeholder = {
+                    Text(
+                        text = "Password",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = OrangePrimary,
+                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black
+                ),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else
+                        Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description)
+                    }
+                },
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Remember Me Checkbox
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -155,7 +230,7 @@ fun SignUpScreen(
 
             // Register Button
             Button(
-                onClick = { onRegisterClick(phoneNumber, email, fullName) },
+                onClick = { onRegisterClick(phoneNumber, email, fullName, password) },
                 enabled = isButtonEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +244,7 @@ fun SignUpScreen(
                 )
             ) {
                 Text(
-                    text = "Register",
+                    text = "Register as ${if (currentRole == UserRole.STUDENT) "Customer" else "Shipper"}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )

@@ -31,3 +31,5 @@ replay_pid*
 ./app/google-services.json
 
 local.properties
+
+.idea/
