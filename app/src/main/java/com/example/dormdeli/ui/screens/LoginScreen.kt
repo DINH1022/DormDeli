@@ -3,7 +3,6 @@ package com.example.dormdeli.ui.screens
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +27,9 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.common.api.ApiException
 import com.example.dormdeli.R
 import com.example.dormdeli.enums.UserRole
-import com.example.dormdeli.ui.components.RoleSelectionButton
+import com.example.dormdeli.ui.components.customer.RoleSelectionButton
 
 @Composable
 fun LoginScreen(

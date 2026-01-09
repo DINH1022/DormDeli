@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.enums.UserRole
-import com.example.dormdeli.ui.components.RoleSelectionButton
+import com.example.dormdeli.ui.components.customer.RoleSelectionButton
 
 @Composable
 fun SignUpScreen(

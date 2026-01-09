@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.components
+package com.example.dormdeli.ui.components.customer
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip

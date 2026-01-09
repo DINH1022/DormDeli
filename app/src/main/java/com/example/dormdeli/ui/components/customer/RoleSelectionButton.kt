@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.components
+package com.example.dormdeli.ui.components.customer
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.height

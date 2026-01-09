@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.ui.components.*
+import com.example.dormdeli.ui.components.customer.CategoryChip
 import com.example.dormdeli.ui.components.customer.FoodItem
+import com.example.dormdeli.ui.components.customer.StoreNavBar
 import com.example.dormdeli.ui.theme.*
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel

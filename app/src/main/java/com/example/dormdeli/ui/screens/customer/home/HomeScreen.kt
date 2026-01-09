@@ -17,9 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel // Cần import thư viện này
 import com.example.dormdeli.model.Food
-import com.example.dormdeli.ui.components.*
+import com.example.dormdeli.ui.components.customer.CategoryChips
 import com.example.dormdeli.ui.components.customer.FoodItem
+import com.example.dormdeli.ui.components.customer.HomeHeader
+import com.example.dormdeli.ui.components.customer.HomeSearchBar
 import com.example.dormdeli.ui.components.customer.RestaurantCard
+import com.example.dormdeli.ui.components.customer.SectionTitle
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel // Import ViewModel của bạn
