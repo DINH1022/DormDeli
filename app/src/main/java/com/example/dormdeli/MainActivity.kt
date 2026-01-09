@@ -11,12 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.cloudinary.android.MediaManager
 import com.example.dormdeli.ui.navigation.MainNavigation
 import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.viewmodels.CartViewModel
-import com.example.dormdeli.ui.viewmodels.FavoriteViewModel
+import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initCloudinary()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
 
@@ -52,5 +54,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun initCloudinary() {
+        val config = HashMap<String, String>()
+        config["cloud_name"] = "dfg6uxyuf"
+        config["api_key"] = "967575127986714"
+        config["secure"] = "true"
+        MediaManager.init(this, config)
     }
 }

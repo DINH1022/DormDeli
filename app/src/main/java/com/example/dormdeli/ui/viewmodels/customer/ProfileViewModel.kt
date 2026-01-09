@@ -1,12 +1,14 @@
-package com.example.dormdeli.model
+package com.example.dormdeli.ui.viewmodels.customer
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.model.User
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
 
-class ProfileView : ViewModel() {
+class ProfileViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
 
@@ -21,6 +23,7 @@ class ProfileView : ViewModel() {
 
     private val _updateSuccess = mutableStateOf(false)
     val updateSuccess: State<Boolean> = _updateSuccess
+
 
     init {
         loadUserProfile()

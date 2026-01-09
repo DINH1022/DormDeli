@@ -9,7 +9,6 @@ class UserRepository {
     private val db = FirebaseFirestore.getInstance()
     private val userCol = db.collection("users")
 
-
     fun createUser(
         userId: String,
         user: User,
@@ -32,6 +31,24 @@ class UserRepository {
             .get()
             .addOnSuccessListener { doc ->
                 onSuccess(doc.toObject(User::class.java))
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    fun getUserByPhone(
+        phone: String,
+        onSuccess: (User?) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        userCol.whereEqualTo("phone", phone)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    onSuccess(snapshot.documents[0].toObject(User::class.java))
+                } else {
+                    onSuccess(null)
+                }
             }
             .addOnFailureListener { onFailure(it) }
     }

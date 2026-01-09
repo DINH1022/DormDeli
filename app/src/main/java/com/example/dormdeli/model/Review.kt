@@ -1,6 +1,9 @@
 package com.example.dormdeli.model
 
+import com.google.firebase.firestore.DocumentId
+
 data class Review(
+    @DocumentId
     val id: String = "",
     val userId: String = "",
     val userName: String = "Anonymous",
