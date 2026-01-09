@@ -17,6 +17,9 @@ class ShipperViewModel : ViewModel() {
     private val _myDeliveries = MutableStateFlow<List<Order>>(emptyList())
     val myDeliveries: StateFlow<List<Order>> = _myDeliveries
 
+    private val _currentOrder = MutableStateFlow<Order?>(null)
+    val currentOrder: StateFlow<Order?> = _currentOrder
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -33,20 +36,34 @@ class ShipperViewModel : ViewModel() {
         }
     }
 
-    fun acceptOrder(orderId: String) {
+    fun fetchOrderDetails(orderId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _currentOrder.value = repository.getOrderById(orderId)
+            _isLoading.value = false
+        }
+    }
+
+    fun acceptOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val success = repository.acceptOrder(orderId)
             if (success) {
                 refreshOrders()
+                onComplete()
             }
         }
     }
 
-    fun updateStatus(orderId: String, status: String) {
+    fun updateStatus(orderId: String, status: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val success = repository.updateOrderStatus(orderId, status)
             if (success) {
                 refreshOrders()
+                // Update current order state if we are in detail screen
+                if (_currentOrder.value?.id == orderId) {
+                    _currentOrder.value = _currentOrder.value?.copy(status = status)
+                }
+                onComplete()
             }
         }
     }

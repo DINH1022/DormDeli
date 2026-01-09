@@ -28,6 +28,7 @@ import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.screens.shipper.ShipperHomeScreen
+import com.example.dormdeli.ui.screens.shipper.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -382,12 +383,25 @@ fun MainNavigation(
                     }
                 },
                 onOrderDetail = { orderId ->
-                    navController.navigate(Screen.OrderDetail.createRoute(orderId))
+                    navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
                 },
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
                 },
                 viewModel = shipperViewModel
+            )
+        }
+
+        composable(
+            route = Screen.DeliveryDetail.route,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+            val shipperViewModel: ShipperViewModel = viewModel()
+            DeliveryDetailScreen(
+                orderId = orderId,
+                viewModel = shipperViewModel,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

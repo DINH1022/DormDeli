@@ -18,6 +18,7 @@ import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.utils.SampleData
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
         initCloudinary()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
+
+        // Seed sample data for testing (Comment this out after first run)
+        SampleData.seedSampleOrders(this)
 
         setContent {
             DormDeliTheme {

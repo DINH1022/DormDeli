@@ -12,14 +12,22 @@ class ShipperRepository {
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
 
-    // Lấy danh sách đơn hàng đang chờ shipper nhận (status = 'pending' và shipperId trống)
-    // Hoặc status = 'prepared' (nếu cửa hàng đã chuẩn bị xong)
+    suspend fun getOrderById(orderId: String): Order? {
+        return try {
+            val doc = db.collection(collectionName).document(orderId).get().await()
+            doc.toObject(Order::class.java)?.copy(id = doc.id)
+        } catch (e: Exception) {
+            Log.e("ShipperRepo", "Error getting order by id: ${e.message}")
+            null
+        }
+    }
+
+    // Tạm thời bỏ orderBy để tránh yêu cầu Index phức tạp khi test
     suspend fun getAvailableOrders(): List<Order> {
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("status", "pending")
                 .whereEqualTo("shipperId", "")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
@@ -32,14 +40,12 @@ class ShipperRepository {
         }
     }
 
-    // Lấy danh sách đơn hàng shipper hiện tại đang nhận giao
     suspend fun getMyDeliveries(): List<Order> {
         val shipperId = auth.currentUser?.uid ?: return emptyList()
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("shipperId", shipperId)
                 .whereIn("status", listOf("accepted", "delivering"))
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
@@ -52,7 +58,6 @@ class ShipperRepository {
         }
     }
 
-    // Nhận đơn hàng
     suspend fun acceptOrder(orderId: String): Boolean {
         val shipperId = auth.currentUser?.uid ?: return false
         return try {
@@ -70,7 +75,6 @@ class ShipperRepository {
         }
     }
 
-    // Cập nhật trạng thái đơn hàng (delivering, completed, cancelled)
     suspend fun updateOrderStatus(orderId: String, status: String): Boolean {
         return try {
             db.collection(collectionName).document(orderId)
