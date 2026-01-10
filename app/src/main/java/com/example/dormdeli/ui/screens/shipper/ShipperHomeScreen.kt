@@ -34,10 +34,12 @@ fun ShipperHomeScreen(
     onOrderDetail: (String) -> Unit,
     onPersonalInfoClick: () -> Unit,
     onSwitchToCustomer: () -> Unit,
+    onBackNav: () -> Unit,
     viewModel: ShipperViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel()
 ) {
-    var selectedBottomTab by remember { mutableIntStateOf(0) }
+    // SỬA: Sử dụng selectedTab từ ViewModel để giữ trạng thái khi quay lại
+    val selectedBottomTab by viewModel.selectedTab
     val user by profileViewModel.userState
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -64,7 +66,7 @@ fun ShipperHomeScreen(
                 bottomTabs.forEachIndexed { index, item ->
                     NavigationBarItem(
                         selected = selectedBottomTab == index,
-                        onClick = { selectedBottomTab = index },
+                        onClick = { viewModel.selectTab(index) },
                         icon = {
                             if (selectedBottomTab == index) {
                                 Box(
@@ -95,7 +97,6 @@ fun ShipperHomeScreen(
             }
         }
     ) { padding ->
-        // SỬA: Chỉ sử dụng bottom padding để tránh khoảng trống thừa phía trên
         Box(modifier = Modifier
             .fillMaxSize() 
             .padding(bottom = padding.calculateBottomPadding())) {
@@ -104,11 +105,11 @@ fun ShipperHomeScreen(
                 1 -> PlaceholderPage("History")
                 2 -> PlaceholderPage("Earnings")
                 3 -> ShipperProfileScreen(
-                    user = user,
-                    onBack = { selectedBottomTab = 0 },
+                    viewModel = profileViewModel,
+                    onBack = { onBackNav() },
                     onPersonalInfoClick = onPersonalInfoClick,
-                    onHistoryClick = { selectedBottomTab = 1 },
-                    onEarningsClick = { selectedBottomTab = 2 },
+                    onHistoryClick = { viewModel.selectTab(1) },
+                    onEarningsClick = { viewModel.selectTab(2) },
                     onSwitchToCustomer = onSwitchToCustomer,
                     onLogout = onLogout
                 )
@@ -138,7 +139,6 @@ fun ShipperOrdersPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(OrangePrimary)
-                // SỬA: Thêm statusBarsPadding() để header màu cam tràn lên thanh trạng thái
                 .statusBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 20.dp)
         ) {

@@ -50,7 +50,6 @@ class AuthViewModel : ViewModel() {
     val currentUserRole: State<String?> = _currentUserRole
 
     init {
-        // Lắng nghe thay đổi trạng thái Auth theo thời gian thực
         firebaseAuth.addAuthStateListener { auth ->
             val user = auth.currentUser
             _isSignedIn.value = user != null
@@ -148,22 +147,29 @@ class AuthViewModel : ViewModel() {
         )
     }
 
+
     fun registerUser(phone: String, email: String, fullName: String, pass: String, activity: Activity) {
         _isLoading.value = true
         _errorMessage.value = null
         val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
         _phoneNumber.value = formattedPhone
-        val roleValue = _selectedRole.value.value
+        
+        // LUÔN LUÔN là student khi đăng ký mới
+        val roleValue = UserRole.STUDENT.value 
 
         userRepository.getUserByPhone(formattedPhone,
             onSuccess = { existingUser ->
                 if (existingUser != null && existingUser.roles.contains(roleValue)) {
-                    _errorMessage.value = "Số điện thoại này đã đăng ký vai trò này."
+                    _errorMessage.value = "Số điện thoại này đã đăng ký tài khoản khách hàng."
                     _isLoading.value = false
                 } else {
                     tempRegistrationData = mapOf(
-                        "phone" to formattedPhone, "email" to email, "fullName" to fullName,
-                        "password" to pass, "role" to roleValue, "isUpgrade" to (existingUser != null).toString()
+                        "phone" to formattedPhone, 
+                        "email" to email, 
+                        "fullName" to fullName,
+                        "password" to pass, 
+                        "role" to roleValue, 
+                        "isUpgrade" to (existingUser != null).toString()
                     )
                     authRepository.sendPhoneVerificationCode(formattedPhone, activity, phoneAuthCallback)
                 }
@@ -260,12 +266,10 @@ class AuthViewModel : ViewModel() {
                 val firebaseUser = authRepository.getCurrentUser() ?: return@signInWithGoogle
                 userRepository.getUserById(firebaseUser.uid, { existingUser ->
                     if (existingUser == null) {
-                        // SỬA: Nếu không tìm thấy user trong DB, báo lỗi và không cho vào app (Chặn đăng ký mới qua Google)
                         _errorMessage.value = "Tài khoản Google này chưa được đăng ký. Vui lòng đăng ký trước."
                         _isLoading.value = false
-                        authRepository.signOut() // Đăng xuất khỏi Firebase ngay lập tức
+                        authRepository.signOut() 
                     } else {
-                        // Nếu user đã tồn tại, kiểm tra role và cho phép login
                         val role = _selectedRole.value.value
                         val userRoles = if (existingUser.roles.isNotEmpty()) existingUser.roles else listOf(existingUser.role)
                         
@@ -276,7 +280,6 @@ class AuthViewModel : ViewModel() {
                             return@getUserById
                         }
 
-                        // Cập nhật role hiện tại nếu cần
                         if (existingUser.role != role) {
                             userRepository.updateUserFields(firebaseUser.uid, mapOf("role" to role), {}, {})
                         }

@@ -1,5 +1,8 @@
 package com.example.dormdeli.ui.viewmodels.shipper
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
@@ -18,6 +21,10 @@ data class SortOptions(
 
 class ShipperViewModel : ViewModel() {
     private val repository = ShipperRepository()
+
+    // Lưu trữ trạng thái Tab để không bị reset khi điều hướng
+    private val _selectedTab = mutableIntStateOf(0)
+    val selectedTab: State<Int> = _selectedTab
 
     private val _sortOptions = MutableStateFlow(SortOptions())
     val sortOptions: StateFlow<SortOptions> = _sortOptions
@@ -41,6 +48,10 @@ class ShipperViewModel : ViewModel() {
 
     init {
         observeOrders()
+    }
+
+    fun selectTab(index: Int) {
+        _selectedTab.intValue = index
     }
 
     private fun observeOrders() {
@@ -79,8 +90,6 @@ class ShipperViewModel : ViewModel() {
     fun manualRefresh() {
         viewModelScope.launch {
             _isLoading.value = true
-            // Với Firebase Flow, dữ liệu thực tế đã real-time. 
-            // Ở đây ta có thể thêm logic kiểm tra kết nối hoặc force fetch nếu cần.
             delay(800) 
             _isLoading.value = false
         }

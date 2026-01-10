@@ -18,8 +18,6 @@ import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,23 +26,13 @@ fun DeliveryDetailScreen(
     viewModel: ShipperViewModel,
     onBackClick: () -> Unit
 ) {
-    var order by remember { mutableStateOf<Order?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(orderId) {
-        // Fetch fresh order data
-        // For simplicity using repo directly or adding to VM
-        // Let's assume we can get it from the VM's current list or fetch
-        // Adding a fetch method to VM would be better, but let's implement the UI first
-    }
-
-    // Temporary mock/fetch logic for UI demonstration
-    // In real app, this should come from ViewModel state
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
+    val isActionLoading by viewModel.isLoading.collectAsState()
     
-    order = (availableOrders + myDeliveries).find { it.id == orderId }
-    isLoading = false
+    val order = remember(availableOrders, myDeliveries) {
+        (availableOrders + myDeliveries).find { it.id == orderId }
+    }
 
     Scaffold(
         topBar = {
@@ -62,16 +50,12 @@ fun DeliveryDetailScreen(
             )
         }
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = OrangePrimary)
-            }
-        } else if (order == null) {
+        if (order == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Order not found", color = Color.Gray)
             }
         } else {
-            val currentOrder = order!!
+            val currentOrder = order
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -83,17 +67,8 @@ fun DeliveryDetailScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Status Card
-                    item {
-                        OrderInfoCard(currentOrder)
-                    }
-
-                    // Addresses Section
-                    item {
-                        AddressSection(currentOrder)
-                    }
-
-                    // Items Section
+                    item { OrderInfoCard(currentOrder) }
+                    item { AddressSection(currentOrder) }
                     item {
                         Text(
                             "Order Items (${currentOrder.items.size})",
@@ -102,63 +77,52 @@ fun DeliveryDetailScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-
-                    items(currentOrder.items) { item ->
-                        OrderItemRow(item)
-                    }
-
+                    items(currentOrder.items) { item -> OrderItemRow(item) }
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         SummaryRow("Subtotal", "${currentOrder.totalPrice}đ")
-                        SummaryRow("Delivery Fee", "Free", isHighlight = true)
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        SummaryRow("Total", "${currentOrder.totalPrice}đ", isBold = true)
+                        SummaryRow("Shipping Fee", "${currentOrder.shippingFee}đ")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        SummaryRow("Total", "${currentOrder.totalPrice + currentOrder.shippingFee}đ", isBold = true)
                     }
                 }
 
-                // Action Buttons
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp,
                     color = Color.White
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
-                        when (currentOrder.status) {
-                            "pending" -> {
-                                Button(
-                                    onClick = { 
-                                        viewModel.acceptOrder(currentOrder.id)
-                                        onBackClick()
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("ACCEPT ORDER", fontWeight = FontWeight.Bold)
-                                }
+                        val buttonAction: () -> Unit = {
+                            when (currentOrder.status) {
+                                "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
+                                "accepted" -> viewModel.updateStatus(currentOrder.id, "delivering")
+                                "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
                             }
-                            "accepted" -> {
-                                Button(
-                                    onClick = { viewModel.updateStatus(currentOrder.id, "delivering") },
-                                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("START DELIVERING", fontWeight = FontWeight.Bold)
-                                }
-                            }
-                            "delivering" -> {
-                                Button(
-                                    onClick = { 
-                                        viewModel.updateStatus(currentOrder.id, "completed")
-                                        onBackClick()
+                        }
+
+                        Button(
+                            onClick = buttonAction,
+                            enabled = !isActionLoading,
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            if (isActionLoading) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            } else {
+                                Text(
+                                    text = when (currentOrder.status) {
+                                        "pending" -> "ACCEPT ORDER"
+                                        "accepted" -> "START DELIVERING"
+                                        "delivering" -> "MARK AS COMPLETED"
+                                        else -> "BACK"
                                     },
-                                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("MARK AS COMPLETED", fontWeight = FontWeight.Bold)
-                                }
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
                             }
                         }
                     }
@@ -186,25 +150,12 @@ fun OrderInfoCard(order: Order) {
                     color = OrangePrimary.copy(alpha = 0.1f),
                     modifier = Modifier.size(50.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Inventory,
-                        contentDescription = null,
-                        tint = OrangePrimary,
-                        modifier = Modifier.padding(12.dp)
-                    )
+                    Icon(Icons.Default.Inventory, contentDescription = null, tint = OrangePrimary, modifier = Modifier.padding(12.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text(
-                        text = "Order #${order.id.takeLast(5).uppercase()}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                    Text(
-                        text = "Customer ID: ${order.userId.takeLast(5)}",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
+                    Text(text = "Order #${order.id.takeLast(5).uppercase()}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(text = "Customer: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
                 }
             }
             StatusBadge(order.status)
@@ -220,27 +171,9 @@ fun AddressSection(order: Order) {
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow(
-                icon = Icons.Default.LocationOn,
-                label = "PICK UP",
-                value = "Store Location", // In real app, fetch store info
-                color = Color(0xFFE3F2FD)
-            )
-            
-            Box(
-                modifier = Modifier
-                    .padding(start = 22.dp)
-                    .height(30.dp)
-                    .width(2.dp)
-                    .background(Color.LightGray)
-            )
-            
-            InfoRow(
-                icon = Icons.Default.Room,
-                label = "DELIVER TO",
-                value = "${order.deliveryType.uppercase()} - ${order.deliveryNote}",
-                color = Color(0xFFFFEBEE)
-            )
+            InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = "Store Location", color = Color(0xFFE3F2FD))
+            Box(modifier = Modifier.padding(start = 22.dp).height(30.dp).width(2.dp).background(Color.LightGray))
+            InfoRow(icon = Icons.Default.Room, label = "DELIVER TO", value = "${order.deliveryType.uppercase()} - ${order.deliveryNote}", color = Color(0xFFFFEBEE))
         }
     }
 }
@@ -248,19 +181,12 @@ fun AddressSection(order: Order) {
 @Composable
 fun OrderItemRow(item: com.example.dormdeli.model.OrderItem) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "${item.quantity}x",
-                fontWeight = FontWeight.Bold,
-                color = OrangePrimary,
-                modifier = Modifier.width(30.dp)
-            )
+            Text(text = "${item.quantity}x", fontWeight = FontWeight.Bold, color = OrangePrimary, modifier = Modifier.width(30.dp))
             Text(text = item.foodName, fontWeight = FontWeight.Medium)
         }
         Text(text = "${item.price * item.quantity}đ", color = Color.Gray)
@@ -273,16 +199,8 @@ fun SummaryRow(label: String, value: String, isBold: Boolean = false, isHighligh
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = label,
-            color = if (isHighlight) OrangePrimary else Color.Gray,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
-        )
-        Text(
-            text = value,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = if (isHighlight) OrangePrimary else Color.Black
-        )
+        Text(text = label, color = if (isHighlight) OrangePrimary else Color.Gray, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+        Text(text = value, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal, color = if (isHighlight) OrangePrimary else Color.Black)
     }
 }
 

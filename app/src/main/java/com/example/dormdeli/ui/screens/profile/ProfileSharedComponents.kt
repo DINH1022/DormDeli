@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,32 +20,37 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.dormdeli.R
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @Composable
 fun ProfileAvatar(avatarUrl: String, size: Dp) {
-    if (avatarUrl.startsWith("http")) {
-        AsyncImage(
-            model = avatarUrl,
-            contentDescription = null,
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .border(2.dp, Color.White, CircleShape),
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Image(
-            painter = painterResource(id = R.drawable.avatar_1),
-            contentDescription = null,
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .border(2.dp, Color.White, CircleShape),
-            contentScale = ContentScale.Crop
-        )
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color(0xFFF0F0F0))
+            .border(2.dp, Color.White, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (avatarUrl.isNotEmpty() && avatarUrl.startsWith("http")) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // Hiển thị ảnh Mock (icon Person) nếu chưa có avatar
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(0.6f),
+                tint = Color.Gray
+            )
+        }
     }
 }
 

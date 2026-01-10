@@ -397,6 +397,9 @@ fun MainNavigation(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onBackNav = {
+                    navController.popBackStack()
+                },
                 viewModel = shipperViewModel,
                 profileViewModel = profileViewModel
             )

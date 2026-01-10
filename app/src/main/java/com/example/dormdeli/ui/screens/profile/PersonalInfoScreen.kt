@@ -1,10 +1,10 @@
 package com.example.dormdeli.ui.screens.profile
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,11 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.dormdeli.repository.image.CloudinaryHelper
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
@@ -37,6 +36,8 @@ fun PersonalInfoScreen(
 ) {
     val user by viewModel.userState
     val isLoading by viewModel.isLoading
+    val updateSuccess by viewModel.updateProfileSuccess
+    val context = LocalContext.current
 
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -59,9 +60,18 @@ fun PersonalInfoScreen(
         user?.let {
             fullName = it.fullName
             email = it.email
-            dormBlock = it.dormBlock
-            roomNumber = it.roomNumber
-            avatarUrl = it.avatarUrl
+            dormBlock = it.dormBlock ?: ""
+            roomNumber = it.roomNumber ?: ""
+            avatarUrl = it.avatarUrl ?: ""
+        }
+    }
+
+    // Xử lý khi lưu thành công: Hiện thông báo và quay về đúng luồng
+    LaunchedEffect(updateSuccess) {
+        if (updateSuccess) {
+            Toast.makeText(context, "Cập nhật thông tin thành công!", Toast.LENGTH_SHORT).show()
+            viewModel.resetUpdateSuccess()
+            onBack() // Quay về màn hình trước đó (Customer Profile hoặc Shipper Profile)
         }
     }
 
@@ -88,14 +98,8 @@ fun PersonalInfoScreen(
             Spacer(modifier = Modifier.height(20.dp))
             
             Box(contentAlignment = Alignment.BottomEnd) {
-                if (avatarUrl.startsWith("http")) {
-                    AsyncImage(
-                        model = avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier.size(100.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                ProfileAvatar(avatarUrl = avatarUrl, size = 100.dp)
+                
                 if (isUploading) {
                     Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color.White)
@@ -126,14 +130,17 @@ fun PersonalInfoScreen(
             Button(
                 onClick = {
                     viewModel.updateUserProfile(fullName, email, dormBlock, roomNumber, avatarUrl)
-                    onBack()
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = !isLoading && !isUploading,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
             ) {
-                if (isLoading) CircularProgressIndicator(color = Color.White)
-                else Text("Save Changes", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Save Changes", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(modifier = Modifier.height(32.dp))
         }

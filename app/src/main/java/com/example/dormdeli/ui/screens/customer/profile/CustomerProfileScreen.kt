@@ -33,18 +33,19 @@ fun CustomerProfileScreen(
     onLogout: () -> Unit
 ) {
     val user by viewModel.userState
-    val updateSuccess by viewModel.updateSuccess
+    // SỬA: Lắng nghe trạng thái đăng ký shipper riêng biệt
+    val registerShipperSuccess by viewModel.registerShipperSuccess
     val context = LocalContext.current
     val hasShipperRole = user?.roles?.contains("shipper") == true
     
     var showRegisterDialog by remember { mutableStateOf(false) }
 
     // Lắng nghe khi đăng ký Shipper thành công
-    LaunchedEffect(updateSuccess) {
-        if (updateSuccess) {
+    LaunchedEffect(registerShipperSuccess) {
+        if (registerShipperSuccess) {
             Toast.makeText(context, "Chúc mừng! Bạn đã trở thành Shipper.", Toast.LENGTH_LONG).show()
             viewModel.resetUpdateSuccess()
-            onSwitchToShipper() // Tự động chuyển sang màn hình Shipper
+            onSwitchToShipper() 
         }
     }
 
@@ -101,8 +102,8 @@ fun CustomerProfileScreen(
                 Canvas(modifier = Modifier.size(140.dp)) {
                     drawArc(
                         color = OrangePrimary,
-                        startAngle = -90f,
-                        sweepAngle = 280f,
+                        startAngle = 0f,
+                        sweepAngle = 360f,
                         useCenter = false,
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
                     )

@@ -3,14 +3,15 @@ package com.example.dormdeli.ui.viewmodels.customer
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.model.User
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
+import com.google.firebase.auth.FirebaseAuth
 
 class ProfileViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
+    private val firebaseAuth = FirebaseAuth.getInstance()
 
     private val _userState = mutableStateOf<User?>(null)
     val userState: State<User?> = _userState
@@ -21,16 +22,25 @@ class ProfileViewModel : ViewModel() {
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
 
-    private val _updateSuccess = mutableStateOf(false)
-    val updateSuccess: State<Boolean> = _updateSuccess
+    private val _updateProfileSuccess = mutableStateOf(false)
+    val updateProfileSuccess: State<Boolean> = _updateProfileSuccess
 
+    private val _registerShipperSuccess = mutableStateOf(false)
+    val registerShipperSuccess: State<Boolean> = _registerShipperSuccess
 
     init {
-        loadUserProfile()
+        // SỬA: Lắng nghe AuthState để tự động load profile khi user thay đổi (login/logout)
+        firebaseAuth.addAuthStateListener { auth ->
+            if (auth.currentUser != null) {
+                loadUserProfile()
+            } else {
+                _userState.value = null
+            }
+        }
     }
 
     fun loadUserProfile() {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = firebaseAuth.currentUser
         if (currentUser != null) {
             _isLoading.value = true
             userRepository.getUserById(
@@ -48,7 +58,7 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun switchActiveRole(newRole: String, onSuccess: () -> Unit) {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = firebaseAuth.currentUser
         if (currentUser != null) {
             _isLoading.value = true
             userRepository.updateUserFields(
@@ -56,7 +66,6 @@ class ProfileViewModel : ViewModel() {
                 fields = mapOf("role" to newRole),
                 onSuccess = {
                     _isLoading.value = false
-                    // Cập nhật trạng thái người dùng cục bộ
                     _userState.value = _userState.value?.copy(role = newRole)
                     onSuccess()
                 },
@@ -69,7 +78,7 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun registerAsShipper() {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = firebaseAuth.currentUser
         if (currentUser != null) {
             _isLoading.value = true
             val currentRoles = _userState.value?.roles?.toMutableList() ?: mutableListOf("student")
@@ -81,12 +90,12 @@ class ProfileViewModel : ViewModel() {
                 userId = currentUser.uid,
                 fields = mapOf(
                     "roles" to currentRoles,
-                    "role" to "shipper" // Chuyển sang vai trò shipper ngay khi đăng ký thành công
+                    "role" to "shipper"
                 ),
                 onSuccess = {
                     _isLoading.value = false
                     _userState.value = _userState.value?.copy(roles = currentRoles, role = "shipper")
-                    _updateSuccess.value = true
+                    _registerShipperSuccess.value = true
                 },
                 onFailure = { e ->
                     _isLoading.value = false
@@ -97,10 +106,10 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun updateUserProfile(fullName: String, email: String, dormBlock: String, roomNumber: String, avatarUrl: String) {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = firebaseAuth.currentUser
         if (currentUser != null) {
             _isLoading.value = true
-            _updateSuccess.value = false
+            _updateProfileSuccess.value = false
 
             val updates = mapOf(
                 "fullName" to fullName,
@@ -115,7 +124,7 @@ class ProfileViewModel : ViewModel() {
                 fields = updates,
                 onSuccess = {
                     _isLoading.value = false
-                    _updateSuccess.value = true
+                    _updateProfileSuccess.value = true
                     _userState.value = _userState.value?.copy(
                         fullName = fullName,
                         email = email,
@@ -133,6 +142,7 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun resetUpdateSuccess() {
-        _updateSuccess.value = false
+        _updateProfileSuccess.value = false
+        _registerShipperSuccess.value = false
     }
 }

@@ -13,16 +13,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dormdeli.model.User
 import com.example.dormdeli.ui.screens.profile.LogoutRow
 import com.example.dormdeli.ui.screens.profile.ProfileAvatar
 import com.example.dormdeli.ui.screens.profile.ProfileMenuItem
-import com.example.dormdeli.ui.theme.OrangePrimary
+import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShipperProfileScreen(
-    user: User?,
+    viewModel: ProfileViewModel, // Nhận ViewModel để switch role
     onBack: () -> Unit,
     onPersonalInfoClick: () -> Unit,
     onHistoryClick: () -> Unit,
@@ -30,34 +28,43 @@ fun ShipperProfileScreen(
     onSwitchToCustomer: () -> Unit,
     onLogout: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Shipper Profile", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+    val user by viewModel.userState
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+            }
+            Text(
+                "Shipper Profile",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
             )
         }
-    ) { padding ->
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            // Shipper Avatar with Progress Ring - Synchronized with Customer
             Box(contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.size(140.dp)) {
                     drawArc(
-                        color = Color(0xFF4CAF50), // Green for Shipper
+                        color = Color(0xFF4CAF50),
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -73,24 +80,26 @@ fun ShipperProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Shipper Specific Menu Items using shared components
             ProfileMenuItem(icon = Icons.Default.Person, title = "Personal Info", onClick = onPersonalInfoClick)
             ProfileMenuItem(icon = Icons.Default.History, title = "Delivery History", onClick = onHistoryClick)
             ProfileMenuItem(icon = Icons.Default.Payments, title = "Earnings Report", onClick = onEarningsClick)
             
-            // Switch to Customer Mode
             ProfileMenuItem(
                 icon = Icons.Default.ShoppingBag, 
                 title = "Switch to Customer Mode", 
-                onClick = onSwitchToCustomer,
-                tint = OrangePrimary
+                onClick = {
+                    // FIX: Cập nhật role trên Firestore trước khi chuyển màn hình
+                    viewModel.switchActiveRole("student") {
+                        onSwitchToCustomer()
+                    }
+                },
+                tint = com.example.dormdeli.ui.theme.OrangePrimary
             )
 
             ProfileMenuItem(icon = Icons.Default.Settings, title = "Settings", onClick = {})
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Shared LogoutRow
             LogoutRow(onLogout = onLogout)
             Spacer(modifier = Modifier.height(32.dp))
         }
