@@ -14,6 +14,7 @@ class ShipperRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
+    private val EXPIRE_TIME_MS = 3600000L // 1 giờ tính bằng mili giây
 
     suspend fun getOrderById(orderId: String): Order? {
         return try {
@@ -36,14 +37,32 @@ class ShipperRepository {
                     return@addSnapshotListener
                 }
                 
+                val currentTime = System.currentTimeMillis()
                 val orders = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Order::class.java)?.copy(id = doc.id)
+                    val order = doc.toObject(Order::class.java)?.copy(id = doc.id)
+                    
+                    // Logic: Nếu đơn hàng > 1 giờ mà chưa có ai nhận -> Tự động hủy
+                    if (order != null && (currentTime - order.createdAt) > EXPIRE_TIME_MS) {
+                        cancelExpiredOrder(order.id)
+                        null // Không hiển thị đơn hàng đã hết hạn
+                    } else {
+                        order
+                    }
                 } ?: emptyList()
                 
                 trySend(orders)
             }
         
         awaitClose { listener.remove() }
+    }
+
+    // Hàm thực hiện hủy đơn hàng khi quá hạn
+    private fun cancelExpiredOrder(orderId: String) {
+        db.collection(collectionName).document(orderId)
+            .update("status", "cancelled_timeout")
+            .addOnFailureListener { e ->
+                Log.e("ShipperRepo", "Failed to cancel expired order $orderId: ${e.message}")
+            }
     }
 
     // Luồng cập nhật đơn hàng đang giao theo thời gian thực
@@ -77,6 +96,14 @@ class ShipperRepository {
     suspend fun acceptOrder(orderId: String): Boolean {
         val shipperId = auth.currentUser?.uid ?: return false
         return try {
+            // Kiểm tra lại xem đơn hàng còn hiệu lực không trước khi nhận
+            val orderDoc = db.collection(collectionName).document(orderId).get().await()
+            val createdAt = orderDoc.getLong("createdAt") ?: 0L
+            if (System.currentTimeMillis() - createdAt > EXPIRE_TIME_MS) {
+                cancelExpiredOrder(orderId)
+                return false
+            }
+
             db.collection(collectionName).document(orderId)
                 .update(
                     mapOf(
