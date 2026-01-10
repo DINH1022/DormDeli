@@ -37,19 +37,34 @@ import com.example.dormdeli.repository.image.CloudinaryHelper
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
-    onLocationClick: () -> Unit, // Added for address navigation
+    onLocationClick: () -> Unit,
+    onSwitchToShipper: () -> Unit,
+    onSwitchToCustomer: () -> Unit, // Thêm tham số này
+    currentRole: String, // Thêm tham số này
     viewModel: ProfileViewModel = viewModel()
 ) {
     val user by viewModel.userState
-    var currentSubScreen by remember { mutableStateOf("menu") } // "menu" or "personal_info"
+    var currentSubScreen by remember { mutableStateOf("menu") }
 
     if (currentSubScreen == "menu") {
-        MyProfileView(
+        CustomerProfileMenuView(
             user = user,
             onBack = onNavigateBack,
             onPersonalInfoClick = { currentSubScreen = "personal_info" },
             onLocationClick = onLocationClick,
-            onLogout = onLogout
+            onSwitchToShipper = {
+                viewModel.switchActiveRole("shipper") {
+                    onSwitchToShipper()
+                }
+            },
+            onSwitchToCustomer = {
+                viewModel.switchActiveRole("student") {
+                    onSwitchToCustomer()
+                }
+            },
+            onRegisterAsShipper = { viewModel.registerAsShipper() },
+            onLogout = onLogout,
+            currentRole = currentRole
         )
     } else {
         PersonalInfoView(
@@ -61,25 +76,26 @@ fun ProfileScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyProfileView(
+fun CustomerProfileMenuView(
     user: com.example.dormdeli.model.User?,
     onBack: () -> Unit,
     onPersonalInfoClick: () -> Unit,
     onLocationClick: () -> Unit,
-    onLogout: () -> Unit
+    onSwitchToShipper: () -> Unit,
+    onSwitchToCustomer: () -> Unit,
+    onRegisterAsShipper: () -> Unit,
+    onLogout: () -> Unit,
+    currentRole: String
 ) {
+    val hasShipperRole = user?.roles?.contains("shipper") == true
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Profile", fontWeight = FontWeight.Bold) },
+                title = { Text(if(currentRole == "shipper") "Shipper Profile" else "Customer Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = OrangePrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -96,51 +112,67 @@ fun MyProfileView(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
             
-            // Avatar with Progress Ring
             Box(contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.size(140.dp)) {
                     drawArc(
-                        color = OrangePrimary,
+                        color = if(currentRole == "shipper") Color(0xFF4CAF50) else OrangePrimary,
                         startAngle = -90f,
                         sweepAngle = 280f,
                         useCenter = false,
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
                     )
                 }
-                
-                ProfileAvatar(
-                    avatarUrl = user?.avatarUrl ?: "",
-                    size = 120.dp
-                )
+                ProfileAvatar(avatarUrl = user?.avatarUrl ?: "", size = 120.dp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(user?.fullName ?: "User Name", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(user?.role?.replaceFirstChar { it.uppercase() } ?: "Student", color = Color.Gray, fontSize = 14.sp)
+            Text(
+                text = currentRole.replaceFirstChar { it.uppercase() }, 
+                color = if(currentRole == "shipper") Color(0xFF4CAF50) else OrangePrimary, 
+                fontWeight = FontWeight.SemiBold, 
+                fontSize = 14.sp
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Menu Items
             ProfileMenuItem(icon = Icons.Default.Person, title = "Personal Info", onClick = onPersonalInfoClick)
-            ProfileMenuItem(icon = Icons.Default.History, title = "Transaction History", onClick = {})
-            ProfileMenuItem(icon = Icons.Default.LocationOn, title = "Delivery Addresses", onClick = onLocationClick)
-            ProfileMenuItem(icon = Icons.Default.Settings, title = "Settings", onClick = {})
+            
+            if (currentRole == "student") {
+                ProfileMenuItem(icon = Icons.Default.History, title = "My Orders History", onClick = {})
+                ProfileMenuItem(icon = Icons.Default.LocationOn, title = "Delivery Addresses", onClick = onLocationClick)
+                
+                if (hasShipperRole) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.DirectionsRun, 
+                        title = "Switch to Shipper Mode", 
+                        onClick = onSwitchToShipper,
+                        tint = Color(0xFF4CAF50)
+                    )
+                } else {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Badge, 
+                        title = "Become a Shipper", 
+                        onClick = onRegisterAsShipper
+                    )
+                }
+            } else if (currentRole == "shipper") {
+                ProfileMenuItem(icon = Icons.Default.History, title = "Delivery History", onClick = {})
+                ProfileMenuItem(icon = Icons.Default.Payments, title = "Earnings Report", onClick = {})
+                
+                ProfileMenuItem(
+                    icon = Icons.Default.ShoppingBag, 
+                    title = "Switch to Customer Mode", 
+                    onClick = onSwitchToCustomer,
+                    tint = OrangePrimary
+                )
+            }
+
+            ProfileMenuItem(icon = Icons.Default.Settings, title = "App Settings", onClick = {})
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Logout Item
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onLogout() }
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Logout, contentDescription = null, tint = Color.Red)
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
-            }
+            LogoutRow(onLogout = onLogout)
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -154,7 +186,6 @@ fun PersonalInfoView(
 ) {
     val user by viewModel.userState
     val isLoading by viewModel.isLoading
-    val context = LocalContext.current
 
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -208,7 +239,7 @@ fun PersonalInfoView(
             Box(contentAlignment = Alignment.BottomEnd) {
                 ProfileAvatar(avatarUrl = avatarUrl, size = 100.dp)
                 if (isUploading) {
-                    Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color.White)
                     }
                 }
@@ -244,7 +275,7 @@ fun PersonalInfoView(
                 colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
             ) {
                 if (isLoading) CircularProgressIndicator(color = Color.White)
-                else Text("Save", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                else Text("Save Changes", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -271,7 +302,12 @@ fun ProfileAvatar(avatarUrl: String, size: androidx.compose.ui.unit.Dp) {
 }
 
 @Composable
-fun ProfileMenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
+fun ProfileMenuItem(
+    icon: ImageVector, 
+    title: String, 
+    onClick: () -> Unit,
+    tint: Color = OrangePrimary
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -288,12 +324,28 @@ fun ProfileMenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
                 modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = title, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
         }
+    }
+}
+
+@Composable
+fun LogoutRow(onLogout: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onLogout() }
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Logout, contentDescription = null, tint = Color.Red)
+        Spacer(modifier = Modifier.width(16.dp))
+        Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
     }
 }
 

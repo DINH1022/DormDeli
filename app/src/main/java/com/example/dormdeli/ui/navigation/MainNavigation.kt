@@ -233,6 +233,7 @@ fun MainNavigation(
         }
 
         composable(Screen.Profile.route) {
+            val userRole by authViewModel.currentUserRole
             ProfileScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -245,7 +246,18 @@ fun MainNavigation(
                 },
                 onLocationClick = {
                     navController.navigate(Screen.Location.route)
-                }
+                },
+                onSwitchToShipper = {
+                    navController.navigate(Screen.ShipperHome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onSwitchToCustomer = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                currentRole = userRole ?: "student"
             )
         }
 
@@ -376,8 +388,13 @@ fun MainNavigation(
                 onOrderDetail = { orderId ->
                     navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
                 },
-                onProfileClick = {
+                onPersonalInfoClick = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onSwitchToCustomer = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
                 viewModel = shipperViewModel
             )

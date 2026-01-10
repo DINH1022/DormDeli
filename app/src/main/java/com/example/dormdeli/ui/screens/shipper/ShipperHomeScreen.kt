@@ -23,6 +23,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.*
+import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
+import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,10 +32,21 @@ import java.util.*
 fun ShipperHomeScreen(
     onLogout: () -> Unit,
     onOrderDetail: (String) -> Unit,
-    onProfileClick: () -> Unit,
-    viewModel: ShipperViewModel = viewModel()
+    onPersonalInfoClick: () -> Unit,
+    onSwitchToCustomer: () -> Unit,
+    viewModel: ShipperViewModel = viewModel(),
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
     var selectedBottomTab by remember { mutableIntStateOf(0) }
+    val user by profileViewModel.userState
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorMessage.collectLatest { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+    
     val bottomTabs = listOf(
         BottomNavItem("Orders", Icons.Default.Inventory, Icons.Default.Inventory),
         BottomNavItem("History", Icons.Default.History, Icons.Default.History),
@@ -42,6 +55,7 @@ fun ShipperHomeScreen(
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar(
                 containerColor = Color.White,
@@ -86,7 +100,15 @@ fun ShipperHomeScreen(
                 0 -> ShipperOrdersPage(viewModel, onOrderDetail)
                 1 -> PlaceholderPage("History")
                 2 -> PlaceholderPage("Earnings")
-                3 -> ShipperProfilePage(onLogout, onProfileClick)
+                3 -> ShipperProfileScreen(
+                    user = user,
+                    onBack = { selectedBottomTab = 0 },
+                    onPersonalInfoClick = onPersonalInfoClick,
+                    onHistoryClick = { selectedBottomTab = 1 },
+                    onEarningsClick = { selectedBottomTab = 2 },
+                    onSwitchToCustomer = onSwitchToCustomer,
+                    onLogout = onLogout
+                )
             }
         }
     }
@@ -226,7 +248,7 @@ fun FilterSheetContent(
             .padding(bottom = 32.dp)
     ) {
         Text(
-            text = "Fillter",
+            text = "Filter",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(16.dp)
@@ -316,7 +338,7 @@ fun OrderShipperItem(
     order: Order,
     isAvailable: Boolean,
     onAccept: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") onUpdateStatus: (String) -> Unit,
+    onUpdateStatus: (String) -> Unit,
     onClick: () -> Unit
 ) {
     val sdf = SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault())
@@ -351,12 +373,13 @@ fun OrderShipperItem(
                 }
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = OrangePrimary
+                    color = getStatusColor(order.status)
                 ) {
                     Text(
-                        text = "${order.totalPrice}đ",
+                        text = order.status.uppercase(),
                         color = Color.White,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -373,14 +396,11 @@ fun OrderShipperItem(
                     Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                     Text(text = " $dateStr", fontSize = 12.sp, color = Color.Gray)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ShoppingBag, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-                    Text(text = " ${order.items.size} items", fontSize = 12.sp, color = Color.Gray)
-                }
+                Text(text = "Total: ${order.totalPrice}đ", fontWeight = FontWeight.Bold, color = OrangePrimary)
             }
             
+            Spacer(modifier = Modifier.height(16.dp))
             if (isAvailable) {
-                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onAccept,
                     modifier = Modifier.fillMaxWidth(),
@@ -388,6 +408,29 @@ fun OrderShipperItem(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Accept Order")
+                }
+            } else {
+                when (order.status) {
+                    "accepted" -> {
+                        Button(
+                            onClick = { onUpdateStatus("delivering") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Start Delivering")
+                        }
+                    }
+                    "delivering" -> {
+                        Button(
+                            onClick = { onUpdateStatus("completed") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Mark as Completed")
+                        }
+                    }
                 }
             }
         }
@@ -411,25 +454,6 @@ fun InfoRow(icon: ImageVector, label: String, value: String, color: Color) {
                 Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (label == "PICK UP") Color.Blue else Color.Red)
                 Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
-        }
-    }
-}
-
-@Composable
-fun ShipperProfilePage(onLogout: () -> Unit, onProfileClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(100.dp), tint = OrangePrimary)
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onProfileClick, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)) {
-            Text("Edit Profile")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)) {
-            Text("Logout")
         }
     }
 }

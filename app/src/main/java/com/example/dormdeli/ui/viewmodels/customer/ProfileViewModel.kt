@@ -47,6 +47,55 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
+    fun switchActiveRole(newRole: String, onSuccess: () -> Unit) {
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser != null) {
+            _isLoading.value = true
+            userRepository.updateUserFields(
+                userId = currentUser.uid,
+                fields = mapOf("role" to newRole),
+                onSuccess = {
+                    _isLoading.value = false
+                    // Cập nhật trạng thái người dùng cục bộ
+                    _userState.value = _userState.value?.copy(role = newRole)
+                    onSuccess()
+                },
+                onFailure = { e ->
+                    _isLoading.value = false
+                    _errorMessage.value = "Failed to switch role: ${e.message}"
+                }
+            )
+        }
+    }
+
+    fun registerAsShipper() {
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser != null) {
+            _isLoading.value = true
+            val currentRoles = _userState.value?.roles?.toMutableList() ?: mutableListOf("student")
+            if (!currentRoles.contains("shipper")) {
+                currentRoles.add("shipper")
+            }
+            
+            userRepository.updateUserFields(
+                userId = currentUser.uid,
+                fields = mapOf(
+                    "roles" to currentRoles,
+                    "role" to "shipper" // Chuyển sang vai trò shipper ngay khi đăng ký thành công
+                ),
+                onSuccess = {
+                    _isLoading.value = false
+                    _userState.value = _userState.value?.copy(roles = currentRoles, role = "shipper")
+                    _updateSuccess.value = true
+                },
+                onFailure = { e ->
+                    _isLoading.value = false
+                    _errorMessage.value = "Failed to register: ${e.message}"
+                }
+            )
+        }
+    }
+
     fun updateUserProfile(fullName: String, email: String, dormBlock: String, roomNumber: String, avatarUrl: String) {
         val currentUser = authRepository.getCurrentUser()
         if (currentUser != null) {
@@ -67,7 +116,6 @@ class ProfileViewModel : ViewModel() {
                 onSuccess = {
                     _isLoading.value = false
                     _updateSuccess.value = true
-                    // Update local state
                     _userState.value = _userState.value?.copy(
                         fullName = fullName,
                         email = email,

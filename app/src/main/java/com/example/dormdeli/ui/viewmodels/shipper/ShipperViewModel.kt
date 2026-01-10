@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -32,11 +33,11 @@ class ShipperViewModel : ViewModel() {
         applySorting(orders, sort)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    private val _currentOrder = MutableStateFlow<Order?>(null)
-    val currentOrder: StateFlow<Order?> = _currentOrder
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _errorMessage = MutableSharedFlow<String>()
+    val errorMessage = _errorMessage.asSharedFlow()
 
     init {
         observeOrders()
@@ -63,33 +64,14 @@ class ShipperViewModel : ViewModel() {
     }
 
     private fun applySorting(orders: List<Order>, sort: SortOptions): List<Order> {
-        var sortedList = orders
-
-        // Sắp xếp theo tiền ship trước (nếu được chọn)
-        sortedList = when (sort.shipSort) {
-            ShipSort.HIGHEST -> sortedList.sortedByDescending { it.shippingFee }
-            ShipSort.LOWEST -> sortedList.sortedBy { it.shippingFee }
-            ShipSort.NONE -> sortedList
-        }
-
-        // Sau đó sắp xếp theo thời gian (giữ nguyên thứ tự tiền ship nếu tiền ship bằng nhau)
-        sortedList = when (sort.timeSort) {
-            TimeSort.NEWEST -> sortedList.sortedWith(compareByDescending<Order> { it.shippingFee != 0L }.thenByDescending { it.createdAt })
-            TimeSort.OLDEST -> sortedList.sortedWith(compareByDescending<Order> { it.shippingFee != 0L }.thenBy { it.createdAt })
-        }
-        
-        // Logic kết hợp: Nếu có chọn shipSort, nó sẽ ưu tiên tiền ship trước, 
-        // nếu tiền ship bằng nhau thì mới xét đến thời gian.
-        return if (sort.shipSort != ShipSort.NONE) {
-            when (sort.shipSort) {
-                ShipSort.HIGHEST -> sortedList.sortedWith(compareByDescending<Order> { it.shippingFee }.thenByDescending { it.createdAt })
-                ShipSort.LOWEST -> sortedList.sortedWith(compareBy<Order> { it.shippingFee }.thenByDescending { it.createdAt })
-                else -> sortedList
-            }
-        } else {
-            when (sort.timeSort) {
-                TimeSort.NEWEST -> sortedList.sortedByDescending { it.createdAt }
-                TimeSort.OLDEST -> sortedList.sortedBy { it.createdAt }
+        return when (sort.shipSort) {
+            ShipSort.HIGHEST -> orders.sortedWith(compareByDescending<Order> { it.shippingFee }.thenByDescending { it.createdAt })
+            ShipSort.LOWEST -> orders.sortedWith(compareBy<Order> { it.shippingFee }.thenByDescending { it.createdAt })
+            ShipSort.NONE -> {
+                when (sort.timeSort) {
+                    TimeSort.NEWEST -> orders.sortedByDescending { it.createdAt }
+                    TimeSort.OLDEST -> orders.sortedBy { it.createdAt }
+                }
             }
         }
     }
@@ -97,25 +79,36 @@ class ShipperViewModel : ViewModel() {
     fun manualRefresh() {
         viewModelScope.launch {
             _isLoading.value = true
-            kotlinx.coroutines.delay(500)
+            // Với Firebase Flow, dữ liệu thực tế đã real-time. 
+            // Ở đây ta có thể thêm logic kiểm tra kết nối hoặc force fetch nếu cần.
+            delay(800) 
             _isLoading.value = false
         }
     }
 
     fun acceptOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
+            _isLoading.value = true
             val success = repository.acceptOrder(orderId)
-            if (success) onComplete()
+            _isLoading.value = false
+            if (success) {
+                onComplete()
+            } else {
+                _errorMessage.emit("Không thể nhận đơn. Đơn hàng có thể đã hết hạn hoặc đã có người nhận.")
+            }
         }
     }
 
     fun updateStatus(orderId: String, status: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
+            _isLoading.value = true
             val success = repository.updateOrderStatus(orderId, status)
-            if (success && _currentOrder.value?.id == orderId) {
-                _currentOrder.value = _currentOrder.value?.copy(status = status)
+            _isLoading.value = false
+            if (success) {
+                onComplete()
+            } else {
+                _errorMessage.emit("Cập nhật trạng thái thất bại.")
             }
-            onComplete()
         }
     }
 }
