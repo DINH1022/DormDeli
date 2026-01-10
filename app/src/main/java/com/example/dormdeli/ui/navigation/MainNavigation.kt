@@ -242,6 +242,9 @@ fun MainNavigation(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onLocationClick = {
+                    navController.navigate(Screen.Location.route)
                 }
             )
         }

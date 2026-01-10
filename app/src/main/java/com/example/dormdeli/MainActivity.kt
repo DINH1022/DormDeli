@@ -8,7 +8,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.cloudinary.android.MediaManager
@@ -32,8 +33,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
 
-        // Seed sample data for testing (Comment this out after first run)
-        //SampleData.seedSampleOrders(this)
+        // SampleData.seedSampleOrders(this) // Chạy 1 lần nếu cần data mẫu
 
         setContent {
             DormDeliTheme {
@@ -42,17 +42,22 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val isSignedIn by authViewModel.isSignedIn
+                    val userRole by authViewModel.currentUserRole
 
-                    // Determine start destination based on auth state
-                    val startDestination = remember {
-                        if (authViewModel.isSignedIn.value) Screen.Home.route else Screen.Login.route
+                    // Quyết định màn hình bắt đầu dựa trên trạng thái đăng nhập và role
+                    val startDestination = if (!isSignedIn) {
+                        Screen.Login.route
+                    } else {
+                        // Nếu đã login nhưng role chưa load kịp, có thể hiện màn chờ hoặc mặc định Home
+                        if (userRole == "shipper") Screen.ShipperHome.route else Screen.Home.route
                     }
 
                     MainNavigation(
                         navController = navController,
                         authViewModel = authViewModel,
                         cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel, // Added
+                        favoriteViewModel = favoriteViewModel,
                         startDestination = startDestination
                     )
                 }

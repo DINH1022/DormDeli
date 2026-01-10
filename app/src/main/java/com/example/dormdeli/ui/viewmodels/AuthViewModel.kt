@@ -47,6 +47,27 @@ class AuthViewModel : ViewModel() {
     private val _selectedRole = mutableStateOf(UserRole.STUDENT)
     val selectedRole: State<UserRole> = _selectedRole
 
+    // Thêm trạng thái lưu role của user đang đăng nhập
+    private val _currentUserRole = mutableStateOf<String?>(null)
+    val currentUserRole: State<String?> = _currentUserRole
+
+    init {
+        // Nếu đã đăng nhập, lấy role từ Firestore
+        if (_isSignedIn.value) {
+            fetchCurrentUserRole()
+        }
+    }
+
+    private fun fetchCurrentUserRole() {
+        val uid = authRepository.getCurrentUser()?.uid ?: return
+        userRepository.getUserById(uid, { user ->
+            if (user != null) {
+                _currentUserRole.value = user.role
+                _selectedRole.value = UserRole.from(user.role)
+            }
+        }, {})
+    }
+
     fun setRole(role: UserRole) {
         _selectedRole.value = role
     }
@@ -72,7 +93,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Đăng nhập bằng Email và Password
     fun loginWithEmail(email: String, pass: String, onSuccess: () -> Unit) {
         _isLoading.value = true
         _errorMessage.value = null
@@ -89,7 +109,7 @@ class AuthViewModel : ViewModel() {
                                 if (!userRoles.contains(selectedRoleValue)) {
                                     _errorMessage.value = "Tài khoản không có quyền truy cập với vai trò $selectedRoleValue."
                                     _isLoading.value = false
-                                    authRepository.signOut() // Đăng xuất nếu sai role
+                                    authRepository.signOut()
                                     return@getUserById
                                 }
 
@@ -101,23 +121,24 @@ class AuthViewModel : ViewModel() {
                                     )
                                 }
 
+                                _currentUserRole.value = selectedRoleValue
                                 _isLoading.value = false
                                 _isSignedIn.value = true
                                 onSuccess()
                             } else {
-                                _errorMessage.value = "Thông tin người dùng không tồn tại trong hệ thống."
+                                _errorMessage.value = "Thông tin người dùng không tồn tại."
                                 _isLoading.value = false
                             }
                         },
                         onFailure = { e ->
-                            _errorMessage.value = "Lỗi truy vấn dữ liệu: ${e.message}"
+                            _errorMessage.value = "Lỗi truy vấn: ${e.message}"
                             _isLoading.value = false
                         }
                     )
                 }
             },
             onFailure = { e ->
-                _errorMessage.value = "Email hoặc mật khẩu không chính xác."
+                _errorMessage.value = "Email hoặc mật khẩu sai."
                 _isLoading.value = false
             }
         )
@@ -126,37 +147,19 @@ class AuthViewModel : ViewModel() {
     fun registerUser(phone: String, email: String, fullName: String, pass: String, activity: Activity) {
         _isLoading.value = true
         _errorMessage.value = null
-
         val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
         _phoneNumber.value = formattedPhone
         val roleValue = _selectedRole.value.value
 
         userRepository.getUserByPhone(formattedPhone,
             onSuccess = { existingUser ->
-                if (existingUser != null) {
-                    val currentRoles = existingUser.roles
-                    if (currentRoles.contains(roleValue)) {
-                        _errorMessage.value = "Số điện thoại này đã được đăng ký vai trò này."
-                        _isLoading.value = false
-                    } else {
-                        tempRegistrationData = mapOf(
-                            "phone" to formattedPhone,
-                            "email" to email,
-                            "fullName" to fullName,
-                            "password" to pass,
-                            "role" to roleValue,
-                            "isUpgrade" to "true"
-                        )
-                        authRepository.sendPhoneVerificationCode(formattedPhone, activity, phoneAuthCallback)
-                    }
+                if (existingUser != null && existingUser.roles.contains(roleValue)) {
+                    _errorMessage.value = "Số điện thoại này đã đăng ký vai trò này."
+                    _isLoading.value = false
                 } else {
                     tempRegistrationData = mapOf(
-                        "phone" to formattedPhone,
-                        "email" to email,
-                        "fullName" to fullName,
-                        "password" to pass,
-                        "role" to roleValue,
-                        "isUpgrade" to "false"
+                        "phone" to formattedPhone, "email" to email, "fullName" to fullName,
+                        "password" to pass, "role" to roleValue, "isUpgrade" to (existingUser != null).toString()
                     )
                     authRepository.sendPhoneVerificationCode(formattedPhone, activity, phoneAuthCallback)
                 }
@@ -168,21 +171,13 @@ class AuthViewModel : ViewModel() {
         )
     }
 
-    fun sendOtp(phone: String, activity: Activity) {
-        _isLoading.value = true
-        _errorMessage.value = null
-        val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
-        _phoneNumber.value = formattedPhone
-        authRepository.sendPhoneVerificationCode(formattedPhone, activity, phoneAuthCallback)
-    }
-
     fun verifyOTP(code: String, onSuccess: () -> Unit) {
         _isLoading.value = true
         _verificationId.value?.let { id ->
             val credential = PhoneAuthProvider.getCredential(id, code)
             signInWithPhoneCredential(credential, onSuccess)
         } ?: run {
-            _errorMessage.value = "Mã xác minh hết hạn hoặc không hợp lệ"
+            _errorMessage.value = "Mã hết hạn."
             _isLoading.value = false
         }
     }
@@ -193,65 +188,63 @@ class AuthViewModel : ViewModel() {
             if (task.isSuccessful) {
                 val firebaseUser = task.result?.user ?: return@addOnCompleteListener
                 val regData = tempRegistrationData ?: return@addOnCompleteListener
-                
-                val isUpgrade = regData["isUpgrade"] == "true"
                 val role = regData["role"]!!
-                val fullName = regData["fullName"]!!
-                val email = regData["email"]!!
-                val phone = regData["phone"]!!
 
-                if (isUpgrade) {
+                if (regData["isUpgrade"] == "true") {
                     userRepository.getUserById(firebaseUser.uid, { user ->
                         if (user != null) {
-                            val newRoles = user.roles.toMutableList()
-                            if (!newRoles.contains(role)) newRoles.add(role)
-                            userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to newRoles, "role" to role), {
+                            val roles = user.roles.toMutableList()
+                            if (!roles.contains(role)) roles.add(role)
+                            userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to roles, "role" to role), {
+                                _currentUserRole.value = role
                                 _isLoading.value = false
                                 _isSignedIn.value = true
-                                tempRegistrationData = null
                                 onSuccess()
                             }, { _isLoading.value = false })
                         }
                     }, { _isLoading.value = false })
                 } else {
-                    val password = regData["password"]!!
-                    val emailCred = EmailAuthProvider.getCredential(email, password)
-                    firebaseUser.linkWithCredential(emailCred).addOnCompleteListener { linkTask ->
+                    val pass = regData["password"]!!
+                    val email = regData["email"]!!
+                    firebaseUser.linkWithCredential(EmailAuthProvider.getCredential(email, pass)).addOnCompleteListener { linkTask ->
                         if (linkTask.isSuccessful) {
-                            val profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(fullName).build()
-                            firebaseUser.updateProfile(profileUpdates).addOnCompleteListener {
-                                val newUser = User(phone = phone, email = email, fullName = fullName, role = role, roles = listOf(role))
-                                userRepository.createUser(firebaseUser.uid, newUser, {
-                                    _isLoading.value = false
-                                    _isSignedIn.value = true
-                                    tempRegistrationData = null
-                                    onSuccess()
-                                }, { _isLoading.value = false })
-                            }
+                            val newUser = User(phone = regData["phone"]!!, email = email, fullName = regData["fullName"]!!, role = role, roles = listOf(role))
+                            userRepository.createUser(firebaseUser.uid, newUser, {
+                                _currentUserRole.value = role
+                                _isLoading.value = false
+                                _isSignedIn.value = true
+                                onSuccess()
+                            }, { _isLoading.value = false })
                         } else {
-                            _errorMessage.value = "Email này đã được đăng ký cho tài khoản khác."
+                            _errorMessage.value = "Lỗi liên kết email."
                             _isLoading.value = false
                         }
                     }
                 }
             } else {
-                _errorMessage.value = "Xác minh OTP thất bại."
+                _errorMessage.value = "OTP sai."
                 _isLoading.value = false
             }
         }
     }
 
+    fun signOut() {
+        authRepository.signOut()
+        _isSignedIn.value = false
+        _currentUserRole.value = null
+        _currentScreen.value = AuthScreen.Login
+    }
+
     fun resendOTP(activity: Activity) {
         if (_phoneNumber.value.isNotEmpty()) {
-            sendOtp(_phoneNumber.value, activity)
+            authRepository.sendPhoneVerificationCode(_phoneNumber.value, activity, phoneAuthCallback)
         }
     }
 
     fun getGoogleSignInIntent(context: Context): android.content.Intent {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
+            .requestEmail().build()
         return GoogleSignIn.getClient(context, gso).signInIntent
     }
 
@@ -266,6 +259,7 @@ class AuthViewModel : ViewModel() {
                     if (existingUser == null) {
                         val newUser = User(email = firebaseUser.email ?: "", fullName = firebaseUser.displayName ?: "", role = role, roles = listOf(role))
                         userRepository.createUser(firebaseUser.uid, newUser, {
+                            _currentUserRole.value = role
                             _isLoading.value = false
                             _isSignedIn.value = true
                             onSuccess()
@@ -274,6 +268,7 @@ class AuthViewModel : ViewModel() {
                         val roles = existingUser.roles.toMutableList()
                         if (!roles.contains(role)) roles.add(role)
                         userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to roles, "role" to role), {
+                            _currentUserRole.value = role
                             _isLoading.value = false
                             _isSignedIn.value = true
                             onSuccess()
@@ -282,17 +277,11 @@ class AuthViewModel : ViewModel() {
                 }, { _isLoading.value = false })
             }, { _isLoading.value = false })
         } catch (e: ApiException) {
-            _errorMessage.value = "Lỗi đăng nhập Google: ${e.statusCode}"
+            _errorMessage.value = "Google login lỗi: ${e.statusCode}"
         }
     }
 
     fun navigateToLogin() { _currentScreen.value = AuthScreen.Login }
     fun navigateToSignUp() { _currentScreen.value = AuthScreen.SignUp }
     fun clearErrorMessage() { _errorMessage.value = null }
-
-    fun signOut() {
-        authRepository.signOut()
-        _isSignedIn.value = false
-        _currentScreen.value = AuthScreen.Login
-    }
 }

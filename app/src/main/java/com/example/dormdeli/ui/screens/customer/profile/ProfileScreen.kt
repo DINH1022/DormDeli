@@ -5,27 +5,21 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -38,86 +32,144 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.R
 import com.example.dormdeli.repository.image.CloudinaryHelper
-import androidx.compose.material.icons.filled.Logout
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onLocationClick: () -> Unit, // Added for address navigation
     viewModel: ProfileViewModel = viewModel()
+) {
+    val user by viewModel.userState
+    var currentSubScreen by remember { mutableStateOf("menu") } // "menu" or "personal_info"
 
+    if (currentSubScreen == "menu") {
+        MyProfileView(
+            user = user,
+            onBack = onNavigateBack,
+            onPersonalInfoClick = { currentSubScreen = "personal_info" },
+            onLocationClick = onLocationClick,
+            onLogout = onLogout
+        )
+    } else {
+        PersonalInfoView(
+            viewModel = viewModel,
+            onBack = { currentSubScreen = "menu" }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyProfileView(
+    user: com.example.dormdeli.model.User?,
+    onBack: () -> Unit,
+    onPersonalInfoClick: () -> Unit,
+    onLocationClick: () -> Unit,
+    onLogout: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("My Profile", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = OrangePrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Avatar with Progress Ring
+            Box(contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(140.dp)) {
+                    drawArc(
+                        color = OrangePrimary,
+                        startAngle = -90f,
+                        sweepAngle = 280f,
+                        useCenter = false,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    )
+                }
+                
+                ProfileAvatar(
+                    avatarUrl = user?.avatarUrl ?: "",
+                    size = 120.dp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(user?.fullName ?: "User Name", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(user?.role?.replaceFirstChar { it.uppercase() } ?: "Student", color = Color.Gray, fontSize = 14.sp)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Menu Items
+            ProfileMenuItem(icon = Icons.Default.Person, title = "Personal Info", onClick = onPersonalInfoClick)
+            ProfileMenuItem(icon = Icons.Default.History, title = "Transaction History", onClick = {})
+            ProfileMenuItem(icon = Icons.Default.LocationOn, title = "Delivery Addresses", onClick = onLocationClick)
+            ProfileMenuItem(icon = Icons.Default.Settings, title = "Settings", onClick = {})
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Logout Item
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onLogout() }
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Logout, contentDescription = null, tint = Color.Red)
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PersonalInfoView(
+    viewModel: com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel,
+    onBack: () -> Unit
 ) {
     val user by viewModel.userState
     val isLoading by viewModel.isLoading
-    val errorMessage by viewModel.errorMessage
-    val updateSuccess by viewModel.updateSuccess
     val context = LocalContext.current
 
-    // Local state
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
     var dormBlock by remember { mutableStateOf("") }
     var roomNumber by remember { mutableStateOf("") }
     var avatarUrl by remember { mutableStateOf("") }
+    var isUploading by remember { mutableStateOf(false) }
 
-    // --- MỚI: Trạng thái upload ảnh ---
-    var isUploadingAvatar by remember { mutableStateOf(false) }
-    var showAvatarDialog by remember { mutableStateOf(false) }
-
-    // --- MỚI: Bộ chọn ảnh từ thư viện ---
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        // Khi người dùng chọn xong ảnh
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
-            showAvatarDialog = false // Đóng dialog chọn avatar có sẵn
-            isUploadingAvatar = true // Hiện loading
-
-            // Gọi Cloudinary upload
-            CloudinaryHelper.uploadImage(
-                uri = uri,
-                onSuccess = { secureUrl ->
-                    isUploadingAvatar = false
-                    avatarUrl = secureUrl // Cập nhật link ảnh mới nhận được
-                    Toast.makeText(context, "Tải ảnh lên thành công!", Toast.LENGTH_SHORT).show()
-                },
-                onError = { error ->
-                    isUploadingAvatar = false
-                    Toast.makeText(context, "Lỗi upload: $error", Toast.LENGTH_SHORT).show()
-                }
-            )
-        }
-    }
-
-    // List avatar có sẵn (Giữ nguyên logic cũ của bạn)
-    val avatarList = listOf(
-        R.drawable.avatar_1, R.drawable.avatar_2, R.drawable.avatar_3,
-        R.drawable.avatar_4, R.drawable.avatar_5, R.drawable.avatar_6
-    )
-
-    fun getAvatarName(resId: Int): String {
-        return when (resId) {
-            R.drawable.avatar_1 -> "avatar_1"
-            R.drawable.avatar_2 -> "avatar_2"
-            R.drawable.avatar_3 -> "avatar_3"
-            R.drawable.avatar_4 -> "avatar_4"
-            R.drawable.avatar_5 -> "avatar_5"
-            R.drawable.avatar_6 -> "avatar_6"
-            else -> ""
-        }
-    }
-
-    fun getAvatarResId(name: String): Int? {
-        return when (name) {
-            "avatar_1" -> R.drawable.avatar_1
-            "avatar_2" -> R.drawable.avatar_2
-            "avatar_3" -> R.drawable.avatar_3
-            "avatar_4" -> R.drawable.avatar_4
-            "avatar_5" -> R.drawable.avatar_5
-            "avatar_6" -> R.drawable.avatar_6
-            else -> null
+            isUploading = true
+            CloudinaryHelper.uploadImage(uri, { url ->
+                avatarUrl = url
+                isUploading = false
+            }, { isUploading = false })
         }
     }
 
@@ -125,297 +177,143 @@ fun ProfileScreen(
         user?.let {
             fullName = it.fullName
             email = it.email
-            phone = it.phone
             dormBlock = it.dormBlock
             roomNumber = it.roomNumber
             avatarUrl = it.avatarUrl
         }
     }
 
-    LaunchedEffect(updateSuccess) {
-        if (updateSuccess) {
-            Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-            viewModel.resetUpdateSuccess()
-        }
-    }
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // --- DIALOG CHỌN AVATAR (SỬA ĐỔI) ---
-    if (showAvatarDialog) {
-        AlertDialog(
-            onDismissRequest = { showAvatarDialog = false },
-            title = { Text("Choose Avatar") },
-            text = {
-                Column {
-                    // Option 1: Chọn từ Thư viện
-                    OutlinedButton(
-                        onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Upload from Gallery")
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Or choose preset:", fontSize = 14.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Option 2: Chọn Avatar có sẵn (Code cũ)
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.height(200.dp), // Giảm chiều cao chút
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(avatarList) { resId ->
-                            Image(
-                                painter = painterResource(id = resId),
-                                contentDescription = "Avatar Option",
-                                modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        avatarUrl = getAvatarName(resId)
-                                        showAvatarDialog = false
-                                    }
-                                    .background(if (getAvatarName(resId) == avatarUrl) OrangePrimary.copy(alpha = 0.3f) else Color.Transparent)
-                                    .padding(4.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAvatarDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Your Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Personal Info", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Logout",
-                            tint = Color.Red
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                }
             )
         }
-    ) { paddingValues ->
-        if (isLoading && user == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = OrangePrimary)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // --- PHẦN HIỂN THỊ ẢNH ĐẠI DIỆN (SỬA ĐỔI) ---
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    val resId = getAvatarResId(avatarUrl)
-
-                    // 1. Hiển thị ảnh (Ưu tiên logic: Đang upload -> Resource ID -> URL -> Placeholder)
-                    if (resId != null) {
-                        Image(
-                            painter = painterResource(id = resId),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.size(120.dp).clip(CircleShape).background(Color.LightGray),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else if (avatarUrl.isNotEmpty() && avatarUrl.startsWith("http")) {
-                        AsyncImage(
-                            model = avatarUrl,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.size(120.dp).clip(CircleShape).background(Color.LightGray),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.size(120.dp).clip(CircleShape).background(Color(0xFFEEEEEE)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(id = android.R.drawable.ic_menu_camera),
-                                contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp)
-                            )
-                        }
-                    }
-
-                    // 2. Lớp phủ Loading khi đang upload
-                    if (isUploadingAvatar) {
-                        Box(
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.5f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color.White)
-                        }
-                    }
-
-                    // 3. Nút Edit
-                    Box(
-                        modifier = Modifier
-                            .offset(x = 4.dp, y = 4.dp)
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(OrangePrimary)
-                            .clickable { showAvatarDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Profile Picture",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Box(contentAlignment = Alignment.BottomEnd) {
+                ProfileAvatar(avatarUrl = avatarUrl, size = 100.dp)
+                if (isUploading) {
+                    Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Color.White)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // ... (Phần TextField bên dưới giữ nguyên code cũ của bạn) ...
-                // Phone
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Phone Number", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                    OutlinedTextField(
-                        value = phone, onValueChange = { }, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5),
-                            disabledContainerColor = Color(0xFFF5F5F5), focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent
-                        ),
-                        enabled = false,
-                        leadingIcon = { Text("🇻🇳", fontSize = 20.sp, modifier = Modifier.padding(start = 8.dp)) }
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Email
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Email", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                    OutlinedTextField(
-                        value = email, onValueChange = { }, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5),
-                            disabledContainerColor = Color(0xFFF5F5F5), focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent
-                        ),
-                        enabled = false, singleLine = true
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Full Name
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Full Name", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                    OutlinedTextField(
-                        value = fullName, onValueChange = { fullName = it }, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5),
-                            focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent
-                        ), singleLine = true
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Dorm Block
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Dorm Block", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                    OutlinedTextField(
-                        value = dormBlock, onValueChange = { dormBlock = it }, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5),
-                            focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent
-                        ), singleLine = true
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Room Number
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("Room Number", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
-                    OutlinedTextField(
-                        value = roomNumber, onValueChange = { roomNumber = it }, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F5F5), unfocusedContainerColor = Color(0xFFF5F5F5),
-                            focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent
-                        ), singleLine = true
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Continue / Save Button
-                Button(
-                    onClick = {
-                        viewModel.updateUserProfile(
-                            fullName = fullName, email = email, dormBlock = dormBlock,
-                            roomNumber = roomNumber, avatarUrl = avatarUrl
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                    enabled = !isUploadingAvatar // Không cho lưu khi đang upload ảnh
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(OrangePrimary)
+                        .clickable { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (isLoading || isUploadingAvatar) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    } else {
-                        Text(text = "Save", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Skip Button (Giữ nguyên)
-                TextButton(onClick = {
-                    user?.let {
-                        fullName = it.fullName; email = it.email; phone = it.phone
-                        dormBlock = it.dormBlock; roomNumber = it.roomNumber; avatarUrl = it.avatarUrl
-                    }
-                    viewModel.loadUserProfile()
-                }) {
-                    Text("Skip", color = Color.Gray, fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.height(32.dp))
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            InfoTextField(label = "Name", value = fullName, onValueChange = { fullName = it })
+            InfoTextField(label = "Email", value = email, onValueChange = { email = it }, enabled = false)
+            InfoTextField(label = "Dorm Block", value = dormBlock, onValueChange = { dormBlock = it })
+            InfoTextField(label = "Room Number", value = roomNumber, onValueChange = { roomNumber = it })
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Button(
+                onClick = {
+                    viewModel.updateUserProfile(fullName, email, dormBlock, roomNumber, avatarUrl)
+                    onBack()
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+            ) {
+                if (isLoading) CircularProgressIndicator(color = Color.White)
+                else Text("Save", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+fun ProfileAvatar(avatarUrl: String, size: androidx.compose.ui.unit.Dp) {
+    if (avatarUrl.startsWith("http")) {
+        AsyncImage(
+            model = avatarUrl,
+            contentDescription = null,
+            modifier = Modifier.size(size).clip(CircleShape).border(2.dp, Color.White, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Image(
+            painter = painterResource(id = R.drawable.avatar_1),
+            contentDescription = null,
+            modifier = Modifier.size(size).clip(CircleShape).border(2.dp, Color.White, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+@Composable
+fun ProfileMenuItem(icon: ImageVector, title: String, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = title, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+fun InfoTextField(label: String, value: String, onValueChange: (String) -> Unit, enabled: Boolean = true) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text(text = label, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 4.dp))
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.LightGray,
+                unfocusedIndicatorColor = Color.LightGray
+            ),
+            singleLine = true
+        )
     }
 }

@@ -16,9 +16,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DormDeli">
 
+        <!-- Cấu hình API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAxGV5XbAc1eV_Y7-NEOiaW7eymz_8moY8" />
+
+        <!-- Quan trọng: Khai báo phiên bản Play Services -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
 
         <activity
             android:name=".MainActivity"
@@ -27,7 +33,6 @@
             android:theme="@style/Theme.DormDeli">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

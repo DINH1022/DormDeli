@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -42,10 +44,12 @@ fun AddNewLocationScreen(
     val context = LocalContext.current
     var locationName by remember { mutableStateOf(existingAddress?.address ?: "") }
     var locationLabel by remember { mutableStateOf(existingAddress?.label ?: "") }
+    
+    // Mặc định về TP.HCM, Việt Nam nếu không có địa chỉ cũ
     var markerPosition by remember { 
         mutableStateOf(
             if (existingAddress != null) LatLng(existingAddress.latitude, existingAddress.longitude)
-            else LatLng(51.523774, -0.158539) // Default to London
+            else LatLng(10.762622, 106.660172) 
         ) 
     }
 
@@ -53,7 +57,6 @@ fun AddNewLocationScreen(
         position = CameraPosition.fromLatLngZoom(markerPosition, 15f)
     }
 
-    // Permission handling
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -80,6 +83,7 @@ fun AddNewLocationScreen(
     )
 
     LaunchedEffect(Unit) {
+        Log.d("MapsTest", "Screen loaded. Permission: $hasLocationPermission")
         if (existingAddress == null) {
             if (!hasLocationPermission) {
                 launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -95,10 +99,10 @@ fun AddNewLocationScreen(
         }
     }
     
-    // Update marker when camera moves (center of screen)
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             markerPosition = cameraPositionState.position.target
+            Log.d("MapsTest", "Map moved to: ${markerPosition.latitude}, ${markerPosition.longitude}")
         }
     }
 
@@ -111,9 +115,7 @@ fun AddNewLocationScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         bottomBar = {
@@ -153,7 +155,6 @@ fun AddNewLocationScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Map
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,12 +163,13 @@ fun AddNewLocationScreen(
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    uiSettings = MapUiSettings(zoomControlsEnabled = false)
-                ) {
-                    // We use a centered icon instead of a marker for "picking" location
-                }
+                    uiSettings = MapUiSettings(zoomControlsEnabled = true, myLocationButtonEnabled = false),
+                    onMapLoaded = {
+                        Log.d("MapsTest", "Map fully loaded")
+                    }
+                )
 
-                // Centered marker icon
+                // Biểu tượng ghim ở chính giữa màn hình
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
@@ -175,10 +177,9 @@ fun AddNewLocationScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.Center)
-                        .offset(y = (-24).dp) // Offset to make the bottom of the pin point to center
+                        .offset(y = (-24).dp)
                 )
                 
-                // My Location Button
                 FloatingActionButton(
                     onClick = {
                         if (hasLocationPermission) {
@@ -193,8 +194,8 @@ fun AddNewLocationScreen(
                         }
                     },
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp),
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 32.dp, end = 16.dp),
                     containerColor = Color.White,
                     contentColor = Color.Black
                 ) {
@@ -202,7 +203,6 @@ fun AddNewLocationScreen(
                 }
             }
 
-            // Input Fields
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -210,11 +210,7 @@ fun AddNewLocationScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Location",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = "Location", fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
                 OutlinedTextField(
                     value = locationName,
@@ -222,9 +218,7 @@ fun AddNewLocationScreen(
                     label = { Text("Your Location (Address)") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    trailingIcon = {
-                        Icon(Icons.Default.LocationOn, contentDescription = null)
-                    }
+                    trailingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
                 )
 
                 OutlinedTextField(
