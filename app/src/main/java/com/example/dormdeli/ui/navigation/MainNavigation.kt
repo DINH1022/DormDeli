@@ -17,7 +17,8 @@ import com.example.dormdeli.ui.screens.LoginScreen
 import com.example.dormdeli.ui.screens.OTPScreen
 import com.example.dormdeli.ui.screens.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
-import com.example.dormdeli.ui.screens.customer.profile.ProfileScreen
+import com.example.dormdeli.ui.screens.customer.profile.CustomerProfileScreen
+import com.example.dormdeli.ui.screens.profile.PersonalInfoScreen
 import com.example.dormdeli.ui.screens.customer.review.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
 import com.example.dormdeli.ui.screens.LocationScreen
@@ -34,6 +35,7 @@ import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
+import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -51,6 +53,7 @@ fun MainNavigation(
     val phoneNumber by authViewModel.phoneNumber
 
     val locationViewModel: LocationViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
 
     val navigateAfterLogin: () -> Unit = {
         val role = authViewModel.selectedRole.value.value
@@ -233,31 +236,29 @@ fun MainNavigation(
         }
 
         composable(Screen.Profile.route) {
-            val userRole by authViewModel.currentUserRole
-            ProfileScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
+            CustomerProfileScreen(
+                viewModel = profileViewModel,
+                onBack = { navController.popBackStack() },
+                onPersonalInfoClick = { navController.navigate(Screen.PersonalInfo.route) },
+                onLocationClick = { navController.navigate(Screen.Location.route) },
+                onSwitchToShipper = {
+                    navController.navigate(Screen.ShipperHome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
                 onLogout = {
                     authViewModel.signOut()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                },
-                onLocationClick = {
-                    navController.navigate(Screen.Location.route)
-                },
-                onSwitchToShipper = {
-                    navController.navigate(Screen.ShipperHome.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                onSwitchToCustomer = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                currentRole = userRole ?: "student"
+                }
+            )
+        }
+
+        composable(Screen.PersonalInfo.route) {
+            PersonalInfoScreen(
+                viewModel = profileViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -389,14 +390,15 @@ fun MainNavigation(
                     navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
                 },
                 onPersonalInfoClick = {
-                    navController.navigate(Screen.Profile.route)
+                    navController.navigate(Screen.PersonalInfo.route)
                 },
                 onSwitchToCustomer = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                viewModel = shipperViewModel
+                viewModel = shipperViewModel,
+                profileViewModel = profileViewModel
             )
         }
 

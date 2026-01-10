@@ -14,17 +14,16 @@ import com.example.dormdeli.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.UserProfileChangeRequest
 
 class AuthViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
+    private val firebaseAuth = FirebaseAuth.getInstance()
 
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
@@ -47,14 +46,19 @@ class AuthViewModel : ViewModel() {
     private val _selectedRole = mutableStateOf(UserRole.STUDENT)
     val selectedRole: State<UserRole> = _selectedRole
 
-    // Thêm trạng thái lưu role của user đang đăng nhập
     private val _currentUserRole = mutableStateOf<String?>(null)
     val currentUserRole: State<String?> = _currentUserRole
 
     init {
-        // Nếu đã đăng nhập, lấy role từ Firestore
-        if (_isSignedIn.value) {
-            fetchCurrentUserRole()
+        // Lắng nghe thay đổi trạng thái Auth theo thời gian thực
+        firebaseAuth.addAuthStateListener { auth ->
+            val user = auth.currentUser
+            _isSignedIn.value = user != null
+            if (user != null) {
+                fetchCurrentUserRole()
+            } else {
+                _currentUserRole.value = null
+            }
         }
     }
 
@@ -255,29 +259,38 @@ class AuthViewModel : ViewModel() {
             authRepository.signInWithGoogle(account, {
                 val firebaseUser = authRepository.getCurrentUser() ?: return@signInWithGoogle
                 userRepository.getUserById(firebaseUser.uid, { existingUser ->
-                    val role = _selectedRole.value.value
                     if (existingUser == null) {
-                        val newUser = User(email = firebaseUser.email ?: "", fullName = firebaseUser.displayName ?: "", role = role, roles = listOf(role))
-                        userRepository.createUser(firebaseUser.uid, newUser, {
-                            _currentUserRole.value = role
-                            _isLoading.value = false
-                            _isSignedIn.value = true
-                            onSuccess()
-                        }, { _isLoading.value = false })
+                        // SỬA: Nếu không tìm thấy user trong DB, báo lỗi và không cho vào app (Chặn đăng ký mới qua Google)
+                        _errorMessage.value = "Tài khoản Google này chưa được đăng ký. Vui lòng đăng ký trước."
+                        _isLoading.value = false
+                        authRepository.signOut() // Đăng xuất khỏi Firebase ngay lập tức
                     } else {
-                        val roles = existingUser.roles.toMutableList()
-                        if (!roles.contains(role)) roles.add(role)
-                        userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to roles, "role" to role), {
-                            _currentUserRole.value = role
+                        // Nếu user đã tồn tại, kiểm tra role và cho phép login
+                        val role = _selectedRole.value.value
+                        val userRoles = if (existingUser.roles.isNotEmpty()) existingUser.roles else listOf(existingUser.role)
+                        
+                        if (!userRoles.contains(role)) {
+                            _errorMessage.value = "Tài khoản không có quyền truy cập với vai trò $role."
                             _isLoading.value = false
-                            _isSignedIn.value = true
-                            onSuccess()
-                        }, { _isLoading.value = false })
+                            authRepository.signOut()
+                            return@getUserById
+                        }
+
+                        // Cập nhật role hiện tại nếu cần
+                        if (existingUser.role != role) {
+                            userRepository.updateUserFields(firebaseUser.uid, mapOf("role" to role), {}, {})
+                        }
+
+                        _currentUserRole.value = role
+                        _isLoading.value = false
+                        _isSignedIn.value = true
+                        onSuccess()
                     }
                 }, { _isLoading.value = false })
             }, { _isLoading.value = false })
         } catch (e: ApiException) {
             _errorMessage.value = "Google login lỗi: ${e.statusCode}"
+            _isLoading.value = false
         }
     }
 

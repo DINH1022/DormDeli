@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.dormdeli.model.Order
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -14,7 +13,7 @@ class ShipperRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
-    private val EXPIRE_TIME_MS = 3600000L // 1 giờ tính bằng mili giây
+    private val EXPIRE_TIME_MS = 10800000L // 3 giờ
 
     suspend fun getOrderById(orderId: String): Order? {
         return try {
@@ -26,7 +25,6 @@ class ShipperRepository {
         }
     }
 
-    // Luồng cập nhật đơn hàng mới theo thời gian thực
     fun getAvailableOrdersFlow(): Flow<List<Order>> = callbackFlow {
         val listener = db.collection(collectionName)
             .whereEqualTo("status", "pending")
@@ -40,11 +38,9 @@ class ShipperRepository {
                 val currentTime = System.currentTimeMillis()
                 val orders = snapshot?.documents?.mapNotNull { doc ->
                     val order = doc.toObject(Order::class.java)?.copy(id = doc.id)
-                    
-                    // Logic: Nếu đơn hàng > 1 giờ mà chưa có ai nhận -> Tự động hủy
                     if (order != null && (currentTime - order.createdAt) > EXPIRE_TIME_MS) {
                         cancelExpiredOrder(order.id)
-                        null // Không hiển thị đơn hàng đã hết hạn
+                        null
                     } else {
                         order
                     }
@@ -56,7 +52,6 @@ class ShipperRepository {
         awaitClose { listener.remove() }
     }
 
-    // Hàm thực hiện hủy đơn hàng khi quá hạn
     private fun cancelExpiredOrder(orderId: String) {
         db.collection(collectionName).document(orderId)
             .update("status", "cancelled_timeout")
@@ -65,7 +60,6 @@ class ShipperRepository {
             }
     }
 
-    // Luồng cập nhật đơn hàng đang giao theo thời gian thực
     fun getMyDeliveriesFlow(): Flow<List<Order>> = callbackFlow {
         val shipperId = auth.currentUser?.uid
         if (shipperId == null) {
@@ -93,27 +87,35 @@ class ShipperRepository {
         awaitClose { listener.remove() }
     }
 
+    /**
+     * FIX: Sử dụng Transaction để ngăn chặn việc 2 shipper cùng nhận 1 đơn hàng
+     */
     suspend fun acceptOrder(orderId: String): Boolean {
         val shipperId = auth.currentUser?.uid ?: return false
-        return try {
-            // Kiểm tra lại xem đơn hàng còn hiệu lực không trước khi nhận
-            val orderDoc = db.collection(collectionName).document(orderId).get().await()
-            val createdAt = orderDoc.getLong("createdAt") ?: 0L
-            if (System.currentTimeMillis() - createdAt > EXPIRE_TIME_MS) {
-                cancelExpiredOrder(orderId)
-                return false
-            }
+        val orderRef = db.collection(collectionName).document(orderId)
 
-            db.collection(collectionName).document(orderId)
-                .update(
-                    mapOf(
-                        "shipperId" to shipperId,
-                        "status" to "accepted"
-                    )
-                ).await()
-            true
+        return try {
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(orderRef)
+                val status = snapshot.getString("status") ?: ""
+                val currentShipper = snapshot.getString("shipperId") ?: ""
+                val createdAt = snapshot.getLong("createdAt") ?: 0L
+
+                // Kiểm tra điều kiện: Đơn hàng phải còn pending, chưa có shipper và chưa hết hạn
+                if (status == "pending" && currentShipper.isEmpty()) {
+                    if (System.currentTimeMillis() - createdAt <= EXPIRE_TIME_MS) {
+                        transaction.update(orderRef, "shipperId", shipperId)
+                        transaction.update(orderRef, "status", "accepted")
+                        return@runTransaction true
+                    } else {
+                        transaction.update(orderRef, "status", "cancelled_timeout")
+                        return@runTransaction false
+                    }
+                }
+                false // Đơn hàng đã bị người khác nhận hoặc không hợp lệ
+            }.await()
         } catch (e: Exception) {
-            Log.e("ShipperRepo", "Error accepting order: ${e.message}")
+            Log.e("ShipperRepo", "Transaction failed: ${e.message}")
             false
         }
     }

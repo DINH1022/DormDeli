@@ -23,14 +23,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.ui.components.customer.PhoneNumberTextField
-import com.example.dormdeli.ui.components.customer.SocialLoginButton
 
 @Composable
 fun SignUpScreen(
     prefilledPhone: String? = null,
     onRegisterClick: (String, String, String, String) -> Unit, // phone, email, fullname, password
     onSignInClick: () -> Unit,
-    onSocialSignUpClick: (String) -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onSocialSignUpClick: (String) -> Unit = {},
     @Suppress("UNUSED_PARAMETER") onSignUpSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
     @Suppress("UNUSED_PARAMETER") authViewModel: AuthViewModel? = null
@@ -41,9 +40,6 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
-
-    // Removed role selection - default to STUDENT
-    val currentRole = UserRole.STUDENT
 
     LaunchedEffect(prefilledPhone) {
         prefilledPhone?.let {
@@ -77,8 +73,6 @@ fun SignUpScreen(
                 color = OrangePrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-
-            // Role selection removed as per requirement
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -203,23 +197,11 @@ fun SignUpScreen(
                 )
             ) {
                 Text(
-                    text = "Register",
+                    text = "Register as a customer",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(text = "Or sign up with", fontSize = 14.sp, color = Color.Gray)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SocialLoginButton(
-                iconRes = com.example.dormdeli.R.drawable.ic_google,
-                onClick = { onSocialSignUpClick("google") },
-                enabled = isButtonEnabled
-            )
 
             Spacer(modifier = Modifier.weight(1f))
 

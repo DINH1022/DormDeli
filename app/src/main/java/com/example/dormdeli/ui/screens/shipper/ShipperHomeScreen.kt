@@ -95,7 +95,10 @@ fun ShipperHomeScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+        // SỬA: Chỉ sử dụng bottom padding để tránh khoảng trống thừa phía trên
+        Box(modifier = Modifier
+            .fillMaxSize() 
+            .padding(bottom = padding.calculateBottomPadding())) {
             when (selectedBottomTab) {
                 0 -> ShipperOrdersPage(viewModel, onOrderDetail)
                 1 -> PlaceholderPage("History")
@@ -135,7 +138,9 @@ fun ShipperOrdersPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(OrangePrimary)
-                .padding(24.dp)
+                // SỬA: Thêm statusBarsPadding() để header màu cam tràn lên thanh trạng thái
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 20.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(

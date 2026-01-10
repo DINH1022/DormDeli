@@ -5,21 +5,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.cloudinary.android.MediaManager
 import com.example.dormdeli.ui.navigation.MainNavigation
 import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
+import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
-import com.example.dormdeli.utils.SampleData
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
@@ -33,8 +37,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
 
-        // SampleData.seedSampleOrders(this) // Chạy 1 lần nếu cần data mẫu
-
         setContent {
             DormDeliTheme {
                 Surface(
@@ -44,23 +46,56 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val isSignedIn by authViewModel.isSignedIn
                     val userRole by authViewModel.currentUserRole
+                    
+                    // Trạng thái để kiểm soát việc hiển thị màn hình chính
+                    var isReady by remember { mutableStateOf(false) }
 
-                    // Quyết định màn hình bắt đầu dựa trên trạng thái đăng nhập và role
-                    val startDestination = if (!isSignedIn) {
-                        Screen.Login.route
-                    } else {
-                        // Nếu đã login nhưng role chưa load kịp, có thể hiện màn chờ hoặc mặc định Home
-                        if (userRole == "shipper") Screen.ShipperHome.route else Screen.Home.route
+                    // Logic xác định màn hình khởi đầu
+                    val startDestination = remember(isSignedIn, userRole) {
+                        if (!isSignedIn) {
+                            isReady = true
+                            Screen.Login.route
+                        } else if (userRole != null) {
+                            isReady = true
+                            if (userRole == "shipper") Screen.ShipperHome.route else Screen.Home.route
+                        } else {
+                            // Đang chờ fetch role từ Firestore
+                            isReady = false
+                            "" 
+                        }
                     }
 
-                    MainNavigation(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel,
-                        startDestination = startDestination
-                    )
+                    if (isReady) {
+                        MainNavigation(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            cartViewModel = cartViewModel,
+                            favoriteViewModel = favoriteViewModel,
+                            startDestination = startDestination
+                        )
+                    } else {
+                        // Màn hình Splash/Loading trong khi chờ xác định Role
+                        LoadingSplashScreen()
+                    }
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun LoadingSplashScreen() {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Thay bằng logo app của bạn
+                    contentDescription = null,
+                    modifier = Modifier.size(120.dp)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                CircularProgressIndicator(color = OrangePrimary)
             }
         }
     }
@@ -70,6 +105,10 @@ class MainActivity : ComponentActivity() {
         config["cloud_name"] = "dfg6uxyuf"
         config["api_key"] = "967575127986714"
         config["secure"] = "true"
-        MediaManager.init(this, config)
+        try {
+            MediaManager.init(this, config)
+        } catch (e: Exception) {
+            // MediaManager đã init
+        }
     }
 }
