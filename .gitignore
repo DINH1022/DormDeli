@@ -32,4 +32,6 @@ replay_pid*
 
 local.properties
 
+app/src/main/assets/credentials.json
+
 .idea/
