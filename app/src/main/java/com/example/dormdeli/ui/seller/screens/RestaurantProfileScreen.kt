@@ -8,8 +8,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import androidx.compose.foundation.BorderStroke // Thêm import còn thiếu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +78,8 @@ fun RegistrationForm(viewModel: SellerViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Đăng ký quán ăn của bạn", style = MaterialTheme.typography.headlineSmall)
@@ -143,7 +147,8 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()), // Thêm scroll
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(modifier = Modifier.size(120.dp)) {
@@ -152,7 +157,10 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
                     model = imageUri ?: restaurant.imageUrl,
                 ),
                 contentDescription = "Restaurant Image",
-                modifier = Modifier.fillMaxSize().clip(CircleShape).clickable { imagePickerLauncher.launch("image/*") },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .clickable { imagePickerLauncher.launch("image/*") },
                 contentScale = ContentScale.Crop
             )
             Box(
@@ -185,6 +193,16 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
             } else {
                 Text("Lưu")
             }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        // --- NÚT XOÁ QUÁN --- 
+        OutlinedButton(
+            onClick = { viewModel.deleteCurrentRestaurant() },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+            border = BorderStroke(1.dp, Color.Red)
+        ) {
+            Text("Xoá quán")
         }
     }
 }

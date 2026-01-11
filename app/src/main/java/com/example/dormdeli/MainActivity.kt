@@ -9,7 +9,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.cloudinary.android.MediaManager
-import com.example.dormdeli.ui.seller.screens.SellerMainScreen
+import com.example.dormdeli.ui.seller.screens.SellerMainScreen // Bỏ comment để sử dụng lại màn hình Seller
+import com.example.dormdeli.ui.screens.admin.AdminScreen // Vô hiệu hóa màn hình Admin
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.google.firebase.FirebaseApp
 import java.util.HashMap
@@ -28,7 +29,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                   SellerMainScreen()
+                   SellerMainScreen() // Sử dụng lại màn hình Seller
+                   //AdminScreen() // Vô hiệu hóa màn hình Admin
                 }
             }
         }

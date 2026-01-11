@@ -47,7 +47,7 @@ class SellerRepository {
             description = description,
             location = location,
             openingHours = openingHours,
-            status = RestaurantStatus.APPROVED.name // Auto-approve for testing
+            status = RestaurantStatus.PENDING.name // QUAN TRỌNG: Trở về PENDING để test luồng duyệt
         )
         restaurantsCollection.add(restaurant).await()
         Result.success(Unit)
