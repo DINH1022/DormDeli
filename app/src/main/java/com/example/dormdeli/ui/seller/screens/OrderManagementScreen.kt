@@ -1,51 +1,35 @@
 package com.example.dormdeli.ui.seller.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
-data class Order(val id: String, val customerId: String, val total: Double, val status: String, val date: String)
+import androidx.compose.ui.unit.sp
+import com.example.dormdeli.model.Order
+import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrderManagementScreen() {
-    val orders = listOf(
-        Order("#user12", "user12", 25.0, "Pending", "29/12/2025 21:03"),
-        Order("#user45", "user45", 40.0, "Pending", "29/12/2025 21:03")
-    )
+fun OrderManagementScreen(viewModel: SellerViewModel) {
     var tabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Pending", "In Progress", "Completed")
+    val tabs = listOf("Đang chờ", "Đang thực hiện", "Hoàn thành")
+
+    val pendingOrders by viewModel.pendingOrders.collectAsState()
+    val acceptedOrders by viewModel.acceptedOrders.collectAsState()
+    val completedOrders by viewModel.completedOrders.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order Management", fontWeight = FontWeight.Bold) }
+                title = { Text("Quản lý đơn hàng", fontWeight = FontWeight.Bold) }
             )
         }
     ) {
@@ -57,49 +41,74 @@ fun OrderManagementScreen() {
                         onClick = { tabIndex = index })
                 }
             }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            
+            // Nút tạo dữ liệu mẫu
+            Button(
+                onClick = { viewModel.addSampleOrdersForCurrentRestaurant() },
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
             ) {
-                items(orders.filter { order ->
-                    when (tabIndex) {
-                        0 -> order.status == "Pending"
-                        1 -> order.status == "In Progress"
-                        2 -> order.status == "Completed"
-                        else -> false
-                    }
-                }) { order ->
-                    OrderCard(order = order)
-                }
+                Text("Tạo 2 đơn hàng mẫu")
+            }
+
+            when (tabIndex) {
+                0 -> OrderList(orders = pendingOrders, actionText = "Chấp nhận", onActionClick = { orderId -> viewModel.acceptOrder(orderId) })
+                1 -> OrderList(orders = acceptedOrders, actionText = "Hoàn thành", onActionClick = { orderId -> viewModel.completeOrder(orderId) })
+                2 -> OrderList(orders = completedOrders, actionText = null, onActionClick = {})
             }
         }
     }
 }
 
 @Composable
-fun OrderCard(order: Order) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Order ${order.id}", fontWeight = FontWeight.Bold)
-            Text("Customer ID: ${order.customerId}")
-            Text("Total: $${order.total}")
-            Text("Status: ${order.status}", color = if(order.status == "Pending") Color.Red else Color.Green)
-            Text("Ordered on: ${order.date}")
-            Spacer(modifier = Modifier.padding(8.dp))
-            Row {
-                Button(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                    Text("Accept")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                    Text("Decline")
-                }
+fun OrderList(orders: List<Order>, actionText: String?, onActionClick: (String) -> Unit) {
+    if (orders.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Không có đơn hàng nào.", textAlign = TextAlign.Center)
+        }
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(orders) { order ->
+                OrderCard(order = order, actionText = actionText, onActionClick = { onActionClick(order.id) })
             }
         }
     }
 }
 
+@Composable
+fun OrderCard(order: Order, actionText: String?, onActionClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Đơn hàng #${order.id.take(6)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            order.items.forEach {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${it.quantity} x ${it.foodName}")
+                    Text("${it.price * it.quantity}đ")
+                }
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Tổng cộng", fontWeight = FontWeight.Bold)
+                Text("${order.totalPrice}đ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+            
+            actionText?.let {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onActionClick, modifier = Modifier.fillMaxWidth()) {
+                    Text(it)
+                }
+            }
+        }
+    }
+}

@@ -74,7 +74,7 @@ fun SellerMainScreen(sellerViewModel: SellerViewModel = viewModel()) {
         ) {
             composable(BottomNavItem.Dashboard.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> StatisticsScreen()
+                    RestaurantStatus.APPROVED -> StatisticsScreen(sellerViewModel) // Truyền viewModel
                     else -> UnauthorizedScreen()
                 }
             }
@@ -86,7 +86,7 @@ fun SellerMainScreen(sellerViewModel: SellerViewModel = viewModel()) {
             }
             composable(BottomNavItem.Orders.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> OrderManagementScreen()
+                    RestaurantStatus.APPROVED -> OrderManagementScreen(sellerViewModel) // Truyền viewModel
                     else -> UnauthorizedScreen()
                 }
             }

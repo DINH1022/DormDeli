@@ -22,17 +22,20 @@ class OrderRepository {
         paymentMethod: String = "Cash"
     ): Boolean {
         val userId = auth.currentUser?.uid ?: return false
+        if (cartItems.isEmpty()) return false // Thêm kiểm tra giỏ hàng rỗng
 
         try {
-            // 1. Chuyển đổi CartItem -> OrderItem (Khớp với model mới)
+            // Lấy storeId từ món hàng đầu tiên (vì tất cả đều từ 1 quán)
+            val storeId = cartItems.first().food.storeId
+
+            // 1. Chuyển đổi CartItem -> OrderItem (Đã sửa)
             val orderItems = cartItems.map { item ->
                 OrderItem(
-                    storeId = item.food.storeId, // Gán storeId cho từng món
                     foodId = item.food.id,
                     foodName = item.food.name,
-                    foodImage = item.food.imageUrl, // Hoặc item.food.thumbnail nếu bạn đã làm
-                    price = item.food.price.toLong(), // Ép kiểu Double -> Long
-                    quantity = item.quantity, // Kiểu Int (khớp với model)
+                    foodImage = item.food.imageUrl,
+                    price = item.food.price.toLong(),
+                    quantity = item.quantity,
                     options = item.selectedOptions.map {
                         mapOf("name" to it.first, "price" to it.second)
                     },
@@ -40,14 +43,14 @@ class OrderRepository {
                 )
             }
 
-            // 2. Tạo Order (Khớp với model mới)
+            // 2. Tạo Order (Đã sửa)
             val newOrder = Order(
+                storeId = storeId, // Gán storeId cho cả đơn hàng
                 userId = userId,
-                // shipperId để mặc định rỗng trong Model
                 status = "pending",
-                deliveryType = "room", // Hoặc lấy từ UI
+                deliveryType = "room",
                 deliveryNote = deliveryNote,
-                totalPrice = totalAmount.toLong(), // Ép kiểu Double -> Long
+                totalPrice = totalAmount.toLong(),
                 paymentMethod = paymentMethod,
                 createdAt = System.currentTimeMillis(),
                 items = orderItems
@@ -73,7 +76,7 @@ class OrderRepository {
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING) // Sắp xếp theo ngày tạo
+                // .orderBy("createdAt", Query.Direction.DESCENDING) // TẠM THỜI XOÁ ĐỂ TRÁNH SẬP APP
                 .get()
                 .await()
 

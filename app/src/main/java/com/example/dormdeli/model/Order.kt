@@ -5,6 +5,7 @@ import com.google.firebase.firestore.DocumentId
 data class Order(
     @DocumentId
     val id: String = "",
+    val storeId: String = "", // Thêm storeId vào đây
     val userId: String = "",
     val shipperId: String = "",
     val status: String = "pending",

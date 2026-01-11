@@ -1,7 +1,6 @@
 package com.example.dormdeli.model
 
 data class OrderItem(
-    val storeId: String = "",
     val foodId: String = "",
     val foodName: String = "",
     val foodImage: String = "",

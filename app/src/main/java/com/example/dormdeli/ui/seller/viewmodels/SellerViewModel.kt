@@ -5,6 +5,8 @@ import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.model.Order
+import com.example.dormdeli.repository.OrderRepository
 import com.example.dormdeli.ui.seller.model.MenuItem
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
@@ -26,20 +28,17 @@ import java.util.UUID
 class SellerViewModel : ViewModel() {
 
     private val repository = SellerRepository()
+    private val orderRepository = OrderRepository()
 
-    // --- CẤU HÌNH API AI (GROQ) ---
     private val client = OkHttpClient()
-    // Lưu ý: Đảm bảo Key của bạn còn hạn mức sử dụng
     private val GROQ_API_KEY = "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"
 
-    // === General UI State ===
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    // === AI Autofill State ===
     private val _isAutofillLoading = MutableStateFlow(false)
     val isAutofillLoading: StateFlow<Boolean> = _isAutofillLoading.asStateFlow()
 
@@ -49,23 +48,14 @@ class SellerViewModel : ViewModel() {
     private val _autofilledDescription = MutableStateFlow<String?>(null)
     val autofilledDescription: StateFlow<String?> = _autofilledDescription.asStateFlow()
 
-    // === Restaurant Data ===
     val restaurant: StateFlow<Restaurant?> = repository.getRestaurantFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val restaurantStatus: StateFlow<RestaurantStatus> = restaurant.map { restaurant ->
-        if (restaurant == null) {
-            RestaurantStatus.NONE
-        } else {
-            try {
-                enumValueOf<RestaurantStatus>(restaurant.status)
-            } catch (e: IllegalArgumentException) {
-                RestaurantStatus.NONE
-            }
-        }
+        if (restaurant == null) RestaurantStatus.NONE
+        else try { enumValueOf<RestaurantStatus>(restaurant.status) } catch (e: Exception) { RestaurantStatus.NONE }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RestaurantStatus.NONE)
 
-    // === Menu Data ===
     val menuItems: StateFlow<List<MenuItem>> = restaurant.flatMapLatest { restaurant ->
         restaurant?.id?.let { repository.getMenuItemsFlow(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -73,8 +63,47 @@ class SellerViewModel : ViewModel() {
     private val _editingMenuItem = MutableStateFlow<MenuItem?>(null)
     val editingMenuItem = _editingMenuItem.asStateFlow()
 
-    // === Public Functions ===
+    // === DỮ LIỆU ĐƠN HÀNG (ĐÃ NÂNG CẤP) ===
+    val orders: StateFlow<List<Order>> = restaurant.flatMapLatest { restaurant ->
+        restaurant?.id?.let { orderRepository.getOrdersStreamForStore(it) } ?: MutableStateFlow(emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val pendingOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "pending" } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val acceptedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "accepted" } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val completedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "completed" } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // --- Dữ liệu cho Dashboard ---
+    val totalOrderCount: StateFlow<Int> = orders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val deliveredCount: StateFlow<Int> = completedOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val cancelledCount: StateFlow<Int> = orders.map { it.filter { o -> o.status == "cancelled" }.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val totalRevenue: StateFlow<Long> = completedOrders.map { it.sumOf { order -> order.totalPrice } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    // === CÁC HÀM XỬ LÝ ĐƠN HÀNG ===
+    fun acceptOrder(orderId: String) {
+        viewModelScope.launch {
+            // THEO YÊU CẦU TEST: Chuyển thẳng sang "completed"
+            orderRepository.updateOrderStatus(orderId, "completed")
+        }
+    }
+
+    fun completeOrder(orderId: String) {
+        viewModelScope.launch {
+            orderRepository.updateOrderStatus(orderId, "completed")
+        }
+    }
+    
+    fun addSampleOrdersForCurrentRestaurant() {
+        viewModelScope.launch {
+            restaurant.value?.id?.let { orderRepository.addSampleOrders(it) }
+        }
+    }
+    
     fun onAddNewItemClick() {
         _editingMenuItem.value = null
     }
@@ -88,9 +117,6 @@ class SellerViewModel : ViewModel() {
         _autofillError.value = null
     }
 
-    // === HÀM XỬ LÝ ẢNH & GỌI AI ===
-
-    // Hàm phụ: Thu nhỏ ảnh xuống kích thước vừa phải (Max 800px)
     private fun scaleBitmapDown(bitmap: Bitmap, maxDimension: Int): Bitmap {
         val originalWidth = bitmap.width
         val originalHeight = bitmap.height
@@ -107,7 +133,6 @@ class SellerViewModel : ViewModel() {
         return Bitmap.createScaledBitmap(bitmap, resizedWidth, resizedHeight, false)
     }
 
-    // Hàm chính: Nén ảnh đã thu nhỏ sang Base64
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val scaledBitmap = scaleBitmapDown(bitmap, 800)
         val outputStream = ByteArrayOutputStream()
@@ -122,15 +147,9 @@ class SellerViewModel : ViewModel() {
             _autofillError.value = null
             try {
                 val base64Image = bitmapToBase64(foodImage)
-
                 val url = "https://api.groq.com/openai/v1/chat/completions"
                 val jsonBody = JSONObject()
-
-                // --- SỬA TÊN MODEL Ở ĐÂY ---
-                // Dùng model mới nhất được hỗ trợ (Llama 4 Scout)
                 jsonBody.put("model", "meta-llama/llama-4-scout-17b-16e-instruct")
-                // ---------------------------
-
                 jsonBody.put("max_tokens", 300)
 
                 val userMessage = JSONObject()
@@ -174,7 +193,6 @@ class SellerViewModel : ViewModel() {
                             .getJSONObject(0)
                             .getJSONObject("message")
                             .getString("content")
-
                         _autofilledDescription.value = description
                     }
                 }
@@ -187,8 +205,6 @@ class SellerViewModel : ViewModel() {
             }
         }
     }
-
-    // === CÁC HÀM CŨ GIỮ NGUYÊN (Copy lại logic cũ của bạn) ===
 
     fun createRestaurant(name: String, description: String, location: String, openingHours: String) {
         viewModelScope.launch {
@@ -213,7 +229,6 @@ class SellerViewModel : ViewModel() {
                 return@launch
             }
 
-            // Logic Cloudinary
             val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: currentRestaurant.imageUrl
 
             val updatedRestaurant = currentRestaurant.copy(
@@ -249,7 +264,6 @@ class SellerViewModel : ViewModel() {
                 return@launch
             }
 
-            // Logic Cloudinary (Không ảnh hưởng đến logic AI Base64)
             val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: editingMenuItem.value?.imageUrl ?: ""
 
             val itemToSave = editingMenuItem.value?.copy(
@@ -259,7 +273,7 @@ class SellerViewModel : ViewModel() {
                 isAvailable = isAvailable,
                 imageUrl = imageUrl
             ) ?: MenuItem(
-                id = UUID.randomUUID().toString(), // Phải tạo ID mới ở đây
+                id = UUID.randomUUID().toString(),
                 name = name,
                 description = description,
                 price = price,
