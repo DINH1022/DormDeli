@@ -48,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,9 +76,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminListNotificationScreen(
-    viewModel: AdminNotiListViewModel = viewModel()
-) {
+fun AdminListNotificationScreen() {
+    val context = LocalContext.current
+    val viewModel: AdminNotiListViewModel = viewModel(
+        factory = AdminNotiViewModelFactory(context)
+    )
     var showFilterMenu by remember { mutableStateOf(false) }
     val notifications by viewModel.filteredNotifications
     val totalCount by viewModel.totalCount
