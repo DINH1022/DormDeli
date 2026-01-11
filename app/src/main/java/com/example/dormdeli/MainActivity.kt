@@ -1,14 +1,19 @@
 package com.example.dormdeli
 
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.cloudinary.android.MediaManager
@@ -28,6 +33,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        checkAndRequestNotificationPermission()
         initCloudinary()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
@@ -41,7 +47,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val isSignedIn by authViewModel.isSignedIn
                     val userRole by authViewModel.currentUserRole
-                    
+
                     // Trạng thái để kiểm soát việc hiển thị màn hình chính
                     var isReady by remember { mutableStateOf(false) }
 
@@ -56,7 +62,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             // Đang chờ fetch role từ Firestore
                             isReady = false
-                            "" 
+                            ""
                         }
                     }
 
@@ -88,4 +94,22 @@ class MainActivity : ComponentActivity() {
             // MediaManager đã init
         }
     }
+
+    private fun checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            } else {
+                Log.d("NOTI_PERMISSION", "Notification permission đã được cấp")
+            }
+        } else {
+            Log.d("NOTI_PERMISSION", "Android < 13, không cần xin quyền")
+        }
+    }
+
 }

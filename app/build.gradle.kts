@@ -38,6 +38,15 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/*.SF"
+            excludes += "META-INF/*.DSA"
+            excludes += "META-INF/*.RSA"
+        }
+    }
 }
 
 dependencies {
@@ -81,4 +90,14 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.1.0")
 
     implementation("com.cloudinary:cloudinary-android:2.5.0")
+
+    implementation("com.google.firebase:firebase-messaging")
+
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
 }
