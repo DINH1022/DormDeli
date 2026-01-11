@@ -5,5 +5,12 @@ enum class NotificationTarget(val value:String) {
     EVERYONE("EVERYONE"),
     SHIPPER("SHIPPER"),
     USER("USER"),
-    STORE("STORE")
+    STORE("STORE");
+
+    companion object {
+        fun fromString(value: String?): NotificationTarget {
+            return entries.find { it.value.equals(value, ignoreCase = true) } ?: EVERYONE
+        }
+
+    }
 }

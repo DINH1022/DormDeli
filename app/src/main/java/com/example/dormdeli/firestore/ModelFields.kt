@@ -122,4 +122,11 @@ object ModelFields {
         const val MESSAGE = "message"
         const val CREATED_AT = "createdAt"
     }
+
+    object MessageToken {
+        const val ID = "id"
+        const val USERID = "userId"
+        const val FCMTOKEN = "fcmToken"
+        const val ROLE = "role"
+    }
 }

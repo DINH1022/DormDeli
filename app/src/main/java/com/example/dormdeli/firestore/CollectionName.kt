@@ -11,5 +11,6 @@ enum class CollectionName(val value: String) {
     CART_ITEM("cartItem"),
     ORDER_ITEM("orderItem"),
 
-    NOTIFICATION("notifications")
+    NOTIFICATION("notifications"),
+    MESSAGE_TOKEN("messageToken"),
 }

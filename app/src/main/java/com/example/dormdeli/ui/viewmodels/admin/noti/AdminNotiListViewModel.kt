@@ -8,8 +8,9 @@ import com.example.dormdeli.model.Notification
 import com.example.dormdeli.repository.admin.AdminNotiRepository
 import kotlinx.coroutines.launch
 
+
 class AdminNotiListViewModel(
-    private val notiRepo: AdminNotiRepository = AdminNotiRepository()
+    private val notiRepo: AdminNotiRepository
 ) : ViewModel() {
     var allNotifications = mutableStateOf<List<Notification>>(emptyList())
     var totalCount = mutableStateOf(0)

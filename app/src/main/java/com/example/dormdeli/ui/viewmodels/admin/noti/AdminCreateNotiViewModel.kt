@@ -13,7 +13,7 @@ import com.example.dormdeli.enums.NotificationTarget
 
 
 class AdminCreateNotiViewModel(
-    private val notiRepo: AdminNotiRepository = AdminNotiRepository()
+    private val notiRepo: AdminNotiRepository
 ) : ViewModel() {
 
     var subject by mutableStateOf("")
