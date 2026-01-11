@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.shipper
+package com.example.dormdeli.ui.screens.shipper.order
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.ui.screens.shipper.earning.ShipperEarningsScreen
+import com.example.dormdeli.ui.screens.shipper.history.ShipperHistoryScreen
+import com.example.dormdeli.ui.screens.shipper.profile.ShipperProfileScreen
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.*
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
@@ -76,17 +79,17 @@ fun ShipperHomeScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        item.selectedIcon, 
-                                        contentDescription = item.title, 
+                                        item.selectedIcon,
+                                        contentDescription = item.title,
                                         tint = Color.White,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                             } else {
                                 Icon(
-                                    item.unselectedIcon, 
-                                    contentDescription = item.title, 
-                                    tint = Color.Black, // SỬA: Icon unselected màu đen
+                                    item.unselectedIcon,
+                                    contentDescription = item.title,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -96,7 +99,7 @@ fun ShipperHomeScreen(
                                 item.title,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black // SỬA: Font chữ luôn màu đen
+                                color = Color.Black
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -113,7 +116,7 @@ fun ShipperHomeScreen(
             when (selectedBottomTab) {
                 0 -> ShipperOrdersPage(viewModel, onOrderDetail)
                 1 -> ShipperHistoryScreen(viewModel, onOrderDetail)
-                2 -> PlaceholderPage("Earnings")
+                2 -> ShipperEarningsScreen(viewModel)
                 3 -> ShipperProfileScreen(
                     viewModel = profileViewModel,
                     onBack = { onBackNav() },
@@ -331,7 +334,7 @@ fun SortOptionItem(
         Icon(
             icon, 
             contentDescription = null, 
-            tint = if (isSelected) OrangePrimary else Color.Black, // SỬA: Icon unselected màu đen
+            tint = if (isSelected) OrangePrimary else Color.Black,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -339,7 +342,7 @@ fun SortOptionItem(
             text = title,
             modifier = Modifier.weight(1f),
             fontSize = 16.sp,
-            color = if (isSelected) OrangePrimary else Color.Black, // SỬA: Label unselected màu đen
+            color = if (isSelected) OrangePrimary else Color.Black,
             fontWeight = FontWeight.Bold
         )
         if (isSelected) {

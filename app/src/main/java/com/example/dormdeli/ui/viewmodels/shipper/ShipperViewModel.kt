@@ -2,6 +2,7 @@ package com.example.dormdeli.ui.viewmodels.shipper
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
@@ -9,9 +10,11 @@ import com.example.dormdeli.repository.shipper.ShipperRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.*
 
 enum class TimeSort { NEWEST, OLDEST }
 enum class ShipSort { HIGHEST, LOWEST, NONE }
+enum class EarningPeriod { ALL, TODAY, WEEK, MONTH, YEAR }
 
 data class SortOptions(
     val timeSort: TimeSort = TimeSort.NEWEST,
@@ -28,6 +31,9 @@ class ShipperViewModel : ViewModel() {
     private val _sortOptions = MutableStateFlow(SortOptions())
     val sortOptions: StateFlow<SortOptions> = _sortOptions
 
+    private val _earningPeriod = MutableStateFlow(EarningPeriod.ALL)
+    val earningPeriod: StateFlow<EarningPeriod> = _earningPeriod
+
     private val _rawAvailableOrders = MutableStateFlow<List<Order>>(emptyList())
     private val _rawMyDeliveries = MutableStateFlow<List<Order>>(emptyList())
     private val _rawHistoryOrders = MutableStateFlow<List<Order>>(emptyList())
@@ -42,6 +48,48 @@ class ShipperViewModel : ViewModel() {
 
     val historyOrders = _rawHistoryOrders.asStateFlow()
 
+    val filteredEarnings = combine(_rawHistoryOrders, _earningPeriod) { orders, period ->
+        val completed = orders.filter { it.status == "completed" }
+        if (period == EarningPeriod.ALL) return@combine completed
+
+        val calendar = Calendar.getInstance()
+        val now = System.currentTimeMillis()
+        calendar.timeInMillis = now
+
+        when (period) {
+            EarningPeriod.TODAY -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            EarningPeriod.WEEK -> {
+                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            EarningPeriod.MONTH -> {
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            EarningPeriod.YEAR -> {
+                calendar.set(Calendar.DAY_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            else -> {}
+        }
+        val startTime = calendar.timeInMillis
+        completed.filter { it.createdAt >= startTime }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -54,6 +102,10 @@ class ShipperViewModel : ViewModel() {
 
     fun selectTab(index: Int) {
         _selectedTab.intValue = index
+    }
+
+    fun updateEarningPeriod(period: EarningPeriod) {
+        _earningPeriod.value = period
     }
 
     private fun observeOrders() {

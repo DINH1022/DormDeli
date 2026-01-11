@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.shipper
+package com.example.dormdeli.ui.screens.shipper.deliverydetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.model.OrderItem
+import com.example.dormdeli.ui.screens.shipper.order.InfoRow
+import com.example.dormdeli.ui.screens.shipper.order.getStatusColor
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 
@@ -28,10 +31,11 @@ fun DeliveryDetailScreen(
 ) {
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
+    val historyOrders by viewModel.historyOrders.collectAsState()
     val isActionLoading by viewModel.isLoading.collectAsState()
     
-    val order = remember(availableOrders, myDeliveries) {
-        (availableOrders + myDeliveries).find { it.id == orderId }
+    val order = remember(availableOrders, myDeliveries, historyOrders) {
+        (availableOrders + myDeliveries + historyOrders).find { it.id == orderId }
     }
 
     Scaffold(
@@ -80,10 +84,11 @@ fun DeliveryDetailScreen(
                     items(currentOrder.items) { item -> OrderItemRow(item) }
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
-                        SummaryRow("Subtotal", "${currentOrder.totalPrice}đ")
+                        val subtotal = currentOrder.totalPrice - currentOrder.shippingFee
+                        SummaryRow("Subtotal", "${subtotal}đ")
                         SummaryRow("Shipping Fee", "${currentOrder.shippingFee}đ")
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        SummaryRow("Total", "${currentOrder.totalPrice + currentOrder.shippingFee}đ", isBold = true)
+                        SummaryRow("Total", "${currentOrder.totalPrice}đ", isBold = true)
                     }
                 }
 
@@ -93,36 +98,50 @@ fun DeliveryDetailScreen(
                     color = Color.White
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
-                        val buttonAction: () -> Unit = {
-                            when (currentOrder.status) {
-                                "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
-                                "accepted" -> viewModel.updateStatus(currentOrder.id, "delivering")
-                                "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
+                        val canAction = currentOrder.status !in listOf("completed", "cancelled")
+                        
+                        if (canAction) {
+                            val buttonAction: () -> Unit = {
+                                when (currentOrder.status) {
+                                    "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
+                                    "accepted" -> viewModel.updateStatus(currentOrder.id, "delivering")
+                                    "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
+                                }
                             }
-                        }
 
-                        Button(
-                            onClick = buttonAction,
-                            enabled = !isActionLoading,
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (isActionLoading) {
-                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            } else {
-                                Text(
-                                    text = when (currentOrder.status) {
-                                        "pending" -> "ACCEPT ORDER"
-                                        "accepted" -> "START DELIVERING"
-                                        "delivering" -> "MARK AS COMPLETED"
-                                        else -> "BACK"
-                                    },
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
+                            Button(
+                                onClick = buttonAction,
+                                enabled = !isActionLoading,
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                if (isActionLoading) {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                } else {
+                                    Text(
+                                        text = when (currentOrder.status) {
+                                            "pending" -> "ACCEPT ORDER"
+                                            "accepted" -> "START DELIVERING"
+                                            "delivering" -> "MARK AS COMPLETED"
+                                            else -> "BACK"
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            // Nếu đã hoàn thành hoặc đã hủy thì chỉ hiện nút quay lại
+                            OutlinedButton(
+                                onClick = onBackClick,
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
+                            ) {
+                                Text("BACK", color = OrangePrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -171,15 +190,25 @@ fun AddressSection(order: Order) {
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = "Store Location", color = Color(0xFFE3F2FD))
+            InfoRow(
+                icon = Icons.Default.LocationOn,
+                label = "PICK UP",
+                value = "Store Location",
+                color = Color(0xFFE3F2FD)
+            )
             Box(modifier = Modifier.padding(start = 22.dp).height(30.dp).width(2.dp).background(Color.LightGray))
-            InfoRow(icon = Icons.Default.Room, label = "DELIVER TO", value = "${order.deliveryType.uppercase()} - ${order.deliveryNote}", color = Color(0xFFFFEBEE))
+            InfoRow(
+                icon = Icons.Default.Room,
+                label = "DELIVER TO",
+                value = "${order.deliveryType.uppercase()} - ${order.deliveryNote}",
+                color = Color(0xFFFFEBEE)
+            )
         }
     }
 }
 
 @Composable
-fun OrderItemRow(item: com.example.dormdeli.model.OrderItem) {
+fun OrderItemRow(item: OrderItem) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,

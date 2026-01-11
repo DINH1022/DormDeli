@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.shipper
+package com.example.dormdeli.ui.screens.shipper.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
