@@ -75,18 +75,28 @@ fun ShipperHomeScreen(
                                         .background(OrangePrimary, RoundedCornerShape(12.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(item.selectedIcon, contentDescription = item.title, tint = Color.White)
+                                    Icon(
+                                        item.selectedIcon, 
+                                        contentDescription = item.title, 
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
                                 }
                             } else {
-                                Icon(item.unselectedIcon, contentDescription = item.title, tint = Color.Gray)
+                                Icon(
+                                    item.unselectedIcon, 
+                                    contentDescription = item.title, 
+                                    tint = Color.Black, // SỬA: Icon unselected màu đen
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         },
                         label = {
                             Text(
                                 item.title,
                                 fontSize = 12.sp,
-                                fontWeight = if (selectedBottomTab == index) FontWeight.Bold else FontWeight.Normal,
-                                color = if (selectedBottomTab == index) OrangePrimary else Color.Gray
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black // SỬA: Font chữ luôn màu đen
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -102,7 +112,7 @@ fun ShipperHomeScreen(
             .padding(bottom = padding.calculateBottomPadding())) {
             when (selectedBottomTab) {
                 0 -> ShipperOrdersPage(viewModel, onOrderDetail)
-                1 -> PlaceholderPage("History")
+                1 -> ShipperHistoryScreen(viewModel, onOrderDetail)
                 2 -> PlaceholderPage("Earnings")
                 3 -> ShipperProfileScreen(
                     viewModel = profileViewModel,
@@ -185,7 +195,7 @@ fun ShipperOrdersPage(
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
-                    text = { Text(title) }
+                    text = { Text(title, fontWeight = FontWeight.Bold) }
                 )
             }
         }
@@ -195,7 +205,7 @@ fun ShipperOrdersPage(
             
             if (ordersToShow.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No orders at the moment", color = Color.Gray)
+                    Text("No orders at the moment", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             } else {
                 LazyColumn(
@@ -259,7 +269,7 @@ fun FilterSheetContent(
             modifier = Modifier.padding(16.dp)
         )
         
-        Text("By Time", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Text("By Time", fontSize = 14.sp, color = Color.Black, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
         SortOptionItem(
             title = "Newest first",
             icon = Icons.Default.Schedule,
@@ -274,7 +284,7 @@ fun FilterSheetContent(
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        Text("By Shipping Fee", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Text("By Shipping Fee", fontSize = 14.sp, color = Color.Black, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
         
         SortOptionItem(
             title = "Highest Shipping Fee",
@@ -321,7 +331,7 @@ fun SortOptionItem(
         Icon(
             icon, 
             contentDescription = null, 
-            tint = if (isSelected) OrangePrimary else Color.Gray,
+            tint = if (isSelected) OrangePrimary else Color.Black, // SỬA: Icon unselected màu đen
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -329,8 +339,8 @@ fun SortOptionItem(
             text = title,
             modifier = Modifier.weight(1f),
             fontSize = 16.sp,
-            color = if (isSelected) OrangePrimary else Color.Black,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            color = if (isSelected) OrangePrimary else Color.Black, // SỬA: Label unselected màu đen
+            fontWeight = FontWeight.Bold
         )
         if (isSelected) {
             Icon(Icons.Default.Check, contentDescription = null, tint = OrangePrimary)
@@ -398,8 +408,8 @@ fun OrderShipperItem(
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-                    Text(text = " $dateStr", fontSize = 12.sp, color = Color.Gray)
+                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Text(text = " $dateStr", fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                 }
                 Text(text = "Total: ${order.totalPrice}đ", fontWeight = FontWeight.Bold, color = OrangePrimary)
             }
@@ -412,7 +422,7 @@ fun OrderShipperItem(
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Accept Order")
+                    Text("Accept Order", fontWeight = FontWeight.Bold)
                 }
             } else {
                 when (order.status) {
@@ -423,7 +433,7 @@ fun OrderShipperItem(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Start Delivering")
+                            Text("Start Delivering", fontWeight = FontWeight.Bold)
                         }
                     }
                     "delivering" -> {
@@ -433,7 +443,7 @@ fun OrderShipperItem(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Mark as Completed")
+                            Text("Mark as Completed", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -457,7 +467,7 @@ fun InfoRow(icon: ImageVector, label: String, value: String, color: Color) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (label == "PICK UP") Color.Blue else Color.Red)
-                Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -466,7 +476,7 @@ fun InfoRow(icon: ImageVector, label: String, value: String, color: Color) {
 @Composable
 fun PlaceholderPage(title: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "$title Page (Coming Soon)", fontSize = 18.sp, color = Color.Gray)
+        Text(text = "$title Page (Coming Soon)", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -478,6 +488,7 @@ fun getStatusColor(status: String): Color {
         "accepted" -> Color(0xFF2196F3)
         "delivering" -> Color(0xFF9C27B0)
         "completed" -> Color(0xFF4CAF50)
+        "cancelled" -> Color.Red
         else -> Color.Gray
     }
 }

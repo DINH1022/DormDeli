@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.dormdeli.model.Order
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -87,9 +88,37 @@ class ShipperRepository {
         awaitClose { listener.remove() }
     }
 
-    /**
-     * FIX: Sử dụng Transaction để ngăn chặn việc 2 shipper cùng nhận 1 đơn hàng
-     */
+    fun getHistoryOrdersFlow(): Flow<List<Order>> = callbackFlow {
+        val shipperId = auth.currentUser?.uid
+        if (shipperId == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection(collectionName)
+            .whereEqualTo("shipperId", shipperId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("ShipperRepo", "Error listening for history orders: ${error.message}")
+                    return@addSnapshotListener
+                }
+                
+                val orders = snapshot?.documents?.mapNotNull { doc ->
+                    val order = doc.toObject(Order::class.java)?.copy(id = doc.id)
+                    if (order != null && (order.status == "completed" || order.status == "cancelled")) {
+                        order
+                    } else {
+                        null
+                    }
+                }?.sortedByDescending { it.createdAt } ?: emptyList()
+                
+                trySend(orders)
+            }
+        
+        awaitClose { listener.remove() }
+    }
+
     suspend fun acceptOrder(orderId: String): Boolean {
         val shipperId = auth.currentUser?.uid ?: return false
         val orderRef = db.collection(collectionName).document(orderId)
@@ -101,7 +130,6 @@ class ShipperRepository {
                 val currentShipper = snapshot.getString("shipperId") ?: ""
                 val createdAt = snapshot.getLong("createdAt") ?: 0L
 
-                // Kiểm tra điều kiện: Đơn hàng phải còn pending, chưa có shipper và chưa hết hạn
                 if (status == "pending" && currentShipper.isEmpty()) {
                     if (System.currentTimeMillis() - createdAt <= EXPIRE_TIME_MS) {
                         transaction.update(orderRef, "shipperId", shipperId)
@@ -112,7 +140,7 @@ class ShipperRepository {
                         return@runTransaction false
                     }
                 }
-                false // Đơn hàng đã bị người khác nhận hoặc không hợp lệ
+                false
             }.await()
         } catch (e: Exception) {
             Log.e("ShipperRepo", "Transaction failed: ${e.message}")

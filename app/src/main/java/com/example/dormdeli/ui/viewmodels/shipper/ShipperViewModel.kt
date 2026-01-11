@@ -2,7 +2,6 @@ package com.example.dormdeli.ui.viewmodels.shipper
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
@@ -31,6 +30,7 @@ class ShipperViewModel : ViewModel() {
 
     private val _rawAvailableOrders = MutableStateFlow<List<Order>>(emptyList())
     private val _rawMyDeliveries = MutableStateFlow<List<Order>>(emptyList())
+    private val _rawHistoryOrders = MutableStateFlow<List<Order>>(emptyList())
 
     val availableOrders = combine(_rawAvailableOrders, _sortOptions) { orders, sort ->
         applySorting(orders, sort)
@@ -39,6 +39,8 @@ class ShipperViewModel : ViewModel() {
     val myDeliveries = combine(_rawMyDeliveries, _sortOptions) { orders, sort ->
         applySorting(orders, sort)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val historyOrders = _rawHistoryOrders.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -61,6 +63,10 @@ class ShipperViewModel : ViewModel() {
 
         repository.getMyDeliveriesFlow()
             .onEach { _rawMyDeliveries.value = it }
+            .launchIn(viewModelScope)
+
+        repository.getHistoryOrdersFlow()
+            .onEach { _rawHistoryOrders.value = it }
             .launchIn(viewModelScope)
     }
 
