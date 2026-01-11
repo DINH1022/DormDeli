@@ -28,8 +28,8 @@ import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
-import com.example.dormdeli.ui.screens.shipper.ShipperHomeScreen
-import com.example.dormdeli.ui.screens.shipper.DeliveryDetailScreen
+import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
+import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel

@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens.shipper
+package com.example.dormdeli.ui.screens.shipper.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dormdeli.ui.screens.shipper.order.OrderShipperItem
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 
