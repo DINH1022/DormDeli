@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.ui.theme.OrangePrimary
-import com.example.dormdeli.ui.viewmodels.shipper.ShipSort
-import com.example.dormdeli.ui.viewmodels.shipper.SortOptions
-import com.example.dormdeli.ui.viewmodels.shipper.TimeSort
+import com.example.dormdeli.enums.ShipSort
+import com.example.dormdeli.enums.SortOptions
+import com.example.dormdeli.enums.TimeSort
 import java.text.SimpleDateFormat
 import java.util.*
 

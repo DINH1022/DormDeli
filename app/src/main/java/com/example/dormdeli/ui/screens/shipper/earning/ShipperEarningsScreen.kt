@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.*
+import com.example.dormdeli.enums.EarningPeriod
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.text.style.TextAlign
@@ -100,7 +101,7 @@ fun ShipperEarningsScreen(
                         Text(
                             text = when(currentPeriod) {
                                 EarningPeriod.ALL -> "Total Balance"
-                                EarningPeriod.TODAY -> "Today's Earnings"
+                                EarningPeriod.DAY -> "Today's Earnings"
                                 EarningPeriod.WEEK -> "This Week"
                                 EarningPeriod.MONTH -> "This Month"
                                 EarningPeriod.YEAR -> "This Year"
@@ -190,7 +191,7 @@ fun PeriodFilterContent(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(16.dp)
         )
-        PeriodOptionItem("Today", selectedPeriod == EarningPeriod.TODAY) { onPeriodSelected(EarningPeriod.TODAY) }
+        PeriodOptionItem("Today", selectedPeriod == EarningPeriod.DAY) { onPeriodSelected(EarningPeriod.DAY) }
         PeriodOptionItem("This Week", selectedPeriod == EarningPeriod.WEEK) { onPeriodSelected(EarningPeriod.WEEK) }
         PeriodOptionItem("This Month", selectedPeriod == EarningPeriod.MONTH) { onPeriodSelected(EarningPeriod.MONTH) }
         PeriodOptionItem("This Year", selectedPeriod == EarningPeriod.YEAR) { onPeriodSelected(EarningPeriod.YEAR) }

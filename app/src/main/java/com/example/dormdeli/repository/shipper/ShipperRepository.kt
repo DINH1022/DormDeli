@@ -18,6 +18,8 @@ class ShipperRepository {
     private val notificationsCollection = "notifications"
     private val EXPIRE_TIME_MS = 10800000L // 3 giờ
 
+    fun getCurrentUserId(): String? = auth.currentUser?.uid
+
     suspend fun getOrderById(orderId: String): Order? {
         return try {
             val doc = db.collection(collectionName).document(orderId).get().await()
@@ -123,30 +125,54 @@ class ShipperRepository {
 
     // --- LOGIC THÔNG BÁO ---
     fun getNotificationsFlow(): Flow<List<Notification>> = callbackFlow {
-        val userId = auth.currentUser?.uid ?: return@callbackFlow
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            Log.w("ShipperRepo", "getNotificationsFlow: User ID is null")
+            trySend(emptyList())
+            return@callbackFlow
+        }
+
+        Log.d("ShipperRepo", "Starting notification listener for user: $userId")
+        
         val listener = db.collection(notificationsCollection)
             .whereEqualTo("target", userId)
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e("ShipperRepo", "Error listening for notifications: ${error.message}")
+                    // CỰC KỲ QUAN TRỌNG: Kiểm tra log này để thấy link tạo Index nếu bị thiếu
+                    Log.e("ShipperRepo", "NOTIFICATION ERROR: ${error.message}")
                     return@addSnapshotListener
                 }
+                
                 val notifications = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(Notification::class.java)?.copy(id = doc.id)
                 } ?: emptyList()
+                
+                Log.d("ShipperRepo", "Received ${notifications.size} notifications")
                 trySend(notifications)
             }
+            
         awaitClose { listener.remove() }
     }
 
     suspend fun saveNotification(notification: Notification) {
-        val userId = auth.currentUser?.uid ?: return
         try {
-            db.collection(notificationsCollection).add(notification.copy(target = userId)).await()
+            val result = db.collection(notificationsCollection).add(notification).await()
+            Log.d("ShipperRepo", "Notification saved with ID: ${result.id}")
         } catch (e: Exception) {
             Log.e("ShipperRepo", "Error saving notification: ${e.message}")
         }
+    }
+
+    suspend fun sendNotificationToUser(targetUserId: String, subject: String, message: String) {
+        Log.d("ShipperRepo", "Sending notification to $targetUserId: $subject")
+        val notification = Notification(
+            subject = subject,
+            message = message,
+            target = targetUserId,
+            createdAt = System.currentTimeMillis()
+        )
+        saveNotification(notification)
     }
 
     suspend fun acceptOrder(orderId: String): Boolean {

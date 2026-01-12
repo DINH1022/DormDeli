@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.enums.EarningPeriod
 import kotlinx.coroutines.flow.*
 import java.util.*
 
@@ -23,7 +24,7 @@ class ShipperEarningsViewModel : ViewModel() {
         calendar.timeInMillis = System.currentTimeMillis()
         
         when (period) {
-            EarningPeriod.TODAY -> {
+            EarningPeriod.DAY -> {
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
