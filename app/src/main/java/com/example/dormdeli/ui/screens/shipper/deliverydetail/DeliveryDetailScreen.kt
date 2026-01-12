@@ -17,25 +17,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
-import com.example.dormdeli.ui.screens.shipper.order.InfoRow
-import com.example.dormdeli.ui.screens.shipper.order.getStatusColor
+import com.example.dormdeli.ui.screens.shipper.InfoRow
+import com.example.dormdeli.ui.screens.shipper.getStatusColor
 import com.example.dormdeli.ui.theme.OrangePrimary
-import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
+import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeliveryDetailScreen(
     orderId: String,
-    viewModel: ShipperViewModel,
+    viewModel: ShipperOrdersViewModel, // Sửa type ViewModel
     onBackClick: () -> Unit
 ) {
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
-    val historyOrders by viewModel.historyOrders.collectAsState()
     val isActionLoading by viewModel.isLoading.collectAsState()
     
-    val order = remember(availableOrders, myDeliveries, historyOrders) {
-        (availableOrders + myDeliveries + historyOrders).find { it.id == orderId }
+    // Tìm đơn hàng từ cả 2 nguồn (Available và My Deliveries)
+    val order = remember(availableOrders, myDeliveries) {
+        (availableOrders + myDeliveries).find { it.id == orderId }
     }
 
     Scaffold(
@@ -134,7 +134,6 @@ fun DeliveryDetailScreen(
                                 }
                             }
                         } else {
-                            // Nếu đã hoàn thành hoặc đã hủy thì chỉ hiện nút quay lại
                             OutlinedButton(
                                 onClick = onBackClick,
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -174,7 +173,7 @@ fun OrderInfoCard(order: Order) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(text = "Order #${order.id.takeLast(5).uppercase()}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text(text = "Customer: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
+                    Text(text = "Customer ID: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
                 }
             }
             StatusBadge(order.status)

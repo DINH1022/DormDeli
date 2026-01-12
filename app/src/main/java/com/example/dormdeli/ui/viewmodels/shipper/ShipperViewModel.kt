@@ -1,12 +1,14 @@
 package com.example.dormdeli.ui.viewmodels.shipper
 
+import android.app.Application
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.model.Notification
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.utils.NotificationHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -21,10 +23,10 @@ data class SortOptions(
     val shipSort: ShipSort = ShipSort.NONE
 )
 
-class ShipperViewModel : ViewModel() {
+class ShipperViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = ShipperRepository()
+    private val context = application.applicationContext
 
-    // Lưu trữ trạng thái Tab để không bị reset khi điều hướng
     private val _selectedTab = mutableIntStateOf(0)
     val selectedTab: State<Int> = _selectedTab
 
@@ -37,25 +39,27 @@ class ShipperViewModel : ViewModel() {
     private val _rawAvailableOrders = MutableStateFlow<List<Order>>(emptyList())
     private val _rawMyDeliveries = MutableStateFlow<List<Order>>(emptyList())
     private val _rawHistoryOrders = MutableStateFlow<List<Order>>(emptyList())
+    private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
 
-    val availableOrders = combine(_rawAvailableOrders, _sortOptions) { orders, sort ->
+    val availableOrders: StateFlow<List<Order>> = combine(_rawAvailableOrders, _sortOptions) { orders, sort ->
         applySorting(orders, sort)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val myDeliveries = combine(_rawMyDeliveries, _sortOptions) { orders, sort ->
+    val myDeliveries: StateFlow<List<Order>> = combine(_rawMyDeliveries, _sortOptions) { orders, sort ->
         applySorting(orders, sort)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val historyOrders = _rawHistoryOrders.asStateFlow()
+    val historyOrders: StateFlow<List<Order>> = _rawHistoryOrders.asStateFlow()
+    val notifications: StateFlow<List<Notification>> = _notifications.asStateFlow()
 
-    val filteredEarnings = combine(_rawHistoryOrders, _earningPeriod) { orders, period ->
+    // SỬA: Định nghĩa kiểu dữ liệu tường minh để tránh lỗi infer type
+    val filteredEarnings: StateFlow<List<Order>> = combine(_rawHistoryOrders, _earningPeriod) { orders, period ->
         val completed = orders.filter { it.status == "completed" }
         if (period == EarningPeriod.ALL) return@combine completed
 
         val calendar = Calendar.getInstance()
-        val now = System.currentTimeMillis()
-        calendar.timeInMillis = now
-
+        calendar.timeInMillis = System.currentTimeMillis()
+        
         when (period) {
             EarningPeriod.TODAY -> {
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -96,8 +100,27 @@ class ShipperViewModel : ViewModel() {
     private val _errorMessage = MutableSharedFlow<String>()
     val errorMessage = _errorMessage.asSharedFlow()
 
+    private var previousAvailableCount = 0
+
     init {
         observeOrders()
+        observeNotifications()
+        setupAvailableOrdersNotification()
+    }
+
+    private fun setupAvailableOrdersNotification() {
+        _rawAvailableOrders
+            .drop(1)
+            .onEach { orders ->
+                if (orders.size > previousAvailableCount) {
+                    val title = "Đơn hàng mới!"
+                    val msg = "Có ${orders.size} đơn hàng đang chờ bạn nhận."
+                    NotificationHelper.showNotification(context, title, msg)
+                    repository.saveNotification(Notification(subject = title, message = msg))
+                }
+                previousAvailableCount = orders.size
+            }
+            .launchIn(viewModelScope)
     }
 
     fun selectTab(index: Int) {
@@ -119,6 +142,12 @@ class ShipperViewModel : ViewModel() {
 
         repository.getHistoryOrdersFlow()
             .onEach { _rawHistoryOrders.value = it }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeNotifications() {
+        repository.getNotificationsFlow()
+            .onEach { _notifications.value = it }
             .launchIn(viewModelScope)
     }
 
@@ -172,6 +201,12 @@ class ShipperViewModel : ViewModel() {
             val success = repository.updateOrderStatus(orderId, status)
             _isLoading.value = false
             if (success) {
+                if (status == "completed") {
+                    val title = "Giao hàng thành công!"
+                    val msg = "Đơn hàng #$orderId đã hoàn thành. Chúc mừng bạn!"
+                    NotificationHelper.showNotification(context, title, msg)
+                    repository.saveNotification(Notification(subject = title, message = msg))
+                }
                 onComplete()
             } else {
                 _errorMessage.emit("Cập nhật trạng thái thất bại.")

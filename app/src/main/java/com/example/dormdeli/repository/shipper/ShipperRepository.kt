@@ -1,6 +1,7 @@
 package com.example.dormdeli.repository.shipper
 
 import android.util.Log
+import com.example.dormdeli.model.Notification
 import com.example.dormdeli.model.Order
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -14,6 +15,7 @@ class ShipperRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
+    private val notificationsCollection = "notifications"
     private val EXPIRE_TIME_MS = 10800000L // 3 giờ
 
     suspend fun getOrderById(orderId: String): Order? {
@@ -117,6 +119,34 @@ class ShipperRepository {
             }
         
         awaitClose { listener.remove() }
+    }
+
+    // --- LOGIC THÔNG BÁO ---
+    fun getNotificationsFlow(): Flow<List<Notification>> = callbackFlow {
+        val userId = auth.currentUser?.uid ?: return@callbackFlow
+        val listener = db.collection(notificationsCollection)
+            .whereEqualTo("target", userId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("ShipperRepo", "Error listening for notifications: ${error.message}")
+                    return@addSnapshotListener
+                }
+                val notifications = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Notification::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(notifications)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun saveNotification(notification: Notification) {
+        val userId = auth.currentUser?.uid ?: return
+        try {
+            db.collection(notificationsCollection).add(notification.copy(target = userId)).await()
+        } catch (e: Exception) {
+            Log.e("ShipperRepo", "Error saving notification: ${e.message}")
+        }
     }
 
     suspend fun acceptOrder(orderId: String): Boolean {

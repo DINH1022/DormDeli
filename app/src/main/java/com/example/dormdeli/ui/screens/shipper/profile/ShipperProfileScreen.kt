@@ -23,8 +23,7 @@ import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 
 @Composable
 fun ShipperProfileScreen(
-    viewModel: ProfileViewModel, // Nhận ViewModel để switch role
-    onBack: () -> Unit,
+    viewModel: ProfileViewModel,
     onPersonalInfoClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onEarningsClick: () -> Unit,
@@ -45,14 +44,12 @@ fun ShipperProfileScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
             Text(
                 "Shipper Profile",
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
+                fontWeight = FontWeight.ExtraBold, // In đậm hơn
+                color = Color.Black,
+                modifier = Modifier.padding(start = 25.dp, top = 25.dp)
             )
         }
 
@@ -78,33 +75,63 @@ fun ShipperProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text(user?.fullName ?: "Shipper Name", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Shipper", color = Color(0xFF4CAF50), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(user?.fullName ?: "Shipper Name", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("Shipper Mode", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            ProfileMenuItem(icon = Icons.Default.Person, title = "Personal Info", onClick = onPersonalInfoClick)
-            ProfileMenuItem(icon = Icons.Default.History, title = "Delivery History", onClick = onHistoryClick)
-            ProfileMenuItem(icon = Icons.Default.Payments, title = "Earnings Report", onClick = onEarningsClick)
+            // Đồng bộ in đậm cho các menu items
+            ProfileMenuItemBold(icon = Icons.Default.Person, title = "Personal Info", onClick = onPersonalInfoClick)
+            ProfileMenuItemBold(icon = Icons.Default.History, title = "Delivery History", onClick = onHistoryClick)
+            ProfileMenuItemBold(icon = Icons.Default.Payments, title = "Earnings Report", onClick = onEarningsClick)
             
-            ProfileMenuItem(
+            ProfileMenuItemBold(
                 icon = Icons.Default.ShoppingBag, 
                 title = "Switch to Customer Mode", 
                 onClick = {
-                    // FIX: Cập nhật role trên Firestore trước khi chuyển màn hình
                     viewModel.switchActiveRole("student") {
                         onSwitchToCustomer()
                     }
                 },
-                tint = OrangePrimary
+                textColor = OrangePrimary
             )
 
-            ProfileMenuItem(icon = Icons.Default.Settings, title = "Settings", onClick = {})
+            ProfileMenuItemBold(icon = Icons.Default.Settings, title = "Settings", onClick = {})
             
             Spacer(modifier = Modifier.height(16.dp))
             
             LogoutRow(onLogout = onLogout)
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfileMenuItemBold(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    textColor: Color = Color.Black
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold, // Luôn in đậm
+                color = textColor,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
         }
     }
 }

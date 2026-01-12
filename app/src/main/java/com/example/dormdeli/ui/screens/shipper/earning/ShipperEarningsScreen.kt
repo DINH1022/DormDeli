@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShipperEarningsScreen(
-    viewModel: ShipperViewModel
+    viewModel: ShipperEarningsViewModel
 ) {
     val filteredOrders by viewModel.filteredEarnings.collectAsState()
     val currentPeriod by viewModel.earningPeriod.collectAsState()
@@ -244,7 +244,7 @@ fun EarningItemRow(order: Order) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFFF1F8E9),
@@ -278,8 +278,7 @@ fun EarningItemRow(order: Order) {
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth(0.95f)
+                textAlign = TextAlign.End
             )
         }
     }

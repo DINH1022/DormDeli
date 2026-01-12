@@ -37,6 +37,7 @@ import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
+import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -410,10 +411,10 @@ fun MainNavigation(
             arguments = listOf(navArgument("orderId") { type = NavType.StringType })
         ) { backStackEntry ->
             val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
-            val shipperViewModel: ShipperViewModel = viewModel()
+            val shipperOrdersViewModel: ShipperOrdersViewModel = viewModel()
             DeliveryDetailScreen(
                 orderId = orderId,
-                viewModel = shipperViewModel,
+                viewModel = shipperOrdersViewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }
