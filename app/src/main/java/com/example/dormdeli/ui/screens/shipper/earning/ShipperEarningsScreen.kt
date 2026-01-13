@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.*
-import com.example.dormdeli.enums.EarningPeriod
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.text.style.TextAlign
+import com.example.dormdeli.ui.viewmodels.shipper.EarningPeriod
 
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -6,11 +6,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
-import com.example.dormdeli.enums.ShipSort
-import com.example.dormdeli.enums.SortOptions
-import com.example.dormdeli.enums.TimeSort
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+enum class TimeSort {
+    NEWEST, OLDEST
+}
+
+enum class ShipSort {    HIGHEST, LOWEST, NONE
+}
+
+data class SortOptions(
+    val timeSort: TimeSort = TimeSort.NEWEST,
+    val shipSort: ShipSort = ShipSort.NONE
+)
 
 class ShipperOrdersViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = ShipperRepository()

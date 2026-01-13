@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperRepository
-import com.example.dormdeli.enums.EarningPeriod
 import kotlinx.coroutines.flow.*
 import java.util.*
+
+enum class EarningPeriod {
+    DAY, WEEK, MONTH, YEAR, ALL
+}
 
 class ShipperEarningsViewModel : ViewModel() {
     private val repository = ShipperRepository()
