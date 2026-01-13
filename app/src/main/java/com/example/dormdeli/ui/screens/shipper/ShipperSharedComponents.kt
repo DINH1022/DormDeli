@@ -32,7 +32,7 @@ fun OrderShipperItem(
     isAvailable: Boolean,
     onAccept: () -> Unit,
     onUpdateStatus: (String) -> Unit,
-    onCancelAccept: () -> Unit = {}, // Thêm callback hủy nhận đơn
+    onCancelAccept: () -> Unit = {},
     onClick: () -> Unit
 ) {
     val sdf = SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault())
@@ -83,25 +83,33 @@ fun OrderShipperItem(
                 when (order.status) {
                     "accepted" -> {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Nút Hủy nhận đơn (đưa đơn về Pending)
                             OutlinedButton(
                                 onClick = onCancelAccept,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Color.Red))
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
                             ) {
                                 Text("Return", fontWeight = FontWeight.Bold)
                             }
-                            // Nút Bắt đầu giao
                             Button(
-                                onClick = { onUpdateStatus("delivering") },
+                                onClick = { onUpdateStatus("picked_up") },
                                 modifier = Modifier.weight(1.5f),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Start Delivering", fontWeight = FontWeight.Bold)
+                                Text("Picked Up", fontWeight = FontWeight.Bold)
                             }
+                        }
+                    }
+                    "picked_up" -> {
+                        Button(
+                            onClick = { onUpdateStatus("delivering") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Start Delivering", fontWeight = FontWeight.Bold)
                         }
                     }
                     "delivering" -> {
@@ -133,6 +141,7 @@ fun getStatusColor(status: String): Color {
     return when (status) {
         "pending" -> Color(0xFFFF9800)
         "accepted" -> Color(0xFF2196F3)
+        "picked_up" -> Color(0xFF03A9F4)
         "delivering" -> Color(0xFF9C27B0)
         "completed" -> Color(0xFF4CAF50)
         "cancelled" -> Color.Red
@@ -148,6 +157,7 @@ fun FilterSheetContent(
     onClose: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+        // ... (giữ nguyên code cũ)
         Text("Filter", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
         Text("By Time", fontSize = 14.sp, color = Color.Black, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
         SortOptionItem(title = "Newest first", icon = Icons.Default.Schedule, isSelected = currentSort.timeSort == TimeSort.NEWEST, onClick = { onTimeSortSelected(TimeSort.NEWEST) })

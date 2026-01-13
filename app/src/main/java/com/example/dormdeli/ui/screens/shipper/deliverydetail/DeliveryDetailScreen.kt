@@ -101,7 +101,6 @@ fun DeliveryDetailScreen(
                         
                         if (canAction) {
                             if (currentOrder.status == "accepted") {
-                                // Giao diện 2 nút cho trạng thái Accepted
                                 Row(
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -118,7 +117,7 @@ fun DeliveryDetailScreen(
                                     }
                                     
                                     Button(
-                                        onClick = { viewModel.updateStatus(currentOrder.id, "delivering") },
+                                        onClick = { viewModel.updateStatus(currentOrder.id, "picked_up") },
                                         enabled = !isActionLoading,
                                         modifier = Modifier.weight(1.5f).fillMaxHeight(),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
@@ -127,16 +126,16 @@ fun DeliveryDetailScreen(
                                         if (isActionLoading) {
                                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                                         } else {
-                                            Text("START DELIVERING", fontWeight = FontWeight.Bold)
+                                            Text("PICKED UP", fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
                             } else {
-                                // Giao diện 1 nút cho các trạng thái khác
                                 Button(
                                     onClick = {
                                         when (currentOrder.status) {
                                             "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
+                                            "picked_up" -> viewModel.updateStatus(currentOrder.id, "delivering")
                                             "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
                                         }
                                     },
@@ -153,6 +152,7 @@ fun DeliveryDetailScreen(
                                         Text(
                                             text = when (currentOrder.status) {
                                                 "pending" -> "ACCEPT ORDER"
+                                                "picked_up" -> "START DELIVERING"
                                                 "delivering" -> "MARK AS COMPLETED"
                                                 else -> "BACK"
                                             },

@@ -130,12 +130,14 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
                 if (currentShipperId != null) {
                     val shipperSubject = when (status) {
                         "completed" -> "Delivery Completed!"
+                        "picked_up" -> "Order Picked Up"
                         "delivering" -> "Delivery Started"
                         "cancelled" -> "Order Cancelled"
                         else -> "Status Updated"
                     }
                     val shipperMessage = when (status) {
                         "completed" -> "Congratulations! You've completed order #${orderId.takeLast(5).uppercase()}"
+                        "picked_up" -> "You have picked up order #${orderId.takeLast(5).uppercase()} from the store"
                         "delivering" -> "You are now delivering order #${orderId.takeLast(5).uppercase()}"
                         "cancelled" -> "You have cancelled order #${orderId.takeLast(5).uppercase()}"
                         else -> "Order #${orderId.takeLast(5).uppercase()} status changed to $status"

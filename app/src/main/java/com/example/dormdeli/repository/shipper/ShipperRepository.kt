@@ -95,7 +95,7 @@ class ShipperRepository {
 
         val listener = db.collection(collectionName)
             .whereEqualTo("shipperId", shipperId)
-            .whereIn("status", listOf("accepted", "delivering"))
+            .whereIn("status", listOf("accepted", "picked_up", "delivering")) // THÊM "picked_up" VÀO ĐÂY
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("ShipperRepo", "Error listening for my deliveries: ${error.message}")
