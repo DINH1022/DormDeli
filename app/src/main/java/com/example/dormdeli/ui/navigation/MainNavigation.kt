@@ -13,9 +13,9 @@ import androidx.navigation.navArgument
 import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.screens.customer.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.screens.LoginScreen
-import com.example.dormdeli.ui.screens.OTPScreen
-import com.example.dormdeli.ui.screens.SignUpScreen
+import com.example.dormdeli.ui.screens.common.LoginScreen
+import com.example.dormdeli.ui.screens.common.OTPScreen
+import com.example.dormdeli.ui.screens.common.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
 import com.example.dormdeli.ui.screens.customer.profile.CustomerProfileScreen
 import com.example.dormdeli.ui.screens.profile.PersonalInfoScreen

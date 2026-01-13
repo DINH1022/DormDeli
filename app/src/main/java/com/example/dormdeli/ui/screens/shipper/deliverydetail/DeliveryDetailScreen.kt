@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
-import com.example.dormdeli.ui.screens.shipper.InfoRow
-import com.example.dormdeli.ui.screens.shipper.getStatusColor
+import com.example.dormdeli.ui.components.shipper.InfoRow
+import com.example.dormdeli.ui.components.shipper.getStatusColor
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 
