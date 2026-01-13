@@ -32,6 +32,7 @@ fun OrderShipperItem(
     isAvailable: Boolean,
     onAccept: () -> Unit,
     onUpdateStatus: (String) -> Unit,
+    onCancelAccept: () -> Unit = {}, // Thêm callback hủy nhận đơn
     onClick: () -> Unit
 ) {
     val sdf = SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault())
@@ -73,14 +74,41 @@ fun OrderShipperItem(
                 Text(text = "Total: ${order.totalPrice}đ", fontWeight = FontWeight.Bold, color = OrangePrimary)
             }
             Spacer(modifier = Modifier.height(16.dp))
+            
             if (isAvailable) {
                 Button(onClick = onAccept, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary), shape = RoundedCornerShape(12.dp)) {
                     Text("Accept Order", fontWeight = FontWeight.Bold)
                 }
             } else {
                 when (order.status) {
-                    "accepted" -> Button(onClick = { onUpdateStatus("delivering") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)), shape = RoundedCornerShape(12.dp)) { Text("Start Delivering", fontWeight = FontWeight.Bold) }
-                    "delivering" -> Button(onClick = { onUpdateStatus("completed") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)), shape = RoundedCornerShape(12.dp)) { Text("Mark as Completed", fontWeight = FontWeight.Bold) }
+                    "accepted" -> {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Nút Hủy nhận đơn (đưa đơn về Pending)
+                            OutlinedButton(
+                                onClick = onCancelAccept,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Color.Red))
+                            ) {
+                                Text("Return", fontWeight = FontWeight.Bold)
+                            }
+                            // Nút Bắt đầu giao
+                            Button(
+                                onClick = { onUpdateStatus("delivering") },
+                                modifier = Modifier.weight(1.5f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Start Delivering", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    "delivering" -> {
+                        Button(onClick = { onUpdateStatus("completed") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)), shape = RoundedCornerShape(12.dp)) { 
+                            Text("Mark as Completed", fontWeight = FontWeight.Bold) 
+                        }
+                    }
                 }
             }
         }

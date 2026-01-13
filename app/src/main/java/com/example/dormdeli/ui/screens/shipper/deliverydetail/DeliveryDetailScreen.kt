@@ -26,14 +26,13 @@ import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 @Composable
 fun DeliveryDetailScreen(
     orderId: String,
-    viewModel: ShipperOrdersViewModel, // Sửa type ViewModel
+    viewModel: ShipperOrdersViewModel,
     onBackClick: () -> Unit
 ) {
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
     val isActionLoading by viewModel.isLoading.collectAsState()
     
-    // Tìm đơn hàng từ cả 2 nguồn (Available và My Deliveries)
     val order = remember(availableOrders, myDeliveries) {
         (availableOrders + myDeliveries).find { it.id == orderId }
     }
@@ -101,36 +100,65 @@ fun DeliveryDetailScreen(
                         val canAction = currentOrder.status !in listOf("completed", "cancelled")
                         
                         if (canAction) {
-                            val buttonAction: () -> Unit = {
-                                when (currentOrder.status) {
-                                    "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
-                                    "accepted" -> viewModel.updateStatus(currentOrder.id, "delivering")
-                                    "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
+                            if (currentOrder.status == "accepted") {
+                                // Giao diện 2 nút cho trạng thái Accepted
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.cancelAcceptedOrder(currentOrder.id) { onBackClick() } },
+                                        enabled = !isActionLoading,
+                                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
+                                    ) {
+                                        Text("RETURN", fontWeight = FontWeight.Bold)
+                                    }
+                                    
+                                    Button(
+                                        onClick = { viewModel.updateStatus(currentOrder.id, "delivering") },
+                                        enabled = !isActionLoading,
+                                        modifier = Modifier.weight(1.5f).fillMaxHeight(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        if (isActionLoading) {
+                                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                        } else {
+                                            Text("START DELIVERING", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
                                 }
-                            }
-
-                            Button(
-                                onClick = buttonAction,
-                                enabled = !isActionLoading,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
-                                ),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                if (isActionLoading) {
-                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                } else {
-                                    Text(
-                                        text = when (currentOrder.status) {
-                                            "pending" -> "ACCEPT ORDER"
-                                            "accepted" -> "START DELIVERING"
-                                            "delivering" -> "MARK AS COMPLETED"
-                                            else -> "BACK"
-                                        },
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    )
+                            } else {
+                                // Giao diện 1 nút cho các trạng thái khác
+                                Button(
+                                    onClick = {
+                                        when (currentOrder.status) {
+                                            "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
+                                            "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
+                                        }
+                                    },
+                                    enabled = !isActionLoading,
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
+                                    ),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    if (isActionLoading) {
+                                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                    } else {
+                                        Text(
+                                            text = when (currentOrder.status) {
+                                                "pending" -> "ACCEPT ORDER"
+                                                "delivering" -> "MARK AS COMPLETED"
+                                                else -> "BACK"
+                                            },
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         } else {

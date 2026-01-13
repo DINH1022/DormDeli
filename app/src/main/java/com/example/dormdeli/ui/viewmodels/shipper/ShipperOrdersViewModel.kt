@@ -75,46 +75,45 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun acceptOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
-            
-            // Lấy thông tin đơn hàng và shipper HIỆN TẠI trước khi thực hiện giao dịch
-            val orderBefore = _rawAvailableOrders.value.find { it.id == orderId }
             val currentShipperId = repository.getCurrentUserId()
-            
-            Log.d("ShipperNoti", "Attempting to accept order: $orderId")
-
             val success = repository.acceptOrder(orderId)
             _isLoading.value = false
             
             if (success) {
-                Log.d("ShipperNoti", "Accept success! Sending notifications...")
-                
-                // 1. Thông báo cho khách hàng
-                if (orderBefore != null) {
-                    repository.sendNotificationToUser(
-                        targetUserId = orderBefore.userId,
-                        subject = "Order Accepted!",
-                        message = "A shipper has accepted your order and is preparing to deliver."
-                    )
-                } else {
-                    Log.w("ShipperNoti", "Could not find order info to notify customer")
-                }
-                
-                // 2. Thông báo cho chính Shipper
+                // Chỉ thông báo cho chính Shipper để xác nhận hành động thành công
                 if (currentShipperId != null) {
-                    Log.d("ShipperNoti", "Sending success notification to shipper: $currentShipperId")
                     repository.sendNotificationToUser(
                         targetUserId = currentShipperId,
                         subject = "Accept Successful!",
                         message = "You have successfully accepted order #${orderId.takeLast(5).uppercase()}"
                     )
-                } else {
-                    Log.e("ShipperNoti", "Shipper ID is null, cannot send self-notification")
                 }
-                
                 onComplete()
             } else {
-                Log.e("ShipperNoti", "Failed to accept order $orderId - status was not pending or already taken")
                 _errorMessage.emit("Cannot accept this order. It might have been taken.")
+            }
+        }
+    }
+
+    fun cancelAcceptedOrder(orderId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val currentShipperId = repository.getCurrentUserId()
+            val success = repository.cancelAcceptedOrder(orderId)
+            _isLoading.value = false
+            
+            if (success) {
+                // Chỉ thông báo cho chính Shipper
+                if (currentShipperId != null) {
+                    repository.sendNotificationToUser(
+                        currentShipperId,
+                        "Order Returned",
+                        "You have successfully returned order #${orderId.takeLast(5).uppercase()} to the pending list."
+                    )
+                }
+                onComplete()
+            } else {
+                _errorMessage.emit("Failed to return order.")
             }
         }
     }
@@ -122,20 +121,29 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun updateStatus(orderId: String, status: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
-            val order = repository.getOrderById(orderId)
+            val currentShipperId = repository.getCurrentUserId()
             val success = repository.updateOrderStatus(orderId, status)
             _isLoading.value = false
             
-            if (success && order != null) {
-                val message = when (status) {
-                    "delivering" -> "Your order is on the way!"
-                    "completed" -> "Order delivered successfully."
-                    "cancelled" -> "Your order has been cancelled by the shipper."
-                    else -> "Your order status has been updated."
+            if (success) {
+                // Shipper chỉ nhận thông báo về hành động của chính mình
+                if (currentShipperId != null) {
+                    val shipperSubject = when (status) {
+                        "completed" -> "Delivery Completed!"
+                        "delivering" -> "Delivery Started"
+                        "cancelled" -> "Order Cancelled"
+                        else -> "Status Updated"
+                    }
+                    val shipperMessage = when (status) {
+                        "completed" -> "Congratulations! You've completed order #${orderId.takeLast(5).uppercase()}"
+                        "delivering" -> "You are now delivering order #${orderId.takeLast(5).uppercase()}"
+                        "cancelled" -> "You have cancelled order #${orderId.takeLast(5).uppercase()}"
+                        else -> "Order #${orderId.takeLast(5).uppercase()} status changed to $status"
+                    }
+                    repository.sendNotificationToUser(currentShipperId, shipperSubject, shipperMessage)
                 }
-                repository.sendNotificationToUser(order.userId, "Order Update", message)
                 onComplete()
-            } else if (!success) {
+            } else {
                 _errorMessage.emit("Failed to update status.")
             }
         }

@@ -26,6 +26,7 @@ import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.utils.NotificationHelper
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
@@ -40,6 +41,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Khởi tạo kênh thông báo ngay khi app bắt đầu
+        NotificationHelper.createNotificationChannel(this)
+        
         checkAndRequestNotificationPermission()
         initCloudinary()
         enableEdgeToEdge()

@@ -176,6 +176,7 @@ fun ShipperOrdersPage(
                             isAvailable = selectedTab == 0,
                             onAccept = { viewModel.acceptOrder(order.id) },
                             onUpdateStatus = { status -> viewModel.updateStatus(order.id, status) },
+                            onCancelAccept = { viewModel.cancelAcceptedOrder(order.id) }, // KẾT NỐI NÚT RETURN VỚI VIEWMODEL
                             onClick = { onOrderDetail(order.id) }
                         )
                     }

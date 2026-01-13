@@ -24,7 +24,7 @@ class ShipperViewModel(application: Application) : AndroidViewModel(application)
 
     // Internal tracking for notifications
     private var lastNotificationId: String? = null
-    private var lastAvailableOrdersCount: Int = -1
+    private var lastNewestOrderId: String? = null
 
     init {
         observeGlobalEvents()
@@ -38,14 +38,17 @@ class ShipperViewModel(application: Application) : AndroidViewModel(application)
         // 1. Listen for New Available Orders (to alert the shipper)
         repository.getAvailableOrdersFlow()
             .onEach { orders ->
-                if (lastAvailableOrdersCount != -1 && orders.size > lastAvailableOrdersCount) {
+                val currentNewestId = orders.maxByOrNull { it.createdAt }?.id
+                
+                // Show notification if it's a new order ID and not the first load
+                if (lastNewestOrderId != null && currentNewestId != null && currentNewestId != lastNewestOrderId) {
                     NotificationHelper.showNotification(
                         context,
                         "New Order Available!",
                         "A new order is waiting. Grab it before someone else does!"
                     )
                 }
-                lastAvailableOrdersCount = orders.size
+                lastNewestOrderId = currentNewestId
             }
             .launchIn(viewModelScope)
 
@@ -55,9 +58,8 @@ class ShipperViewModel(application: Application) : AndroidViewModel(application)
                 val newest = list.firstOrNull()
                 if (newest != null && newest.id != lastNotificationId) {
                     val currentTime = System.currentTimeMillis()
-                    // Show notification if it's new and created within the last minute 
-                    // (prevents flood on app startup)
-                    val isRecent = (currentTime - newest.createdAt) < 60000
+                    // Show notification if it's new and created within the last 2 minutes
+                    val isRecent = (currentTime - newest.createdAt) < 120000
                     
                     if (lastNotificationId != null || isRecent) {
                         NotificationHelper.showNotification(

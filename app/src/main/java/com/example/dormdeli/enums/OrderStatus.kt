@@ -5,10 +5,10 @@ enum class OrderStatus(val value: String) {
     CONFIRMED("confirmed"),
     DELIVERING("delivering"),
     COMPLETED("completed"),
-    CANCELED("canceled");
+    CANCELLED("cancelled");
 
     companion object {
         fun from(value: String): OrderStatus =
-            values().firstOrNull { it.value == value } ?: PENDING
+            entries.firstOrNull { it.value == value } ?: PENDING
     }
 }

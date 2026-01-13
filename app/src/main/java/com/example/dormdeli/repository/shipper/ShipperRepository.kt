@@ -31,9 +31,9 @@ class ShipperRepository {
     }
 
     fun getAvailableOrdersFlow(): Flow<List<Order>> = callbackFlow {
+        // Query lấy các đơn đang chờ xử lý
         val listener = db.collection(collectionName)
             .whereEqualTo("status", "pending")
-            .whereEqualTo("shipperId", "")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("ShipperRepo", "Error listening for available orders: ${error.message}")
@@ -42,12 +42,32 @@ class ShipperRepository {
                 
                 val currentTime = System.currentTimeMillis()
                 val orders = snapshot?.documents?.mapNotNull { doc ->
-                    val order = doc.toObject(Order::class.java)?.copy(id = doc.id)
-                    if (order != null && (currentTime - order.createdAt) > EXPIRE_TIME_MS) {
-                        cancelExpiredOrder(order.id)
+                    try {
+                        val shipperId = doc.getString("shipperId") ?: ""
+                        // Chỉ lấy những đơn CHƯA có shipper nhận (shipperId trống hoặc null)
+                        if (shipperId.isNotEmpty()) return@mapNotNull null
+
+                        val data = doc.data
+                        val createdAtRaw = data?.get("createdAt")
+                        val createdAt = when (createdAtRaw) {
+                            is Long -> createdAtRaw
+                            is com.google.firebase.Timestamp -> createdAtRaw.toDate().time
+                            else -> currentTime
+                        }
+
+                        val order = doc.toObject(Order::class.java)?.copy(id = doc.id, createdAt = createdAt)
+                        
+                        // Kiểm tra hết hạn
+                        if (order != null && (currentTime - order.createdAt) > EXPIRE_TIME_MS) {
+                            Log.d("ShipperRepo", "Order ${order.id} expired, auto-cancelling")
+                            cancelExpiredOrder(order.id)
+                            null
+                        } else {
+                            order
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ShipperRepo", "Error parsing order: ${e.message}")
                         null
-                    } else {
-                        order
                     }
                 } ?: emptyList()
                 
@@ -135,11 +155,10 @@ class ShipperRepository {
         Log.d("ShipperRepo", "Starting notification listener for user: $userId")
         
         val listener = db.collection(notificationsCollection)
-            .whereEqualTo("target", userId)
+            .whereIn("target", listOf(userId, "SHIPPER", "EVERYONE"))
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    // CỰC KỲ QUAN TRỌNG: Kiểm tra log này để thấy link tạo Index nếu bị thiếu
                     Log.e("ShipperRepo", "NOTIFICATION ERROR: ${error.message}")
                     return@addSnapshotListener
                 }
@@ -184,9 +203,14 @@ class ShipperRepository {
                 val snapshot = transaction.get(orderRef)
                 val status = snapshot.getString("status") ?: ""
                 val currentShipper = snapshot.getString("shipperId") ?: ""
-                val createdAt = snapshot.getLong("createdAt") ?: 0L
+                val createdAtRaw = snapshot.get("createdAt")
+                val createdAt = when (createdAtRaw) {
+                    is Long -> createdAtRaw
+                    is com.google.firebase.Timestamp -> createdAtRaw.toDate().time
+                    else -> System.currentTimeMillis()
+                }
 
-                if (status == "pending" && currentShipper.isEmpty()) {
+                if (status == "pending" && (currentShipper == null || currentShipper.isEmpty())) {
                     if (System.currentTimeMillis() - createdAt <= EXPIRE_TIME_MS) {
                         transaction.update(orderRef, "shipperId", shipperId)
                         transaction.update(orderRef, "status", "accepted")
@@ -200,6 +224,29 @@ class ShipperRepository {
             }.await()
         } catch (e: Exception) {
             Log.e("ShipperRepo", "Transaction failed: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun cancelAcceptedOrder(orderId: String): Boolean {
+        val shipperId = auth.currentUser?.uid ?: return false
+        val orderRef = db.collection(collectionName).document(orderId)
+
+        return try {
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(orderRef)
+                val currentShipper = snapshot.getString("shipperId") ?: ""
+                val status = snapshot.getString("status") ?: ""
+
+                if (currentShipper == shipperId && status == "accepted") {
+                    transaction.update(orderRef, "shipperId", "") // Set về chuỗi rỗng chính xác
+                    transaction.update(orderRef, "status", "pending")
+                    return@runTransaction true
+                }
+                false
+            }.await()
+        } catch (e: Exception) {
+            Log.e("ShipperRepo", "Cancel transaction failed: ${e.message}")
             false
         }
     }
