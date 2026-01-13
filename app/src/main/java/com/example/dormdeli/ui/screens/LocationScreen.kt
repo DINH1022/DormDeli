@@ -79,12 +79,12 @@ fun LocationScreen(
         bottomBar = {
             Button(
                 onClick = {
-                    selectedAddress?.let { 
+                    selectedAddress?.let {
                         viewModel.selectAddress(it)
                         Toast.makeText(context, "Location selected: ${it.label}", Toast.LENGTH_SHORT).show()
                         onBackClick()
                     } ?: run {
-                         Toast.makeText(context, "Please select a location", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Please select a location", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier
