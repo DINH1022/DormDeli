@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
+import com.example.dormdeli.model.UserAddress
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -18,6 +19,7 @@ class OrderRepository {
         cartItems: List<CartItem>,
         totalAmount: Double,
         deliveryNote: String = "",
+        deliveryAddress: UserAddress,
         paymentMethod: String = "Cash"
     ): Boolean {
         val userId = auth.currentUser?.uid ?: return false
@@ -52,6 +54,7 @@ class OrderRepository {
                 status = "pending",
                 deliveryType = "room",
                 deliveryNote = deliveryNote,
+                address = deliveryAddress,
                 shippingFee = shippingFee,
                 totalPrice = finalTotal,
                 paymentMethod = paymentMethod,

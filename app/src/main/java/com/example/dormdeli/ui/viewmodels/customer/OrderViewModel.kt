@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.model.UserAddress
 import com.example.dormdeli.repository.customer.OrderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,13 +36,14 @@ class OrderViewModel : ViewModel() {
         cartItems: List<CartItem>,
         total: Double,
         deliveryNote: String = "",
+        deliveryAddress: UserAddress,
         paymentMethod: String = "Cash",
         onSuccess: () -> Unit,
         onFail: () -> Unit
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            val success = repository.placeOrder(cartItems, total, deliveryNote, paymentMethod)
+            val success = repository.placeOrder(cartItems, total, deliveryNote, deliveryAddress, paymentMethod)
             _isLoading.value = false
             if (success) {
                 loadMyOrders()

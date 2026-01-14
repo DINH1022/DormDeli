@@ -266,7 +266,11 @@ fun MainNavigation(
         composable(Screen.Cart.route) {
             MyBasketScreen(
                 cartViewModel = cartViewModel,
+                locationalViewModel = locationViewModel,
                 onBackClick = { navController.popBackStack() },
+                onLocationClick = {
+                    navController.navigate(Screen.Location.route)
+                },
                 onOrderSuccess = {
                     navController.navigate(Screen.Orders.route) {
                         popUpTo(Screen.Home.route)

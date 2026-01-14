@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -170,49 +171,68 @@ fun LocationItem(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            // Căn lề trên cùng để RadioButton không bị chạy lung tung khi nội dung dài
+            verticalAlignment = Alignment.Top
         ) {
+
+            // Cột nội dung chính (Bên trái)
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = address.label,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Edit",
-                        color = OrangePrimary,
-                        fontSize = 12.sp,
-                        modifier = Modifier.clickable { onEditClick() }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "|",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Delete",
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        modifier = Modifier.clickable { onDeleteClick() }
-                    )
-                }
+
+                // 1. Tên địa chỉ (Label)
+                Text(
+                    text = address.label,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+
+                // 2. Chi tiết địa chỉ (Address)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = address.address,
                     color = Color.Gray,
                     fontSize = 14.sp,
-                    maxLines = 2
+                    // Cho phép xuống dòng thoải mái, không giới hạn maxLines nếu muốn hiện hết
                 )
+
+                // 3. Hàng nút chức năng (Đưa xuống dưới cùng cho gọn)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Nút Edit
+                    Row(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { onEditClick() }
+                            .padding(4.dp), // Tăng vùng bấm cho dễ thao tác
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Có thể thêm Icon nhỏ nếu muốn
+                        Text(text = "Edit", color = OrangePrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = "|", color = Color.LightGray)
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Nút Delete
+                    Row(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { onDeleteClick() }
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Delete", color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
             }
+
+            // Radio Button (Bên phải)
             RadioButton(
                 selected = isSelected,
                 onClick = onClick,
-                colors = RadioButtonDefaults.colors(selectedColor = OrangePrimary)
+                colors = RadioButtonDefaults.colors(selectedColor = OrangePrimary),
+                modifier = Modifier.padding(start = 8.dp)
             )
         }
     }

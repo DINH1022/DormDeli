@@ -34,18 +34,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.ui.theme.OrangePrimary
+import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBasketScreen(
     onBackClick: () -> Unit,
+    onLocationClick: () -> Unit,
     orderViewModel: OrderViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
+    locationalViewModel: LocationViewModel,
     onOrderSuccess: () -> Unit = {}
 ) {
     val cartItems by cartViewModel.cartItems.collectAsState()
+    val selectedAddress by locationalViewModel.selectedAddress.collectAsState()
 
     val isLoading by orderViewModel.isLoading.collectAsState()
     val context = LocalContext.current
@@ -85,11 +92,17 @@ fun MyBasketScreen(
                 BottomCheckoutBar(
                     total = total,
                     onPlaceOrder = {
+                        if (selectedAddress == null) {
+                            Toast.makeText(context, "Please select a delivery address", Toast.LENGTH_SHORT).show()
+                            return@BottomCheckoutBar
+                        }
                         orderViewModel.placeOrder(
                             cartItems = cartItems,
                             total = subtotal,
-                            deliveryNote = "", 
+                            deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
+                            deliveryAddress = selectedAddress!!,
                             paymentMethod = "Cash",
+                            //storeId = cartItems.firstOrNull()?.food?.storeId ?: "", // Đảm bảo truyền storeId nếu cần
                             onSuccess = {
                                 Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
                                 cartViewModel.clearCart()
@@ -152,8 +165,11 @@ fun MyBasketScreen(
                 InfoSectionCard(
                     icon = Icons.Default.LocationOn,
                     title = "Deliver to",
-                    subtitle = "Home",
-                    detail = "221B Baker Street, London, United Kingdom"
+                    // Hiển thị tên (VD: Home) hoặc cảnh báo nếu chưa chọn
+                    subtitle = selectedAddress?.label ?: "Select Address",
+                    // Hiển thị địa chỉ chi tiết hoặc hướng dẫn bấm vào
+                    detail = selectedAddress?.address ?: "Tap here to choose a delivery location",
+                    onClick = onLocationClick // Bấm vào để đổi địa chỉ
                 )
             }
             item {
@@ -161,7 +177,8 @@ fun MyBasketScreen(
                     icon = Icons.Default.Payment,
                     title = "Payment method",
                     subtitle = "Cash",
-                    detail = null
+                    detail = null,
+                    onClick = {} // Payment chưa có chức năng đổi
                 )
             }
 
@@ -279,18 +296,20 @@ fun InfoSectionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    detail: String?
+    detail: String?,
+    onClick: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically // Căn giữa icon và mũi tên theo chiều dọc
         ) {
+            // 1. Icon bên trái (Giữ nguyên)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -299,17 +318,41 @@ fun InfoSectionCard(
             ) {
                 Icon(icon, null, tint = OrangePrimary)
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
+            // 2. Nội dung Text (SỬA ĐOẠN NÀY)
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, fontSize = 12.sp, color = Color.Gray)
-                    Text(" -> ", fontSize = 12.sp, color = Color.Gray)
-                    Text(subtitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                // Dùng AnnotatedString để gộp "Deliver to ->" và "Tên địa chỉ" thành 1 khối text thống nhất
+                val text = buildAnnotatedString {
+                    // Phần 1: Title màu xám (VD: Deliver to -> )
+                    withStyle(style = SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
+                        append(title)
+                        append(" -> ")
+                    }
+                    // Phần 2: Subtitle in đậm màu đen (VD: Home\nKTX Khu A)
+                    withStyle(style = SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append(subtitle)
+                    }
                 }
+
+                // Hiển thị text đã gộp (Tự động xuống dòng chuẩn đẹp)
+                Text(text = text)
+
+                // Phần 3: Địa chỉ chi tiết (nếu có)
                 if (detail != null) {
-                    Text(detail, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                    Text(
+                        text = detail,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
             }
+
+            // 3. Icon mũi tên bên phải (Giữ nguyên)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Gray)
         }
     }
