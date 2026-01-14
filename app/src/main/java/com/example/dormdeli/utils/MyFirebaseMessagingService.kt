@@ -3,7 +3,7 @@ package com.example.dormdeli.utils
 import android.util.Log
 import com.example.dormdeli.model.Notification
 import com.example.dormdeli.repository.UserRepository
-import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.repository.shipper.ShipperNotificationRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -35,9 +35,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun saveNotificationToTab(title: String, message: String) {
-        val shipperRepository = ShipperRepository()
+        val notificationRepository = ShipperNotificationRepository()
         CoroutineScope(Dispatchers.IO).launch {
-            shipperRepository.saveNotification(
+            notificationRepository.saveNotification(
                 Notification(
                     subject = title,
                     message = message,

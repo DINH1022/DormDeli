@@ -1,11 +1,11 @@
 package com.example.dormdeli.ui.viewmodels.shipper
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
-import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.repository.shipper.ShipperOrderRepository
+import com.example.dormdeli.repository.shipper.ShipperNotificationRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -13,7 +13,8 @@ enum class TimeSort {
     NEWEST, OLDEST
 }
 
-enum class ShipSort {    HIGHEST, LOWEST, NONE
+enum class ShipSort {
+    HIGHEST, LOWEST, NONE
 }
 
 data class SortOptions(
@@ -22,13 +23,15 @@ data class SortOptions(
 )
 
 class ShipperOrdersViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = ShipperRepository()
+    private val orderRepository = ShipperOrderRepository()
+    private val notificationRepository = ShipperNotificationRepository()
 
     private val _sortOptions = MutableStateFlow(SortOptions())
     val sortOptions: StateFlow<SortOptions> = _sortOptions
 
     private val _rawAvailableOrders = MutableStateFlow<List<Order>>(emptyList())
     private val _rawMyDeliveries = MutableStateFlow<List<Order>>(emptyList())
+    private val _rawHistoryOrders = MutableStateFlow<List<Order>>(emptyList())
 
     val availableOrders: StateFlow<List<Order>> = _rawAvailableOrders.combine(_sortOptions) { orders, sort ->
         applySorting(orders, sort)
@@ -37,6 +40,8 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     val myDeliveries: StateFlow<List<Order>> = _rawMyDeliveries.combine(_sortOptions) { orders, sort ->
         applySorting(orders, sort)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val historyOrders: StateFlow<List<Order>> = _rawHistoryOrders.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -49,12 +54,16 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     }
 
     private fun observeOrders() {
-        repository.getAvailableOrdersFlow()
+        orderRepository.getAvailableOrdersFlow()
             .onEach { _rawAvailableOrders.value = it }
             .launchIn(viewModelScope)
 
-        repository.getMyDeliveriesFlow()
+        orderRepository.getMyDeliveriesFlow()
             .onEach { _rawMyDeliveries.value = it }
+            .launchIn(viewModelScope)
+
+        orderRepository.getHistoryOrdersFlow()
+            .onEach { _rawHistoryOrders.value = it }
             .launchIn(viewModelScope)
     }
 
@@ -84,17 +93,17 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun acceptOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
-            val currentShipperId = repository.getCurrentUserId()
-            val success = repository.acceptOrder(orderId)
+            val currentShipperId = orderRepository.getUserId()
+            val success = orderRepository.acceptOrder(orderId)
             _isLoading.value = false
             
             if (success) {
-                // Chỉ thông báo cho chính Shipper để xác nhận hành động thành công
                 if (currentShipperId != null) {
-                    repository.sendNotificationToUser(
+                    notificationRepository.sendNotificationToUser(
                         targetUserId = currentShipperId,
                         subject = "Accept Successful!",
-                        message = "You have successfully accepted order #${orderId.takeLast(5).uppercase()}"
+                        message = "You have successfully accepted order #${orderId.takeLast(5).uppercase()}",
+                        role = "SHIPPER"
                     )
                 }
                 onComplete()
@@ -107,19 +116,26 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun cancelAcceptedOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
-            val currentShipperId = repository.getCurrentUserId()
-            val success = repository.cancelAcceptedOrder(orderId)
+            val currentShipperId = orderRepository.getUserId()
+            val success = orderRepository.cancelAcceptedOrder(orderId)
             _isLoading.value = false
             
             if (success) {
-                // Chỉ thông báo cho chính Shipper
                 if (currentShipperId != null) {
-                    repository.sendNotificationToUser(
+                    notificationRepository.sendNotificationToUser(
                         currentShipperId,
                         "Order Returned",
-                        "You have successfully returned order #${orderId.takeLast(5).uppercase()} to the pending list."
+                        "You have successfully returned order #${orderId.takeLast(5).uppercase()} to the pending list.",
+                        role = "SHIPPER"
                     )
                 }
+                
+                notificationRepository.sendNotificationToRole(
+                    role = "SHIPPER",
+                    subject = "New Order Available!",
+                    message = "An order #${orderId.takeLast(5).uppercase()} has just been returned and is available for pickup."
+                )
+                
                 onComplete()
             } else {
                 _errorMessage.emit("Failed to return order.")
@@ -130,12 +146,11 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun updateStatus(orderId: String, status: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
-            val currentShipperId = repository.getCurrentUserId()
-            val success = repository.updateOrderStatus(orderId, status)
+            val currentShipperId = orderRepository.getUserId()
+            val success = orderRepository.updateOrderStatus(orderId, status)
             _isLoading.value = false
             
             if (success) {
-                // Shipper chỉ nhận thông báo về hành động của chính mình
                 if (currentShipperId != null) {
                     val shipperSubject = when (status) {
                         "completed" -> "Delivery Completed!"
@@ -151,7 +166,12 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
                         "cancelled" -> "You have cancelled order #${orderId.takeLast(5).uppercase()}"
                         else -> "Order #${orderId.takeLast(5).uppercase()} status changed to $status"
                     }
-                    repository.sendNotificationToUser(currentShipperId, shipperSubject, shipperMessage)
+                    notificationRepository.sendNotificationToUser(
+                        targetUserId = currentShipperId, 
+                        subject = shipperSubject, 
+                        message = shipperMessage,
+                        role = "SHIPPER"
+                    )
                 }
                 onComplete()
             } else {

@@ -6,24 +6,45 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.dormdeli.model.Notification
-import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.repository.shipper.ShipperOrderRepository
+import com.example.dormdeli.repository.shipper.ShipperNotificationRepository
+import com.example.dormdeli.repository.shipper.ShipperStatusRepository
 import com.example.dormdeli.utils.NotificationHelper
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class ShipperViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = ShipperRepository()
+    private val orderRepository = ShipperOrderRepository()
+    private val notificationRepository = ShipperNotificationRepository()
+    private val statusRepository = ShipperStatusRepository()
+    
     private val context = getApplication<Application>().applicationContext
 
     private val _selectedTab = mutableIntStateOf(0)
     val selectedTab: State<Int> = _selectedTab
+
+    private val _isOnline = MutableStateFlow(false)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
     private var lastNotificationId: String? = null
     private var lastNewestOrderId: String? = null
     private var lastOrdersCount: Int = -1
 
     init {
+        fetchOnlineStatus()
         observeGlobalEvents()
+    }
+
+    private fun fetchOnlineStatus() {
+        statusRepository.getShipperOnlineStatusFlow()
+            .onEach { _isOnline.value = it }
+            .launchIn(viewModelScope)
+    }
+
+    fun toggleOnlineStatus(isOnline: Boolean) {
+        viewModelScope.launch {
+            statusRepository.updateOnlineStatus(isOnline)
+        }
     }
 
     fun selectTab(index: Int) {
@@ -32,18 +53,18 @@ class ShipperViewModel(application: Application) : AndroidViewModel(application)
 
     private fun observeGlobalEvents() {
         // 1. Listen for New Available Orders
-        repository.getAvailableOrdersFlow()
+        orderRepository.getAvailableOrdersFlow()
             .onEach { orders ->
+                if (!_isOnline.value) {
+                    lastNewestOrderId = orders.maxByOrNull { it.createdAt }?.id
+                    lastOrdersCount = orders.size
+                    return@onEach
+                }
+
                 val currentNewestId = orders.maxByOrNull { it.createdAt }?.id
                 val currentCount = orders.size
 
-                Log.d("ShipperViewModel", "Orders updated: count=$currentCount, newestId=$currentNewestId")
-
-                // Nổ thông báo nếu:
-                // - Không phải lần đầu load (lastOrdersCount != -1)
-                // - VÀ (Số lượng đơn tăng lên HOẶC ID đơn mới nhất thay đổi)
                 if (lastOrdersCount != -1 && (currentCount > lastOrdersCount || (currentNewestId != null && currentNewestId != lastNewestOrderId))) {
-                    Log.d("ShipperViewModel", "Triggering New Order Notification!")
                     NotificationHelper.showNotification(
                         context,
                         "New Order Available!",
@@ -57,7 +78,7 @@ class ShipperViewModel(application: Application) : AndroidViewModel(application)
             .launchIn(viewModelScope)
 
         // 2. Listen for Personal/System Notifications
-        repository.getNotificationsFlow()
+        notificationRepository.getNotificationsFlow("SHIPPER")
             .onEach { list ->
                 val newest = list.firstOrNull()
                 if (newest != null && newest.id != lastNotificationId) {

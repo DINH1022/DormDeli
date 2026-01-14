@@ -3,12 +3,11 @@ package com.example.dormdeli.ui.viewmodels.customer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Notification
-import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.repository.shipper.ShipperNotificationRepository
 import kotlinx.coroutines.flow.*
 
 class CustomerNotificationsViewModel : ViewModel() {
-    // Sử dụng chung repository vì logic lấy notification theo userId là như nhau
-    private val repository = ShipperRepository()
+    private val repository = ShipperNotificationRepository()
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
     val notifications: StateFlow<List<Notification>> = _notifications.asStateFlow()
@@ -18,9 +17,8 @@ class CustomerNotificationsViewModel : ViewModel() {
     }
 
     private fun observeNotifications() {
-        // Hàm getNotificationsFlow của ShipperRepository đã lọc theo currentUserId
-        // nên Customer dùng vẫn đảm bảo tính bảo mật và realtime.
-        repository.getNotificationsFlow()
+        // Chỉ lấy thông báo có role CUSTOMER cho màn hình của khách hàng
+        repository.getNotificationsFlow("CUSTOMER")
             .onEach { _notifications.value = it }
             .launchIn(viewModelScope)
     }

@@ -3,7 +3,7 @@ package com.example.dormdeli.ui.viewmodels.shipper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.Order
-import com.example.dormdeli.repository.shipper.ShipperRepository
+import com.example.dormdeli.repository.shipper.ShipperOrderRepository
 import kotlinx.coroutines.flow.*
 import java.util.*
 
@@ -12,7 +12,7 @@ enum class EarningPeriod {
 }
 
 class ShipperEarningsViewModel : ViewModel() {
-    private val repository = ShipperRepository()
+    private val repository = ShipperOrderRepository()
 
     private val _earningPeriod = MutableStateFlow(EarningPeriod.ALL)
     val earningPeriod: StateFlow<EarningPeriod> = _earningPeriod

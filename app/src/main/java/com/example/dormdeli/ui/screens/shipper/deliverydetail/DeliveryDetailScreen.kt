@@ -31,10 +31,11 @@ fun DeliveryDetailScreen(
 ) {
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
+    val historyOrders by viewModel.historyOrders.collectAsState()
     val isActionLoading by viewModel.isLoading.collectAsState()
     
-    val order = remember(availableOrders, myDeliveries) {
-        (availableOrders + myDeliveries).find { it.id == orderId }
+    val order = remember(availableOrders, myDeliveries, historyOrders) {
+        (availableOrders + myDeliveries + historyOrders).find { it.id == orderId }
     }
 
     Scaffold(

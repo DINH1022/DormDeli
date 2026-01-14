@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.location
 
 import android.Manifest
 import android.content.Context

@@ -27,8 +27,6 @@ import com.example.dormdeli.ui.viewmodels.shipper.*
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.text.style.TextAlign
-import com.example.dormdeli.ui.viewmodels.shipper.EarningPeriod
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

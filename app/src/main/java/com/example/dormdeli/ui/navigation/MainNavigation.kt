@@ -21,8 +21,8 @@ import com.example.dormdeli.ui.screens.customer.profile.CustomerProfileScreen
 import com.example.dormdeli.ui.screens.profile.PersonalInfoScreen
 import com.example.dormdeli.ui.screens.customer.review.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
-import com.example.dormdeli.ui.screens.LocationScreen
-import com.example.dormdeli.ui.screens.AddNewLocationScreen
+import com.example.dormdeli.ui.screens.customer.location.LocationScreen
+import com.example.dormdeli.ui.screens.customer.location.AddNewLocationScreen
 import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
 import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
