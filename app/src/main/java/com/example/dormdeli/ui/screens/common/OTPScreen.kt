@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape

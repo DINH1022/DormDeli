@@ -1,13 +1,17 @@
 package com.example.dormdeli.repository
 
 import com.example.dormdeli.enums.UserRole
+import com.example.dormdeli.firestore.CollectionName
+import com.example.dormdeli.model.MessageToken
 import com.example.dormdeli.model.User
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class UserRepository {
 
     private val db = FirebaseFirestore.getInstance()
-    private val userCol = db.collection("users")
+    private val userCol = db.collection(CollectionName.USERS.value)
+    private val tokenCol = db.collection(CollectionName.MESSAGE_TOKEN.value)
 
     fun createUser(
         userId: String,
@@ -33,6 +37,24 @@ class UserRepository {
                 onSuccess(doc.toObject(User::class.java))
             }
             .addOnFailureListener { onFailure(it) }
+    }
+
+    suspend fun updateFcmToken(userId: String, token: String) {
+        try {
+            // 1. Cập nhật fcmToken trong collection users (để dự phòng)
+            userCol.document(userId).update("fcmToken", token).await()
+            
+            // 2. Cập nhật/Thêm vào collection messageToken (để Admin dùng)
+            val userDoc = userCol.document(userId).get().await()
+            val role = userDoc.getString("role") ?: "customer"
+            
+            tokenCol.document(userId).set(
+                MessageToken(userId = userId, fcmToken = token, role = role)
+            ).await()
+            
+        } catch (e: Exception) {
+            // Log error
+        }
     }
 
     fun getUserByPhone(

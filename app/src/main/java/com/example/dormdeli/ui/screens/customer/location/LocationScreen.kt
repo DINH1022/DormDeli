@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.location
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,12 +78,12 @@ fun LocationScreen(
         bottomBar = {
             Button(
                 onClick = {
-                    selectedAddress?.let { 
+                    selectedAddress?.let {
                         viewModel.selectAddress(it)
                         Toast.makeText(context, "Location selected: ${it.label}", Toast.LENGTH_SHORT).show()
                         onBackClick()
                     } ?: run {
-                         Toast.makeText(context, "Please select a location", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Please select a location", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier
