@@ -1,41 +1,24 @@
 package com.example.dormdeli.ui.seller.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -48,33 +31,25 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.R
 import com.example.dormdeli.ui.seller.model.MenuItem
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import com.example.dormdeli.ui.theme.OrangePrimary
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavigateToAddEdit: () -> Unit) {
     val menuItems by sellerViewModel.menuItems.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Menu Management", fontWeight = FontWeight.Bold) },
-                actions = {
-                    Button(onClick = { /*TODO: AI Autofill*/ }) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = "AI Autofill")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        },
+        containerColor = Color(0xFFF8F9FA), // Nền xám hiện đại
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
                     sellerViewModel.onAddNewItemClick()
                     onNavigateToAddEdit()
                 },
-                shape = CircleShape,
+                shape = RoundedCornerShape(16.dp), // Bo góc vuông mềm thay vì tròn hẳn
+                containerColor = OrangePrimary, // Đổi màu cam
+                contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add new item")
             }
@@ -85,8 +60,18 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header
+            item {
+                Text(
+                    text = "Quản lý thực đơn",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+                    color = Color(0xFF1F1F1F)
+                )
+            }
+
             items(menuItems, key = { it.id }) { item ->
                 MenuItemRow(
                     item = item,
@@ -97,6 +82,8 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
                     onDeleteClick = { sellerViewModel.deleteMenuItem(item) }
                 )
             }
+
+            item { Spacer(modifier = Modifier.height(60.dp)) } // Spacer để không bị FAB che mất item cuối
         }
     }
 }
@@ -105,12 +92,13 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
 fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F0F0))
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(0.dp) // Flat design
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -118,43 +106,48 @@ fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Un
                 painter = rememberAsyncImagePainter(
                     model = item.imageUrl,
                     placeholder = painterResource(id = R.drawable.ic_launcher_background),
-                    error = painterResource(id = R.drawable.ic_launcher_background) // Placeholder on error
+                    error = painterResource(id = R.drawable.ic_launcher_background)
                 ),
                 contentDescription = item.name,
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .size(80.dp) // Hình to hơn xíu
+                    .clip(RoundedCornerShape(16.dp)),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF1F1F1F))
                 Text(
-                    text = NumberFormat.getCurrencyInstance(Locale.US).format(item.price),
-                    fontSize = 14.sp, 
-                    color = Color.DarkGray
+                    text = NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(item.price),
+                    fontSize = 15.sp,
+                    color = OrangePrimary, // Đổi màu cam
+                    fontWeight = FontWeight.SemiBold
                 )
-                if (item.description.isNotBlank()) {
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Badge trạng thái
+                Surface(
+                    color = if (item.isAvailable) Color(0xFFE6F4EA) else Color(0xFFFCE8E6),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
                     Text(
-                        text = item.description,
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        text = if (item.isAvailable) "Đang bán" else "Hết hàng",
+                        color = if (item.isAvailable) Color(0xFF34A853) else Color(0xFFEA4335),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-                Text(
-                    text = if (item.isAvailable) "Available" else "Unavailable",
-                    color = if (item.isAvailable) Color(0xFF34A853) else Color.Red,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
-            IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit item")
-            }
-            IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete item")
+
+            Column {
+                IconButton(onClick = onEditClick) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
+                }
+                IconButton(onClick = onDeleteClick) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEA4335))
+                }
             }
         }
     }

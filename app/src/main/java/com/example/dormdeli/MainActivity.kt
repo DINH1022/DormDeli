@@ -4,26 +4,27 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
+// import androidx.activity.viewModels // Vô hiệu hóa
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
+// import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
 import com.cloudinary.android.MediaManager
-import com.example.dormdeli.ui.navigation.MainNavigation
+// import com.example.dormdeli.ui.navigation.MainNavigation // Vô hiệu hóa
+import com.example.dormdeli.ui.seller.screens.SellerMainScreen // Kích hoạt lại màn hình Seller
 import com.example.dormdeli.ui.theme.DormDeliTheme
-import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
-import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+// import com.example.dormdeli.ui.viewmodels.AuthViewModel // Vô hiệu hóa
+// import com.example.dormdeli.ui.viewmodels.customer.CartViewModel // Vô hiệu hóa
+// import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel // Vô hiệu hóa
 import com.google.firebase.FirebaseApp
 import java.util.HashMap
 
 class MainActivity : ComponentActivity() {
 
-    private val authViewModel: AuthViewModel by viewModels()
-    private val cartViewModel: CartViewModel by viewModels()
-    private val favoriteViewModel: FavoriteViewModel by viewModels()
+    // private val authViewModel: AuthViewModel by viewModels() // Vô hiệu hóa
+    // private val cartViewModel: CartViewModel by viewModels() // Vô hiệu hóa
+    // private val favoriteViewModel: FavoriteViewModel by viewModels() // Vô hiệu hóa
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,13 +38,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    MainNavigation(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel
-                    )
+                    // Luồng của khách hàng -> Vô hiệu hóa
+                    // val navController = rememberNavController()
+                    // MainNavigation(
+                    //     navController = navController,
+                    //     authViewModel = authViewModel,
+                    //     cartViewModel = cartViewModel,
+                    //     favoriteViewModel = favoriteViewModel
+                    // )
+
+                    // Luồng của người bán -> Kích hoạt lại
+                    SellerMainScreen()
                 }
             }
         }

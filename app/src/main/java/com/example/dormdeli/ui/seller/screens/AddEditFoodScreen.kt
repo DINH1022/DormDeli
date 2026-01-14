@@ -10,35 +10,38 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import com.example.dormdeli.ui.theme.OrangeLight
+import com.example.dormdeli.ui.theme.OrangePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
-
-    // === ViewModel State ===
     val editingMenuItem by viewModel.editingMenuItem.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -46,7 +49,6 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     val autofilledDescription by viewModel.autofilledDescription.collectAsState()
     val autofillError by viewModel.autofillError.collectAsState()
 
-    // === Local UI State ===
     var name by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.name ?: "") }
     var price by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.price?.toString() ?: "") }
     var description by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.description ?: "") }
@@ -54,29 +56,11 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Clean up autofill state when the screen is disposed
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.clearAutofill()
-        }
-    }
-
-    // Update description field when autofill completes
-    LaunchedEffect(autofilledDescription) {
-        autofilledDescription?.let {
-            description = it
-        }
-    }
-
-    // Show general error as a Toast for simplicity
-    LaunchedEffect(error) {
-        error?.let {
-            Toast.makeText(context, "Save Error: $it", Toast.LENGTH_LONG).show()
-        }
-    }
+    DisposableEffect(Unit) { onDispose { viewModel.clearAutofill() } }
+    LaunchedEffect(autofilledDescription) { autofilledDescription?.let { description = it } }
+    LaunchedEffect(error) { error?.let { Toast.makeText(context, "Lỗi: $it", Toast.LENGTH_LONG).show() } }
 
     val displayImage: Any? = imageUri ?: editingMenuItem?.imageUrl
-
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
@@ -86,128 +70,177 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     )
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text(if (editingMenuItem == null) "Add Food" else "Edit Food") })
-        }
+        containerColor = Color(0xFFF8F9FA)
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()), // Make screen scrollable
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(rememberScrollState())
         ) {
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    .clickable(enabled = !isLoading) { imagePickerLauncher.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                if (displayImage != null && displayImage.toString().isNotBlank()) {
-                    Image(
-                        painter = rememberAsyncImagePainter(model = displayImage),
-                        contentDescription = "Food Image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text("Add Image")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Food Name") }, modifier = Modifier.fillMaxWidth(), enabled = !isLoading)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = price,
-                onValueChange = { price = it },
-                label = { Text("Price") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                enabled = !isLoading
+            // Header Title
+            Text(
+                text = if (editingMenuItem == null) "Thêm món mới" else "Chỉnh sửa món",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(16.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
 
-            // --- Description and AI Autofill Section ---
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description") },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 5,
-                        enabled = !isLoading && !isAutofillLoading
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            // Clear previous errors before trying again
-                            viewModel.clearAutofill()
-                            imageBitmap?.let {
-                                viewModel.autofillDescription(name, it)
-                            }
-                        },
-                        enabled = name.isNotBlank() && imageBitmap != null && !isAutofillLoading && !isLoading
-                    ) {
-                        if (isAutofillLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        } else {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "Autofill with AI")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Image Picker - Style bìa chữ nhật bo góc
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .clickable(enabled = !isLoading) { imagePickerLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (displayImage != null && displayImage.toString().isNotBlank()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = displayImage),
+                            contentDescription = "Food Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Thêm hình ảnh", color = Color.Gray)
                         }
                     }
                 }
-                // Display Autofill Error Text
-                autofillError?.let {
-                    Text(
-                        text = it,
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Available")
-                Switch(checked = isAvailable, onCheckedChange = { isAvailable = it }, enabled = !isLoading)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    viewModel.saveMenuItem(
-                        name = name,
-                        description = description,
-                        price = price.toDoubleOrNull() ?: 0.0,
-                        isAvailable = isAvailable,
-                        imageUri = imageUri
-                    ) {
-                        onNavigateBack()
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Form Inputs - White Background
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+
+                        CustomTextField(value = name, onValueChange = { name = it }, label = "Tên món ăn")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        CustomTextField(value = price, onValueChange = { price = it }, label = "Giá bán", keyboardType = KeyboardType.Number)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Description + AI
+                        Row(verticalAlignment = Alignment.Top) {
+                            CustomTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = "Mô tả",
+                                maxLines = 5,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = {
+                                    viewModel.clearAutofill()
+                                    imageBitmap?.let { viewModel.autofillDescription(name, it) }
+                                },
+                                enabled = name.isNotBlank() && imageBitmap != null && !isAutofillLoading && !isLoading,
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                if (isAutofillLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrangePrimary)
+                                else Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = OrangePrimary)
+                            }
+                        }
+                        if (autofillError != null) {
+                            Text(text = autofillError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Trạng thái: ${if(isAvailable) "Đang bán" else "Hết hàng"}", fontWeight = FontWeight.SemiBold)
+                            Switch(
+                                checked = isAvailable,
+                                onCheckedChange = { isAvailable = it },
+                                colors = SwitchDefaults.colors(checkedThumbColor = OrangePrimary, checkedTrackColor = OrangeLight)
+                            )
+                        }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Save Food Item")
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Save Button Gradient
+                Button(
+                    onClick = {
+                        viewModel.saveMenuItem(
+                            name = name,
+                            description = description,
+                            price = price.toDoubleOrNull() ?: 0.0,
+                            isAvailable = isAvailable,
+                            imageUri = imageUri
+                        ) { onNavigateBack() }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues(),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isLoading
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(colors = listOf(OrangePrimary, OrangeLight))
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) CircularProgressIndicator(color = Color.White)
+                        else Text("Lưu thay đổi", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
                 }
             }
         }
     }
 }
 
-// Helper function to convert Uri to Bitmap
+// ĐÂY LÀ PHIÊN BẢN ĐÃ SỬA LỖI
+@Composable
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    maxLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = OrangePrimary,
+            unfocusedBorderColor = Color.LightGray,
+            focusedLabelColor = OrangePrimary,
+            cursorColor = OrangePrimary,
+            focusedContainerColor = Color(0xFFFAFAFA),
+            unfocusedContainerColor = Color(0xFFFAFAFA)
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        maxLines = maxLines
+    )
+}
+
 private fun Uri.toBitmap(context: Context): Bitmap? {
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -216,8 +249,5 @@ private fun Uri.toBitmap(context: Context): Bitmap? {
             @Suppress("DEPRECATION")
             MediaStore.Images.Media.getBitmap(context.contentResolver, this)
         }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
-    }
+    } catch (e: Exception) { e.printStackTrace(); null }
 }

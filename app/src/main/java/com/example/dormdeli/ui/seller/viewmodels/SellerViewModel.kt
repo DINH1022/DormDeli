@@ -77,10 +77,13 @@ class SellerViewModel : ViewModel() {
     val completedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "completed" } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val cancelledOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "cancelled" } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // --- Dữ liệu cho Dashboard ---
     val totalOrderCount: StateFlow<Int> = orders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val deliveredCount: StateFlow<Int> = completedOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-    val cancelledCount: StateFlow<Int> = orders.map { it.filter { o -> o.status == "cancelled" }.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val cancelledCount: StateFlow<Int> = cancelledOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalRevenue: StateFlow<Long> = completedOrders.map { it.sumOf { order -> order.totalPrice } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
@@ -89,6 +92,12 @@ class SellerViewModel : ViewModel() {
         viewModelScope.launch {
             // THEO YÊU CẦU TEST: Chuyển thẳng sang "completed"
             orderRepository.updateOrderStatus(orderId, "completed")
+        }
+    }
+
+    fun declineOrder(orderId: String) { // Thêm hàm từ chối
+        viewModelScope.launch {
+            orderRepository.updateOrderStatus(orderId, "cancelled")
         }
     }
 
