@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.common
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult

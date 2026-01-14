@@ -13,23 +13,23 @@ import androidx.navigation.navArgument
 import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.screens.customer.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.screens.LoginScreen
-import com.example.dormdeli.ui.screens.OTPScreen
-import com.example.dormdeli.ui.screens.SignUpScreen
+import com.example.dormdeli.ui.screens.common.LoginScreen
+import com.example.dormdeli.ui.screens.common.OTPScreen
+import com.example.dormdeli.ui.screens.common.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
 import com.example.dormdeli.ui.screens.customer.profile.CustomerProfileScreen
 import com.example.dormdeli.ui.screens.profile.PersonalInfoScreen
 import com.example.dormdeli.ui.screens.customer.review.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
-import com.example.dormdeli.ui.screens.LocationScreen
-import com.example.dormdeli.ui.screens.AddNewLocationScreen
+import com.example.dormdeli.ui.screens.customer.location.LocationScreen
+import com.example.dormdeli.ui.screens.customer.location.AddNewLocationScreen
 import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
 import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
-import com.example.dormdeli.ui.screens.shipper.ShipperHomeScreen
-import com.example.dormdeli.ui.screens.shipper.DeliveryDetailScreen
+import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
+import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -37,6 +37,7 @@ import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
+import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -410,10 +411,10 @@ fun MainNavigation(
             arguments = listOf(navArgument("orderId") { type = NavType.StringType })
         ) { backStackEntry ->
             val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
-            val shipperViewModel: ShipperViewModel = viewModel()
+            val shipperOrdersViewModel: ShipperOrdersViewModel = viewModel()
             DeliveryDetailScreen(
                 orderId = orderId,
-                viewModel = shipperViewModel,
+                viewModel = shipperOrdersViewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }

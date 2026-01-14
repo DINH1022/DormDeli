@@ -14,7 +14,6 @@ class OrderRepository {
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
 
-    // Hàm đặt hàng
     suspend fun placeOrder(
         cartItems: List<CartItem>,
         totalAmount: Double,
@@ -24,15 +23,19 @@ class OrderRepository {
         val userId = auth.currentUser?.uid ?: return false
 
         try {
-            // 1. Chuyển đổi CartItem -> OrderItem (Khớp với model mới)
+            // 1. Tính toán phí ship dựa trên số lượng cửa hàng khác nhau
+            val distinctStores = cartItems.map { it.food.storeId }.distinct()
+            val shippingFee = (distinctStores.size * 4000).toLong()
+
+            // 2. Chuyển đổi CartItem -> OrderItem
             val orderItems = cartItems.map { item ->
                 OrderItem(
-                    storeId = item.food.storeId, // Gán storeId cho từng món
+                    storeId = item.food.storeId,
                     foodId = item.food.id,
                     foodName = item.food.name,
-                    foodImage = item.food.imageUrl, // Hoặc item.food.thumbnail nếu bạn đã làm
-                    price = item.food.price.toLong(), // Ép kiểu Double -> Long
-                    quantity = item.quantity, // Kiểu Int (khớp với model)
+                    foodImage = item.food.imageUrl,
+                    price = item.food.price.toLong(),
+                    quantity = item.quantity,
                     options = item.selectedOptions.map {
                         mapOf("name" to it.first, "price" to it.second)
                     },
@@ -40,23 +43,26 @@ class OrderRepository {
                 )
             }
 
-            // 2. Tạo Order (Khớp với model mới)
+            // 3. Tạo Order (Khớp với quy tắc mới: totalPrice là tổng cuối cùng)
+            // totalPrice = Tiền món ăn + Phí ship
+            val finalTotal = totalAmount.toLong() + shippingFee
+
             val newOrder = Order(
                 userId = userId,
-                // shipperId để mặc định rỗng trong Model
                 status = "pending",
-                deliveryType = "room", // Hoặc lấy từ UI
+                deliveryType = "room",
                 deliveryNote = deliveryNote,
-                totalPrice = totalAmount.toLong(), // Ép kiểu Double -> Long
+                shippingFee = shippingFee,
+                totalPrice = finalTotal,
                 paymentMethod = paymentMethod,
                 createdAt = System.currentTimeMillis(),
                 items = orderItems
             )
 
-            // 3. Lưu lên Firestore
+            // 4. Lưu lên Firestore
             db.collection(collectionName).add(newOrder).await()
 
-            // 4. Xóa giỏ hàng
+            // 5. Xóa giỏ hàng
             db.collection("carts").document(userId).delete().await()
 
             return true
@@ -66,14 +72,13 @@ class OrderRepository {
         }
     }
 
-    // Lấy danh sách đơn hàng
     suspend fun getMyOrders(): List<Order> {
         val userId = auth.currentUser?.uid ?: return emptyList()
 
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING) // Sắp xếp theo ngày tạo
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 

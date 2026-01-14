@@ -24,7 +24,7 @@
         <!-- Cấu hình API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAxGV5XbAc1eV_Y7-NEOiaW7eymz_8moY8" />
+            android:value="AIzaSyCTWcotvnrBZiLyXJApvGbtOlVVbdViQ-s" />
 
         <!-- Quan trọng: Khai báo phiên bản Play Services -->
         <meta-data

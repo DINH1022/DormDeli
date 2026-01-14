@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.common
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.enums.UserRole
 import com.example.dormdeli.ui.components.customer.PhoneNumberTextField
 
 @Composable
