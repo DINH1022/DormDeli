@@ -3,18 +3,29 @@ package com.example.dormdeli.ui.viewmodels.customer
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.User
+import com.example.dormdeli.model.ShipperProfile
 import com.example.dormdeli.repository.AuthRepository
 import com.example.dormdeli.repository.UserRepository
+import com.example.dormdeli.firestore.CollectionName
+import com.example.dormdeli.firestore.ModelFields
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class ProfileViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val userRepository = UserRepository()
     private val firebaseAuth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
     private val _userState = mutableStateOf<User?>(null)
     val userState: State<User?> = _userState
+
+    private val _shipperRequestState = mutableStateOf<ShipperProfile?>(null)
+    val shipperRequestState: State<ShipperProfile?> = _shipperRequestState
 
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
@@ -29,12 +40,13 @@ class ProfileViewModel : ViewModel() {
     val registerShipperSuccess: State<Boolean> = _registerShipperSuccess
 
     init {
-        // SỬA: Lắng nghe AuthState để tự động load profile khi user thay đổi (login/logout)
         firebaseAuth.addAuthStateListener { auth ->
             if (auth.currentUser != null) {
                 loadUserProfile()
+                listenToShipperRequest()
             } else {
                 _userState.value = null
+                _shipperRequestState.value = null
             }
         }
     }
@@ -55,6 +67,19 @@ class ProfileViewModel : ViewModel() {
                 }
             )
         }
+    }
+
+    private fun listenToShipperRequest() {
+        val currentUser = firebaseAuth.currentUser ?: return
+        // Sử dụng CollectionName.SHIPPER_PROFILE.value để đồng bộ với Admin
+        db.collection(CollectionName.SHIPPER_PROFILE.value).document(currentUser.uid)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null && snapshot.exists()) {
+                    _shipperRequestState.value = snapshot.toObject(ShipperProfile::class.java)
+                } else {
+                    _shipperRequestState.value = null
+                }
+            }
     }
 
     fun switchActiveRole(newRole: String, onSuccess: () -> Unit) {
@@ -81,27 +106,29 @@ class ProfileViewModel : ViewModel() {
         val currentUser = firebaseAuth.currentUser
         if (currentUser != null) {
             _isLoading.value = true
-            val currentRoles = _userState.value?.roles?.toMutableList() ?: mutableListOf("student")
-            if (!currentRoles.contains("shipper")) {
-                currentRoles.add("shipper")
-            }
-            
-            userRepository.updateUserFields(
-                userId = currentUser.uid,
-                fields = mapOf(
-                    "roles" to currentRoles,
-                    "role" to "shipper"
-                ),
-                onSuccess = {
+            viewModelScope.launch {
+                try {
+                    // Tạo data map để đảm bảo tên trường khớp chính xác với ModelFields
+                    val shipperData = mapOf(
+                        ModelFields.ShipperProfile.USER_ID to currentUser.uid,
+                        ModelFields.ShipperProfile.IS_APPROVED to false,
+                        ModelFields.ShipperProfile.TOTAL_ORDERS to 0,
+                        ModelFields.ShipperProfile.TOTAL_INCOME to 0
+                    )
+                    
+                    // Gửi vào collection shipperProfile
+                    db.collection(CollectionName.SHIPPER_PROFILE.value)
+                        .document(currentUser.uid)
+                        .set(shipperData)
+                        .await()
+                    
                     _isLoading.value = false
-                    _userState.value = _userState.value?.copy(roles = currentRoles, role = "shipper")
                     _registerShipperSuccess.value = true
-                },
-                onFailure = { e ->
+                } catch (e: Exception) {
                     _isLoading.value = false
-                    _errorMessage.value = "Failed to register: ${e.message}"
+                    _errorMessage.value = "Failed to send request: ${e.message}"
                 }
-            )
+            }
         }
     }
 

@@ -1,6 +1,8 @@
 package com.example.dormdeli.ui.screens.common
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -178,7 +180,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(text = "Don't have an account? ", fontSize = 14.sp, color = Color.Gray)
@@ -190,6 +192,33 @@ fun LoginScreen(
                     modifier = Modifier.clickable { onRegisterClick() }
                 )
             }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = "To become seller, contact: ",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "0123456789",
+                    fontSize = 14.sp,
+                    color = OrangePrimary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:0123456789")
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
         }
     }
 }

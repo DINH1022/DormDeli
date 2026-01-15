@@ -54,6 +54,7 @@ fun MainNavigation(
     val currentAuthScreen by authViewModel.currentScreen
     val errorMessage by authViewModel.errorMessage
     val phoneNumber by authViewModel.phoneNumber
+    val currentUserRole by authViewModel.currentUserRole
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
@@ -127,25 +128,43 @@ fun MainNavigation(
         startDestination = startDestination
     ) {
         composable(Screen.AdminMain.route) {
-            AdminScreen(
-                onLogout = {
-                    authViewModel.signOut()
+            if (currentUserRole == "admin") {
+                AdminScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
-            )
+            }
         }
+        
         composable(Screen.SellerMain.route) {
-            SellerMainScreen(
-                onLogout = {
-                    authViewModel.signOut()
+            if (currentUserRole == "seller") {
+                SellerMainScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
-            )
+            }
         }
+
         composable(Screen.Login.route) {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -419,32 +438,40 @@ fun MainNavigation(
         }
 
         composable(Screen.ShipperHome.route) {
-            val shipperViewModel: ShipperViewModel = viewModel()
-            ShipperHomeScreen(
-                onLogout = {
-                    authViewModel.signOut()
+            if (currentUserRole == "shipper") {
+                val shipperViewModel: ShipperViewModel = viewModel()
+                ShipperHomeScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onOrderDetail = { orderId ->
+                        navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
+                    },
+                    onPersonalInfoClick = {
+                        navController.navigate(Screen.PersonalInfo.route)
+                    },
+                    onSwitchToCustomer = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onBackNav = {
+                        navController.popBackStack()
+                    },
+                    viewModel = shipperViewModel,
+                    profileViewModel = profileViewModel,
+                    authViewModel = authViewModel
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                },
-                onOrderDetail = { orderId ->
-                    navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
-                },
-                onPersonalInfoClick = {
-                    navController.navigate(Screen.PersonalInfo.route)
-                },
-                onSwitchToCustomer = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                onBackNav = {
-                    navController.popBackStack()
-                },
-                viewModel = shipperViewModel,
-                profileViewModel = profileViewModel,
-                authViewModel = authViewModel
-            )
+                }
+            }
         }
 
         composable(

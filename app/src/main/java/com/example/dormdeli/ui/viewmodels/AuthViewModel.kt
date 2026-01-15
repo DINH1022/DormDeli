@@ -117,8 +117,14 @@ class AuthViewModel : ViewModel() {
                     userRepository.getUserById(firebaseUser.uid,
                         onSuccess = { user ->
                             if (user != null) {
-                                // Login successfully, auto-use the 'role' field from Firestore
-                                completeSuccessfulLogin(user.role, onSuccess)
+                                // ROLE VERIFICATION: Account must match the selected role
+                                if (user.role == _selectedRole.value.value) {
+                                    completeSuccessfulLogin(user.role, onSuccess)
+                                } else {
+                                    _errorMessage.value = "This account does not have ${_selectedRole.value.value} permissions."
+                                    authRepository.signOut()
+                                    _isLoading.value = false
+                                }
                             } else {
                                 _errorMessage.value = "User info does not exist."
                                 authRepository.signOut()
@@ -299,8 +305,14 @@ class AuthViewModel : ViewModel() {
                                     signOut()
                                     _isLoading.value = false
                                 } else {
-                                    // Use the stored active role
-                                    completeSuccessfulLogin(existingUser.role, onSuccess)
+                                    // ROLE VERIFICATION: Tương tự login email
+                                    if (existingUser.role == _selectedRole.value.value) {
+                                        completeSuccessfulLogin(existingUser.role, onSuccess)
+                                    } else {
+                                        _errorMessage.value = "This account does not have ${_selectedRole.value.value} permissions."
+                                        signOut()
+                                        _isLoading.value = false
+                                    }
                                 }
                             }, { 
                                 _isLoading.value = false

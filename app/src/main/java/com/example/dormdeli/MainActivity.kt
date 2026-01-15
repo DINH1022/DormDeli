@@ -58,32 +58,42 @@ class MainActivity : ComponentActivity() {
                     val isSignedIn by authViewModel.isSignedIn
                     val currentUserRole by authViewModel.currentUserRole
 
-                    // Logic xác định startDestination tự động
-                    val startDestination = remember(isSignedIn, currentUserRole) {
-                        if (!isSignedIn) {
-                            Screen.Login.route
-                        } else {
-                            when (currentUserRole) {
-                                "seller" -> Screen.SellerMain.route
-                                "shipper" -> Screen.ShipperHome.route
-                                else -> Screen.Home.route
+                    // Use a state to check if the app is finished initializing the role
+                    val isReady = remember(isSignedIn, currentUserRole) {
+                        !isSignedIn || currentUserRole != null
+                    }
+
+                    if (!isReady) {
+                        // Show a loading screen while fetching the role from Firestore
+                        DaisyLoadingScreen()
+                    } else {
+                        val startDestination = remember(isSignedIn, currentUserRole) {
+                            if (!isSignedIn) {
+                                Screen.Login.route
+                            } else {
+                                when (currentUserRole) {
+                                    "admin" -> Screen.AdminMain.route
+                                    "seller" -> Screen.SellerMain.route
+                                    "shipper" -> Screen.ShipperHome.route
+                                    else -> Screen.Home.route
+                                }
                             }
                         }
-                    }
 
-                    LaunchedEffect(isSignedIn) {
-                        if (isSignedIn) {
-                            fetchAndStoreFcmToken()
+                        LaunchedEffect(isSignedIn) {
+                            if (isSignedIn) {
+                                fetchAndStoreFcmToken()
+                            }
                         }
-                    }
 
-                    MainNavigation(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel,
-                        startDestination = startDestination
-                    )
+                        MainNavigation(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            cartViewModel = cartViewModel,
+                            favoriteViewModel = favoriteViewModel,
+                            startDestination = startDestination
+                        )
+                    }
                 }
             }
         }
@@ -113,7 +123,7 @@ class MainActivity : ComponentActivity() {
         try {
             MediaManager.init(this, config)
         } catch (e: Exception) {
-            // MediaManager already initialized
+            // Already initialized
         }
     }
 

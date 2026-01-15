@@ -1,5 +1,7 @@
 package com.example.dormdeli.ui.screens.common
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,8 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
 
     LaunchedEffect(prefilledPhone) {
         prefilledPhone?.let {
@@ -202,12 +207,13 @@ fun SignUpScreen(
                 )
             }
 
+
+
             Spacer(modifier = Modifier.weight(1f))
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(text = "Already have an account? ", fontSize = 14.sp, color = Color.Gray)
@@ -217,6 +223,31 @@ fun SignUpScreen(
                     color = OrangePrimary,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clickable { onSignInClick() }
+                )
+            }
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+            ) {
+                Text(
+                    text = "To become seller, contact: ",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "0123456789",
+                    fontSize = 14.sp,
+                    color = OrangePrimary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:0123456789")
+                        }
+                        context.startActivity(intent)
+                    }
                 )
             }
         }
