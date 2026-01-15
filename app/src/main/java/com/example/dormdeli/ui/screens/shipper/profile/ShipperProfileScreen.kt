@@ -108,7 +108,12 @@ fun ShipperProfileScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(user?.fullName ?: "Shipper Name", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(
+                    user?.fullName ?: "Shipper Name",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
                 Text(
                     if (isOnline) "Active Mode" else "Offline Mode",
                     color = if (isOnline) Color(0xFF4CAF50) else Color.Gray,
@@ -118,9 +123,21 @@ fun ShipperProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                ProfileMenuItem(icon = Icons.Default.Person, title = "Personal Information", onClick = onPersonalInfoClick)
-                ProfileMenuItem(icon = Icons.Default.History, title = "Delivery History", onClick = onHistoryClick)
-                ProfileMenuItem(icon = Icons.Default.Payments, title = "Earnings Report", onClick = onEarningsClick)
+                ProfileMenuItem(
+                    icon = Icons.Default.Person,
+                    title = "Personal Information",
+                    onClick = onPersonalInfoClick
+                )
+                ProfileMenuItem(
+                    icon = Icons.Default.History,
+                    title = "Delivery History",
+                    onClick = onHistoryClick
+                )
+                ProfileMenuItem(
+                    icon = Icons.Default.Payments,
+                    title = "Earnings Report",
+                    onClick = onEarningsClick
+                )
 
                 // Google Link Status - TIẾNG ANH & ĐỒNG NHẤT VỚI CUSTOMER
                 ProfileMenuItem(
@@ -162,7 +179,11 @@ fun ShipperProfileScreen(
                         .padding(vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = Color.Black)
+                    Icon(
+                        Icons.Default.PowerSettingsNew,
+                        contentDescription = null,
+                        tint = Color.Black
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Online Status", fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -198,32 +219,44 @@ fun ShipperProfileScreen(
                     CircularProgressIndicator(color = OrangePrimary)
                 }
             }
-@Composable
-fun ProfileMenuItemBold(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    textColor: Color = Color.Black
-) {
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+            @Composable
+            fun ProfileMenuItemBold(
+                icon: androidx.compose.ui.graphics.vector.ImageVector,
+                title: String,
+                onClick: () -> Unit,
+                textColor: Color = Color.Black
+            ) {
+                Surface(
+                    onClick = onClick,
+                    color = Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = title,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            }
         }
     }
 }

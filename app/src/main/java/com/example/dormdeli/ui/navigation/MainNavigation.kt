@@ -31,8 +31,6 @@ import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
-import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
-import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -114,8 +112,15 @@ fun MainNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable("seller_main") { // Add this route
-            SellerMainScreen()
+        composable("seller_main") {
+            SellerMainScreen(
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Screen.Login.route) {
             LoginScreen(

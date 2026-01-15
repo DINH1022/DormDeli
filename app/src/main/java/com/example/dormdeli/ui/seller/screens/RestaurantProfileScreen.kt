@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -27,11 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.dormdeli.ui.screens.profile.LogoutRow
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
@@ -39,7 +37,7 @@ import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @Composable
-fun RestaurantProfileScreen(viewModel: SellerViewModel) {
+fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     val status by viewModel.restaurantStatus.collectAsState()
     val restaurant by viewModel.restaurant.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -50,10 +48,10 @@ fun RestaurantProfileScreen(viewModel: SellerViewModel) {
     Scaffold(containerColor = Color(0xFFF8F9FA)) {
         Column(modifier = Modifier.fillMaxSize().padding(it)) {
             when (status) {
-                RestaurantStatus.NONE -> RegistrationForm(viewModel)
-                RestaurantStatus.PENDING -> PendingScreen()
-                RestaurantStatus.APPROVED -> restaurant?.let { r -> ApprovedRestaurantProfile(r, viewModel) }
-                RestaurantStatus.REJECTED -> RejectedScreen(viewModel)
+                RestaurantStatus.NONE -> RegistrationForm(viewModel, onLogout)
+                RestaurantStatus.PENDING -> PendingScreen(onLogout)
+                RestaurantStatus.APPROVED -> restaurant?.let { r -> ApprovedRestaurantProfile(r, viewModel, onLogout) }
+                RestaurantStatus.REJECTED -> RejectedScreen(viewModel, onLogout)
             }
         }
     }
@@ -71,7 +69,7 @@ fun ScreenTitle(title: String) {
 }
 
 @Composable
-fun RegistrationForm(viewModel: SellerViewModel) {
+fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -105,35 +103,44 @@ fun RegistrationForm(viewModel: SellerViewModel) {
         ) {
             Text("Gửi đăng ký", fontSize = 16.sp)
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        LogoutRow(onLogout = onLogout)
     }
 }
 
 @Composable
-fun PendingScreen() {
+fun PendingScreen(onLogout: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
             CircularProgressIndicator(color = OrangePrimary)
             Spacer(modifier = Modifier.height(16.dp))
             Text("Hồ sơ đang chờ duyệt...", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            LogoutRow(onLogout = onLogout)
         }
     }
 }
 
 @Composable
-fun RejectedScreen(viewModel: SellerViewModel) {
+fun RejectedScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
             Text("Hồ sơ bị từ chối", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFEA4335))
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { viewModel.deleteCurrentRestaurant() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA4335))) {
                 Text("Đăng ký lại")
             }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            LogoutRow(onLogout = onLogout)
         }
     }
 }
 
 @Composable
-fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel) {
+fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel, onLogout: () -> Unit) {
     var name by remember(restaurant) { mutableStateOf(restaurant.name) }
     var description by remember(restaurant) { mutableStateOf(restaurant.description) }
     var location by remember(restaurant) { mutableStateOf(restaurant.location) }
@@ -238,10 +245,13 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+        
+        LogoutRow(onLogout = onLogout)
+        
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
-// Composable này chưa được định nghĩa trong file, bạn cần đảm bảo nó tồn tại
-// và sử dụng màu sắc phù hợp (ví dụ: OrangePrimary cho màu active)
+
 @Composable
 fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String) {
     OutlinedTextField(

@@ -32,7 +32,10 @@ object SellerDestinations {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SellerMainScreen(sellerViewModel: SellerViewModel = viewModel()) {
+fun SellerMainScreen(
+    sellerViewModel: SellerViewModel = viewModel(),
+    onLogout: () -> Unit
+) {
     val navController = rememberNavController()
     val bottomNavItems = listOf(
         BottomNavItem.Dashboard,
@@ -74,7 +77,7 @@ fun SellerMainScreen(sellerViewModel: SellerViewModel = viewModel()) {
         ) {
             composable(BottomNavItem.Dashboard.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> StatisticsScreen(sellerViewModel) // Truyền viewModel
+                    RestaurantStatus.APPROVED -> StatisticsScreen(sellerViewModel)
                     else -> UnauthorizedScreen()
                 }
             }
@@ -86,12 +89,12 @@ fun SellerMainScreen(sellerViewModel: SellerViewModel = viewModel()) {
             }
             composable(BottomNavItem.Orders.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> OrderManagementScreen(sellerViewModel) // Truyền viewModel
+                    RestaurantStatus.APPROVED -> OrderManagementScreen(sellerViewModel)
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Profile.route) {
-                RestaurantProfileScreen(sellerViewModel)
+                RestaurantProfileScreen(sellerViewModel, onLogout)
             }
             composable(SellerDestinations.ADD_EDIT_FOOD_ROUTE) {
                 AddEditFoodScreen(viewModel = sellerViewModel) { navController.popBackStack() }
