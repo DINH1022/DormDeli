@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.enums.NotificationTarget
+import com.example.dormdeli.repository.admin.AdminNotiRepository
 import com.example.dormdeli.ui.theme.BackgroundGray
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.OrangeDark
@@ -60,11 +61,11 @@ import com.example.dormdeli.ui.viewmodels.admin.noti.AdminCreateNotiViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminCreateNotiScreen(
-    viewModel: AdminCreateNotiViewModel = viewModel()
-) {
+fun AdminCreateNotiScreen() {
     val context = LocalContext.current
-
+    val viewModel: AdminCreateNotiViewModel = viewModel(
+        factory = AdminNotiViewModelFactory(context)
+    )
     Scaffold(
         topBar = {
             // Sử dụng Header mới đồng bộ UI

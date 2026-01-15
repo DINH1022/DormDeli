@@ -1,10 +1,11 @@
-package com.example.dormdeli.repository.image
+package com.example.dormdeli.utils
 
 import android.net.Uri
 import android.util.Log
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
+import kotlin.collections.get
 
 object CloudinaryHelper {
 

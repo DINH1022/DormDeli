@@ -1,36 +1,37 @@
 package com.example.dormdeli
 
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-// import androidx.activity.viewModels // Vô hiệu hóa
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-// import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
+import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
 import com.cloudinary.android.MediaManager
-// import com.example.dormdeli.ui.navigation.MainNavigation // Vô hiệu hóa
-import com.example.dormdeli.ui.seller.screens.SellerMainScreen // Kích hoạt lại màn hình Seller
+import com.example.dormdeli.ui.navigation.MainNavigation
+import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
-// import com.example.dormdeli.ui.viewmodels.AuthViewModel // Vô hiệu hóa
-// import com.example.dormdeli.ui.viewmodels.customer.CartViewModel // Vô hiệu hóa
-// import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel // Vô hiệu hóa
+import com.example.dormdeli.ui.viewmodels.AuthViewModel
+import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
+import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.google.firebase.FirebaseApp
-import java.util.HashMap
 
 class MainActivity : ComponentActivity() {
-
-    // private val authViewModel: AuthViewModel by viewModels() // Vô hiệu hóa
-    // private val cartViewModel: CartViewModel by viewModels() // Vô hiệu hóa
-    // private val favoriteViewModel: FavoriteViewModel by viewModels() // Vô hiệu hóa
+    private val authViewModel by viewModels<AuthViewModel>()
+    private val cartViewModel by viewModels<CartViewModel>()
+    private val favoriteViewModel by viewModels<FavoriteViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initCloudinary()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
-        initCloudinary()
 
         setContent {
             DormDeliTheme {
@@ -38,17 +39,22 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Luồng của khách hàng -> Vô hiệu hóa
-                    // val navController = rememberNavController()
-                    // MainNavigation(
-                    //     navController = navController,
-                    //     authViewModel = authViewModel,
-                    //     cartViewModel = cartViewModel,
-                    //     favoriteViewModel = favoriteViewModel
-                    // )
+                    val navController = rememberNavController()
 
-                    // Luồng của người bán -> Kích hoạt lại
-                    SellerMainScreen()
+                    // Determine start destination based on auth state
+//                    val startDestination = remember {
+//                        if (authViewModel.isSignedIn.value) Screen.Home.route else Screen.Login.route
+//                    }
+                    val startDestination = "seller_main"
+
+
+                    MainNavigation(
+                        navController = navController,
+                        authViewModel = authViewModel,
+                        cartViewModel = cartViewModel,
+                        favoriteViewModel = favoriteViewModel, // Added
+                        startDestination = startDestination
+                    )
                 }
             }
         }
@@ -57,7 +63,30 @@ class MainActivity : ComponentActivity() {
     private fun initCloudinary() {
         val config = HashMap<String, String>()
         config["cloud_name"] = "dfg6uxyuf"
+        config["api_key"] = "967575127986714"
         config["secure"] = "true"
-        MediaManager.init(this, config)
+        try {
+            MediaManager.init(this, config)
+        } catch (e: Exception) {
+            // MediaManager đã init
+        }
     }
+
+    private fun checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            } else {
+                Log.d("NOTI_PERMISSION", "Notification permission đã được cấp")
+            }
+        } else {
+            Log.d("NOTI_PERMISSION", "Android < 13, không cần xin quyền")
+        }
+    }
+
 }

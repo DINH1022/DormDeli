@@ -36,7 +36,6 @@ com.example.dormdeli/
     │   ├── SignUpScreen.kt
     │   ├── OTPScreen.kt
     │   ├── HomeScreen.kt
-    │   ├── ProfileScreen.kt
     │   ├── StoreScreen.kt
     │   ├── FoodDetail.kt
     │   └── ReviewScreen.kt

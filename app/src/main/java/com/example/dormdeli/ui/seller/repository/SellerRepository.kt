@@ -1,7 +1,7 @@
 package com.example.dormdeli.ui.seller.repository
 
 import android.net.Uri
-import com.example.dormdeli.repository.image.CloudinaryHelper
+import com.example.dormdeli.utils.CloudinaryHelper
 import com.example.dormdeli.ui.seller.model.MenuItem
 import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus

@@ -27,36 +27,45 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.ui.theme.OrangePrimary
+import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
-import java.text.DecimalFormat
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBasketScreen(
     onBackClick: () -> Unit,
+    onLocationClick: () -> Unit,
     orderViewModel: OrderViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
+    locationalViewModel: LocationViewModel,
     onOrderSuccess: () -> Unit = {}
 ) {
     val cartItems by cartViewModel.cartItems.collectAsState()
+    val selectedAddress by locationalViewModel.selectedAddress.collectAsState()
 
     val isLoading by orderViewModel.isLoading.collectAsState()
     val context = LocalContext.current
 
-    // Tính toán giả lập các loại phí (Logic thực tế tùy bạn)
-    val subtotal = remember(cartItems) { cartItems.sumOf { 1.0 * it.food.price * it.quantity } }
-    val deliveryFee = 5.0 // Phí ship cố định ví dụ
-    val discount = 0.0    // Giảm giá ví dụ
+    val subtotal = remember(cartItems) { 
+        cartItems.sumOf { item ->
+            val optionsPrice = item.selectedOptions.sumOf { it.second }
+            (item.food.price + optionsPrice) * item.quantity 
+        } 
+    }
+    val distinctStoresCount = remember(cartItems) { cartItems.map { it.food.storeId }.distinct().size }
+    val deliveryFee = (distinctStoresCount * 4000.0)
+    val discount = 0.0    
     val total = subtotal + deliveryFee - discount
 
     if (isLoading) {
@@ -82,35 +91,27 @@ fun MyBasketScreen(
             if (cartItems.isNotEmpty()) {
                 BottomCheckoutBar(
                     total = total,
-                    // [MỚI] Logic đặt hàng
                     onPlaceOrder = {
-                        val firstItem = cartItems.firstOrNull()
-                        if (firstItem != null) {
-                            orderViewModel.placeOrder(
-                                cartItems = cartItems,
-                                total = total,
-                                deliveryNote = "", // Có thể lấy từ TextField nhập ghi chú
-                                paymentMethod = "Cash", // Hoặc lấy từ biến state chọn phương thức
-                                onSuccess = {
-                                    Toast.makeText(
-                                        context,
-                                        "Order Placed Successfully!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    cartViewModel.clearCart() // Xóa giỏ hàng
-                                    onOrderSuccess() // Chuyển trang
-                                },
-                                onFail = {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to place order. Try again.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            )
-                        } else {
-                            Toast.makeText(context, "Cart is empty!", Toast.LENGTH_SHORT).show()
+                        if (selectedAddress == null) {
+                            Toast.makeText(context, "Please select a delivery address", Toast.LENGTH_SHORT).show()
+                            return@BottomCheckoutBar
                         }
+                        orderViewModel.placeOrder(
+                            cartItems = cartItems,
+                            total = subtotal,
+                            deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
+                            deliveryAddress = selectedAddress!!,
+                            paymentMethod = "Cash",
+                            //storeId = cartItems.firstOrNull()?.food?.storeId ?: "", // Đảm bảo truyền storeId nếu cần
+                            onSuccess = {
+                                Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
+                                cartViewModel.clearCart()
+                                onOrderSuccess()
+                            },
+                            onFail = {
+                                Toast.makeText(context, "Failed to place order. Try again.", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
                 )
             }
@@ -124,7 +125,6 @@ fun MyBasketScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // 1. Header: Order Summary + Add Items
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -139,12 +139,11 @@ fun MyBasketScreen(
                         modifier = Modifier
                             .background(OrangePrimary.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .clickable { onBackClick() } // Quay lại để chọn thêm món
+                            .clickable { onBackClick() }
                     )
                 }
             }
 
-            // 2. Danh sách món ăn (Cart Items)
             if (cartItems.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -162,13 +161,15 @@ fun MyBasketScreen(
                 }
             }
 
-            // 3. Thông tin giao hàng & Thanh toán
             item {
                 InfoSectionCard(
                     icon = Icons.Default.LocationOn,
                     title = "Deliver to",
-                    subtitle = "Home",
-                    detail = "221B Baker Street, London, United Kingdom"
+                    // Hiển thị tên (VD: Home) hoặc cảnh báo nếu chưa chọn
+                    subtitle = selectedAddress?.label ?: "Select Address",
+                    // Hiển thị địa chỉ chi tiết hoặc hướng dẫn bấm vào
+                    detail = selectedAddress?.address ?: "Tap here to choose a delivery location",
+                    onClick = onLocationClick // Bấm vào để đổi địa chỉ
                 )
             }
             item {
@@ -176,18 +177,17 @@ fun MyBasketScreen(
                     icon = Icons.Default.Payment,
                     title = "Payment method",
                     subtitle = "Cash",
-                    detail = null
+                    detail = null,
+                    onClick = {} // Payment chưa có chức năng đổi
                 )
             }
 
-            // 4. Bảng tính tiền chi tiết
             item {
-                PriceBreakdownCard(subtotal, deliveryFee, discount)
+                PriceBreakdownCard(subtotal, deliveryFee, distinctStoresCount, discount)
             }
         }
     }
 }
-
 
 @Composable
 fun CartItemCardDesign(
@@ -204,7 +204,6 @@ fun CartItemCardDesign(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                // Ảnh món ăn
                 AsyncImage(
                     model = item.food.thumbnail,
                     contentDescription = null,
@@ -216,14 +215,12 @@ fun CartItemCardDesign(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Thông tin chính
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(item.food.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        // Nút Edit & Close
                         Row {
                             Icon(Icons.Default.Edit, "Edit", tint = Color.Gray, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -236,17 +233,10 @@ fun CartItemCardDesign(
                         }
                     }
 
-                    // Giá tiền (Giả lập giá gốc và giá khuyến mãi)
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val pricePerUnit = item.food.price + item.selectedOptions.sumOf { it.second }
                         Text(
-                            "${item.food.price * 1.2} VNĐ", // Giá gốc giả định
-                            style = TextStyle(textDecoration = TextDecoration.LineThrough),
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "${item.food.price} VNĐ",
+                            "${String.format("%.0f", pricePerUnit * item.quantity)} VNĐ",
                             color = OrangePrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
@@ -256,7 +246,7 @@ fun CartItemCardDesign(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = Color(0xFFEEEEEE)) // (Dùng HorizontalDivider cho bản Material3 mới hoặc Divider cũ)
+            HorizontalDivider(color = Color(0xFFEEEEEE))
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -264,24 +254,21 @@ fun CartItemCardDesign(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                // --- HIỂN THỊ OPTIONS (THÊM MỚI) ---
                 Column {
                     if (item.selectedOptions.isNotEmpty()) {
                         item.selectedOptions.forEach { (name, price) ->
                             Text(
-                                text = "$name (+${String.format("%.2f", price)} VNĐ)",
+                                text = "$name (+${String.format("%.0f", price)} VNĐ)",
                                 fontSize = 12.sp,
                                 color = Color.Gray,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
                     } else {
-                        // Nếu không có option thì hiện text mặc định hoặc để trống
                         Text("No toppings", fontSize = 12.sp, color = Color.LightGray)
                     }
                 }
 
-                // Bộ điều khiển số lượng (- 1 +)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -309,18 +296,20 @@ fun InfoSectionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    detail: String?
+    detail: String?,
+    onClick: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Phẳng theo thiết kế
-        modifier = Modifier.fillMaxWidth()
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically // Căn giữa icon và mũi tên theo chiều dọc
         ) {
+            // 1. Icon bên trái (Giữ nguyên)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -329,24 +318,48 @@ fun InfoSectionCard(
             ) {
                 Icon(icon, null, tint = OrangePrimary)
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
+            // 2. Nội dung Text (SỬA ĐOẠN NÀY)
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, fontSize = 12.sp, color = Color.Gray)
-                    Text(" -> ", fontSize = 12.sp, color = Color.Gray)
-                    Text(subtitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                // Dùng AnnotatedString để gộp "Deliver to ->" và "Tên địa chỉ" thành 1 khối text thống nhất
+                val text = buildAnnotatedString {
+                    // Phần 1: Title màu xám (VD: Deliver to -> )
+                    withStyle(style = SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
+                        append(title)
+                        append(" -> ")
+                    }
+                    // Phần 2: Subtitle in đậm màu đen (VD: Home\nKTX Khu A)
+                    withStyle(style = SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
+                        append(subtitle)
+                    }
                 }
+
+                // Hiển thị text đã gộp (Tự động xuống dòng chuẩn đẹp)
+                Text(text = text)
+
+                // Phần 3: Địa chỉ chi tiết (nếu có)
                 if (detail != null) {
-                    Text(detail, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                    Text(
+                        text = detail,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
             }
+
+            // 3. Icon mũi tên bên phải (Giữ nguyên)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Gray)
         }
     }
 }
 
 @Composable
-fun PriceBreakdownCard(subtotal: Double, delivery: Double, discount: Double) {
+fun PriceBreakdownCard(subtotal: Double, delivery: Double, storeCount: Int, discount: Double) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -355,15 +368,22 @@ fun PriceBreakdownCard(subtotal: Double, delivery: Double, discount: Double) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             PriceRow("Subtotal", subtotal)
-            PriceRow("Delivery Fee", delivery)
-            PriceRow("Discount", -discount) // Giảm giá thì trừ đi
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
+            // HIỂN THỊ RÕ 4000 x n
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Delivery Fee (4000 x $storeCount)", color = Color.Gray, fontSize = 14.sp)
+                Text("${String.format("%.0f", delivery)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            if (discount > 0) PriceRow("Discount", -discount)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Total", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("${String.format("%.2f", subtotal + delivery - discount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("${String.format("%.0f", subtotal + delivery - discount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
         }
     }
@@ -376,7 +396,7 @@ fun PriceRow(label: String, amount: Double) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label, color = Color.Gray, fontSize = 14.sp)
-        Text("${String.format("%.2f", amount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text("${String.format("%.0f", amount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
@@ -395,9 +415,9 @@ fun BottomCheckoutBar(total: Double, onPlaceOrder: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "${String.format("%.2f", total)} VNĐ",
+                "${String.format("%.0f", total)} VNĐ",
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
+                fontSize = 20.sp
             )
 
             Button(

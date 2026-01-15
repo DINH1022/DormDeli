@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
+import com.example.dormdeli.model.UserAddress
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -19,16 +20,15 @@ class OrderRepository {
         cartItems: List<CartItem>,
         totalAmount: Double,
         deliveryNote: String = "",
+        deliveryAddress: UserAddress,
         paymentMethod: String = "Cash"
     ): Boolean {
         val userId = auth.currentUser?.uid ?: return false
         if (cartItems.isEmpty()) return false // Thêm kiểm tra giỏ hàng rỗng
 
         try {
-            // Lấy storeId từ món hàng đầu tiên (vì tất cả đều từ 1 quán)
             val storeId = cartItems.first().food.storeId
-
-            // 1. Chuyển đổi CartItem -> OrderItem (Đã sửa)
+            // 1. Chuyển đổi CartItem -> OrderItem (Khớp với model mới)
             val orderItems = cartItems.map { item ->
                 OrderItem(
                     foodId = item.food.id,
@@ -43,23 +43,24 @@ class OrderRepository {
                 )
             }
 
-            // 2. Tạo Order (Đã sửa)
+            // 2. Tạo Order (Khớp với model mới)
             val newOrder = Order(
                 storeId = storeId, // Gán storeId cho cả đơn hàng
                 userId = userId,
+                // shipperId để mặc định rỗng trong Model
                 status = "pending",
                 deliveryType = "room",
                 deliveryNote = deliveryNote,
-                totalPrice = totalAmount.toLong(),
+                totalPrice = totalAmount.toLong(), // Ép kiểu Double -> Long
                 paymentMethod = paymentMethod,
                 createdAt = System.currentTimeMillis(),
                 items = orderItems
             )
 
-            // 3. Lưu lên Firestore
+            // 4. Lưu lên Firestore
             db.collection(collectionName).add(newOrder).await()
 
-            // 4. Xóa giỏ hàng
+            // 5. Xóa giỏ hàng
             db.collection("carts").document(userId).delete().await()
 
             return true
@@ -76,7 +77,7 @@ class OrderRepository {
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("userId", userId)
-                // .orderBy("createdAt", Query.Direction.DESCENDING) // TẠM THỜI XOÁ ĐỂ TRÁNH SẬP APP
+                .orderBy("createdAt", Query.Direction.DESCENDING) // Sắp xếp theo ngày tạo
                 .get()
                 .await()
 

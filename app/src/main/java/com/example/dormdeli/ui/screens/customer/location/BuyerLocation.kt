@@ -1,4 +1,4 @@
-package com.example.dormdeli.ui.screens
+package com.example.dormdeli.ui.screens.customer.location
 
 import android.Manifest
 import android.content.Context
@@ -42,11 +42,11 @@ fun AddNewLocationScreen(
     val context = LocalContext.current
     var locationName by remember { mutableStateOf(existingAddress?.address ?: "") }
     var locationLabel by remember { mutableStateOf(existingAddress?.label ?: "") }
-    var markerPosition by remember { 
+    var markerPosition by remember {
         mutableStateOf(
             if (existingAddress != null) LatLng(existingAddress.latitude, existingAddress.longitude)
             else LatLng(51.523774, -0.158539) // Default to London
-        ) 
+        )
     }
 
     val cameraPositionState = rememberCameraPositionState {
@@ -94,7 +94,7 @@ fun AddNewLocationScreen(
             }
         }
     }
-    
+
     // Update marker when camera moves (center of screen)
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
@@ -177,7 +177,7 @@ fun AddNewLocationScreen(
                         .align(Alignment.Center)
                         .offset(y = (-24).dp) // Offset to make the bottom of the pin point to center
                 )
-                
+
                 // My Location Button
                 FloatingActionButton(
                     onClick = {

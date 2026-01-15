@@ -25,7 +25,7 @@ import java.util.Locale
 @Composable
 fun OrderManagementScreen(viewModel: SellerViewModel) {
     var tabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Đang chờ", "Thực hiện", "Lịch sử")
+    val tabs = listOf("Đang chờ", "Đang thực hiện", "Hoàn thành")
 
     val pendingOrders by viewModel.pendingOrders.collectAsState()
     val acceptedOrders by viewModel.acceptedOrders.collectAsState()

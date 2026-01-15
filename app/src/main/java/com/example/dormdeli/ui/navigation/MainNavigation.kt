@@ -13,25 +13,32 @@ import androidx.navigation.navArgument
 import com.example.dormdeli.enums.AuthScreen
 import com.example.dormdeli.ui.screens.customer.food.FoodDetailScreen
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
-import com.example.dormdeli.ui.screens.LoginScreen
-import com.example.dormdeli.ui.screens.OTPScreen
-import com.example.dormdeli.ui.screens.SignUpScreen
+import com.example.dormdeli.ui.screens.common.LoginScreen
+import com.example.dormdeli.ui.screens.common.OTPScreen
+import com.example.dormdeli.ui.screens.common.SignUpScreen
 import com.example.dormdeli.ui.screens.customer.home.HomeScreen
-import com.example.dormdeli.ui.screens.customer.profile.ProfileScreen
+import com.example.dormdeli.ui.screens.customer.profile.CustomerProfileScreen
+import com.example.dormdeli.ui.screens.profile.PersonalInfoScreen
 import com.example.dormdeli.ui.screens.customer.review.ReviewScreen
 import com.example.dormdeli.ui.screens.customer.store.StoreScreen
-import com.example.dormdeli.ui.screens.LocationScreen
-import com.example.dormdeli.ui.screens.AddNewLocationScreen
+import com.example.dormdeli.ui.screens.customer.location.LocationScreen
+import com.example.dormdeli.ui.screens.customer.location.AddNewLocationScreen
 import com.example.dormdeli.ui.screens.customer.home.FavoritesScreen
 import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
+import com.example.dormdeli.ui.seller.screens.SellerMainScreen
+import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
+import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
+import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
+import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
+import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -39,7 +46,7 @@ fun MainNavigation(
     navController: NavHostController,
     authViewModel: AuthViewModel,
     cartViewModel: CartViewModel,
-    favoriteViewModel: FavoriteViewModel, // Added
+    favoriteViewModel: FavoriteViewModel,
     startDestination: String = Screen.Login.route
 ) {
     val context = LocalContext.current
@@ -48,15 +55,27 @@ fun MainNavigation(
     val phoneNumber by authViewModel.phoneNumber
 
     val locationViewModel: LocationViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
 
-    // Hiển thị error message
+    val navigateAfterLogin: () -> Unit = {
+        val role = authViewModel.selectedRole.value.value
+        if (role == "shipper") {
+            navController.navigate(Screen.ShipperHome.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        } else {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
         }
     }
 
-    // Theo dõi thay đổi của Auth screen và navigate tương ứng (chỉ khi đang ở auth flow)
     LaunchedEffect(currentAuthScreen) {
         val currentRoute = navController.currentDestination?.route
         val isInAuthFlow = currentRoute in listOf(Screen.Login.route, Screen.SignUp.route, Screen.OTP.route)
@@ -93,26 +112,22 @@ fun MainNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        // ==================== AUTH SCREENS ====================
+        composable("seller_main") { // Add this route
+            SellerMainScreen()
+        }
         composable(Screen.Login.route) {
             LoginScreen(
-                onSignInClick = { phone, password ->
-                    authViewModel.loginWithPhoneAndPassword(phone, password) {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
+                authViewModel = authViewModel,
+                onSignInClick = { email, password ->
+                    authViewModel.loginWithEmail(email, password) {
+                        navigateAfterLogin()
                     }
                 },
                 onRegisterClick = {
                     authViewModel.navigateToSignUp()
                 },
-                onSocialLoginClick = { provider ->
-                    Toast.makeText(context, "Đăng nhập với $provider (chưa triển khai)", Toast.LENGTH_SHORT).show()
-                },
                 onSignInSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
+                    navigateAfterLogin()
                 },
                 onNavigateToSignUp = {
                     authViewModel.navigateToSignUp()
@@ -133,13 +148,8 @@ fun MainNavigation(
                 onSignInClick = {
                     authViewModel.navigateToLogin()
                 },
-                onSocialSignUpClick = { provider ->
-                    Toast.makeText(context, "Đăng ký với $provider (chưa triển khai)", Toast.LENGTH_SHORT).show()
-                },
                 onSignUpSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
+                    navigateAfterLogin()
                 },
                 onNavigateToLogin = {
                     authViewModel.navigateToLogin()
@@ -152,22 +162,17 @@ fun MainNavigation(
                 phoneNumber = phoneNumber,
                 onVerifyClick = { code ->
                     authViewModel.verifyOTP(code) {
-                        Toast.makeText(context, "Đăng ký tài khoản thành công!", Toast.LENGTH_SHORT).show()
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
+                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                        navigateAfterLogin()
                     }
                 },
                 onResendClick = {
                     authViewModel.resendOTP(context as Activity)
                 },
-                onOtpVerified = {
-                    //authViewModel.navigateToSignUp()
-                }
+                onOtpVerified = {}
             )
         }
 
-        // ==================== MAIN SCREENS ====================
         composable(Screen.Home.route) {
             val selectedAddress by locationViewModel.selectedAddress.collectAsState()
             HomeScreen(
@@ -187,12 +192,12 @@ fun MainNavigation(
                 onCartClick = {
                     navController.navigate(Screen.Cart.route)
                 },
-                onFavoritesClick = { // Added
+                onFavoritesClick = {
                     navController.navigate(Screen.Favorites.route)
                 },
                 onOrdersClick = { navController.navigate(Screen.Orders.route) },
-                onAddToCart = {food ->
-                    cartViewModel.addToCart( food, 1, emptyList())
+                onAddToCart = { food ->
+                    cartViewModel.addToCart(food, 1, emptyList())
                     Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
             )
@@ -236,25 +241,40 @@ fun MainNavigation(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
+            CustomerProfileScreen(
+                viewModel = profileViewModel,
+                onBack = { navController.popBackStack() },
+                onPersonalInfoClick = { navController.navigate(Screen.PersonalInfo.route) },
+                onLocationClick = { navController.navigate(Screen.Location.route) },
+                onSwitchToShipper = {
+                    navController.navigate(Screen.ShipperHome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
                 onLogout = {
                     authViewModel.signOut()
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true } // Clear backstack
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
         }
 
-
+        composable(Screen.PersonalInfo.route) {
+            PersonalInfoScreen(
+                viewModel = profileViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
 
         composable(Screen.Cart.route) {
             MyBasketScreen(
                 cartViewModel = cartViewModel,
+                locationalViewModel = locationViewModel,
                 onBackClick = { navController.popBackStack() },
+                onLocationClick = {
+                    navController.navigate(Screen.Location.route)
+                },
                 onOrderSuccess = {
                     navController.navigate(Screen.Orders.route) {
                         popUpTo(Screen.Home.route)
@@ -263,7 +283,7 @@ fun MainNavigation(
             )
         }
 
-        composable(Screen.Favorites.route) { // Added
+        composable(Screen.Favorites.route) {
             FavoritesScreen(
                 favoriteViewModel = favoriteViewModel,
                 onBackClick = { navController.popBackStack() },
@@ -273,8 +293,8 @@ fun MainNavigation(
                 onStoreClick = { storeId ->
                     navController.navigate(Screen.StoreDetail.createRoute(storeId))
                 },
-                onAddToCart = {food ->
-                    cartViewModel.addToCart( food, 1, emptyList())
+                onAddToCart = { food ->
+                    cartViewModel.addToCart(food, 1, emptyList())
                     Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
             )
@@ -294,90 +314,67 @@ fun MainNavigation(
             arguments = listOf(navArgument("orderId") { type = NavType.StringType })
         ) { backStackEntry ->
             val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
-
             val orderViewModel: OrderViewModel = viewModel()
-
             OrderDetailScreen(
                 orderId = orderId,
                 onBackClick = { navController.popBackStack() },
                 viewModel = orderViewModel,
                 onReviewClick = { foodId ->
-                    // Điều hướng sang trang ReviewScreen (đã có sẵn trong code của bạn)
                     navController.navigate(Screen.WriteReview.createRoute(foodId))
                 }
             )
         }
 
         composable(
-            route = "write_review/{foodId}",
+            route = Screen.WriteReview.route,
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
-
             WriteReviewScreen(
                 foodId = foodId,
                 onBackClick = { navController.popBackStack() },
-                onReviewSubmitted = {
-                    navController.popBackStack()
-                }
+                onReviewSubmitted = { navController.popBackStack() }
             )
         }
 
-        // ==================== STORE SCREENS ====================
         composable(
             route = Screen.StoreDetail.route,
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val storeId = backStackEntry.arguments?.getString("storeId")
             val storeViewModel: StoreViewModel = viewModel()
-
             StoreScreen(
                 storeId = "$storeId",
                 viewModel = storeViewModel,
-                onBack = {
-                    navController.popBackStack()
-                },
-                onMenuClick = {
-                    Toast.makeText(context, "Menu clicked", Toast.LENGTH_SHORT).show()
-                } ,
+                onBack = { navController.popBackStack() },
+                onMenuClick = {},
                 onFoodClick = { foodId ->
-                        navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
                 },
-                onAddToCart = {food ->
-                    cartViewModel.addToCart( food, 1, emptyList())
+                onAddToCart = { food ->
+                    cartViewModel.addToCart(food, 1, emptyList())
                     Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
             )
         }
 
-        // ==================== FOOD SCREENS ====================
         composable(
             route = Screen.FoodDetail.route,
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
-
-            val favoriteViewModel: FavoriteViewModel = viewModel()
             val favIds by favoriteViewModel.favoriteFoodIds.collectAsState()
-            val isFav = if (foodId != null) favIds.contains(foodId) else false
-
+            val isFav = favIds.contains(foodId)
             FoodDetailScreen(
                 foodId = foodId,
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onAddToCart = {food, quantity, options ->
-                    cartViewModel.addToCart( food, quantity, options)
+                onBackClick = { navController.popBackStack() },
+                onAddToCart = { food, quantity, options ->
+                    cartViewModel.addToCart(food, quantity, options)
                     Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
                 },
-                onSeeReviewsClick = {
-                    navController.navigate(Screen.Reviews.createRoute(foodId))
-                },
+                onSeeReviewsClick = { navController.navigate(Screen.Reviews.createRoute(foodId)) },
                 isFavorite = isFav,
-                onToggleFavorite = {
-                    if (foodId != null) {
-                    favoriteViewModel.toggleFavorite(foodId)
-                } }
+                onToggleFavorite = { favoriteViewModel.toggleFavorite(foodId) }
             )
         }
 
@@ -386,12 +383,47 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId")
+            ReviewScreen(foodId = foodId, onBackClick = { navController.popBackStack() })
+        }
 
-            ReviewScreen(
-                foodId = foodId,
-                onBackClick = {
+        composable(Screen.ShipperHome.route) {
+            val shipperViewModel: ShipperViewModel = viewModel()
+            ShipperHomeScreen(
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onOrderDetail = { orderId ->
+                    navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
+                },
+                onPersonalInfoClick = {
+                    navController.navigate(Screen.PersonalInfo.route)
+                },
+                onSwitchToCustomer = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBackNav = {
                     navController.popBackStack()
-                }
+                },
+                viewModel = shipperViewModel,
+                profileViewModel = profileViewModel
+            )
+        }
+
+        composable(
+            route = Screen.DeliveryDetail.route,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+            val shipperOrdersViewModel: ShipperOrdersViewModel = viewModel()
+            DeliveryDetailScreen(
+                orderId = orderId,
+                viewModel = shipperOrdersViewModel,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

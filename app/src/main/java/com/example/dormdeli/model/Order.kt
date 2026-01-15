@@ -11,7 +11,9 @@ data class Order(
     val status: String = "pending",
     val deliveryType: String = "room",
     val deliveryNote: String = "",
+    val address: UserAddress? = null,
     val totalPrice: Long = 0,
+    val shippingFee: Long = 15000,
     val paymentMethod: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val items: List<OrderItem> = emptyList()
