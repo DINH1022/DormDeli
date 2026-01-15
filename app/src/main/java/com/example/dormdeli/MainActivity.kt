@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
+import androidx.navigation.compose.rememberNavController
 import com.cloudinary.android.MediaManager
 import com.example.dormdeli.repository.UserRepository
 import com.example.dormdeli.ui.components.DaisyLoadingScreen
@@ -42,9 +42,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Khởi tạo kênh thông báo ngay khi app bắt đầu
         NotificationHelper.createNotificationChannel(this)
-
         checkAndRequestNotificationPermission()
         initCloudinary()
         enableEdgeToEdge()
@@ -58,29 +56,32 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val isSignedIn by authViewModel.isSignedIn
-                    val userRole by authViewModel.currentUserRole
+                    val currentUserRole by authViewModel.currentUserRole
 
-                    // Determine start destination based on auth state
-//                    val startDestination = remember {
-//                        if (authViewModel.isSignedIn.value) Screen.Home.route else Screen.Login.route
-//                    }
-                    val startDestination = "seller_main"
-                    // Lấy FCM Token khi đã đăng nhập
+                    // Logic xác định startDestination tự động
+                    val startDestination = remember(isSignedIn, currentUserRole) {
+                        if (!isSignedIn) {
+                            Screen.Login.route
+                        } else {
+                            when (currentUserRole) {
+                                "seller" -> Screen.SellerMain.route
+                                "shipper" -> Screen.ShipperHome.route
+                                else -> Screen.Home.route
+                            }
+                        }
+                    }
+
                     LaunchedEffect(isSignedIn) {
                         if (isSignedIn) {
                             fetchAndStoreFcmToken()
                         }
                     }
 
-                    // Trạng thái để kiểm soát việc hiển thị màn hình chính
-                    var isReady by remember { mutableStateOf(false) }
-
-
                     MainNavigation(
                         navController = navController,
                         authViewModel = authViewModel,
                         cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel, // Added
+                        favoriteViewModel = favoriteViewModel,
                         startDestination = startDestination
                     )
                 }
@@ -112,7 +113,7 @@ class MainActivity : ComponentActivity() {
         try {
             MediaManager.init(this, config)
         } catch (e: Exception) {
-            // MediaManager đã init
+            // MediaManager already initialized
         }
     }
 
@@ -125,12 +126,7 @@ class MainActivity : ComponentActivity() {
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
                     1001
                 )
-            } else {
-                Log.d("NOTI_PERMISSION", "Notification permission đã được cấp")
             }
-        } else {
-            Log.d("NOTI_PERMISSION", "Android < 13, không cần xin quyền")
         }
     }
-
 }

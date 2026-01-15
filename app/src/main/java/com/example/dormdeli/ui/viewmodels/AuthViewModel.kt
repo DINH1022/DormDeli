@@ -109,7 +109,6 @@ class AuthViewModel : ViewModel() {
     fun loginWithEmail(email: String, pass: String, onSuccess: () -> Unit) {
         _isLoading.value = true
         _errorMessage.value = null
-        val selectedRoleValue = _selectedRole.value.value
 
         authRepository.signInWithEmail(email, pass,
             onSuccess = {
@@ -118,23 +117,8 @@ class AuthViewModel : ViewModel() {
                     userRepository.getUserById(firebaseUser.uid,
                         onSuccess = { user ->
                             if (user != null) {
-                                val userRoles = if (user.roles.isNotEmpty()) user.roles else listOf(user.role)
-                                if (!userRoles.contains(selectedRoleValue)) {
-                                    _errorMessage.value = "Account does not have access for role $selectedRoleValue."
-                                    _isLoading.value = false
-                                    authRepository.signOut()
-                                    return@getUserById
-                                }
-
-                                if (user.role != selectedRoleValue) {
-                                    userRepository.updateUserFields(
-                                        firebaseUser.uid,
-                                        mapOf("role" to selectedRoleValue),
-                                        onSuccess = {}, onFailure = {}
-                                    )
-                                }
-
-                                completeSuccessfulLogin(selectedRoleValue, onSuccess)
+                                // Login successfully, auto-use the 'role' field from Firestore
+                                completeSuccessfulLogin(user.role, onSuccess)
                             } else {
                                 _errorMessage.value = "User info does not exist."
                                 authRepository.signOut()
@@ -157,6 +141,7 @@ class AuthViewModel : ViewModel() {
 
     private fun completeSuccessfulLogin(role: String, onSuccess: () -> Unit) {
         _currentUserRole.value = role
+        _selectedRole.value = UserRole.from(role)
         _isLoading.value = false
         onSuccess()
     }
@@ -167,12 +152,12 @@ class AuthViewModel : ViewModel() {
         val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
         _phoneNumber.value = formattedPhone
 
-        val roleValue = UserRole.STUDENT.value
+        val roleValue = _selectedRole.value.value
 
         userRepository.getUserByPhone(formattedPhone,
             onSuccess = { existingUser ->
                 if (existingUser != null && existingUser.roles.contains(roleValue)) {
-                    _errorMessage.value = "This phone number is already registered as a customer."
+                    _errorMessage.value = "This phone number is already registered for this role."
                     _isLoading.value = false
                 } else {
                     tempRegistrationData = mapOf(
@@ -295,19 +280,17 @@ class AuthViewModel : ViewModel() {
             val email = account.email ?: return
             _isLoading.value = true
 
-            // Bước 1: Kiểm tra các phương thức đăng nhập của Email này trong Firebase Auth
             firebaseAuth.fetchSignInMethodsForEmail(email).addOnCompleteListener { fetchTask ->
                 if (fetchTask.isSuccessful) {
                     val methods = fetchTask.result?.signInMethods ?: emptyList<String>()
 
                     if (methods.isEmpty()) {
-                        // Case: Email chưa tồn tại trong Firebase Auth
-                        _errorMessage.value = "Login with Google failed."
+                        _errorMessage.value = "Login with Google failed. Account does not exist."
                         _isLoading.value = false
                     } else if (!methods.contains(GoogleAuthProvider.PROVIDER_ID)) {
+                        _errorMessage.value = "This email is not linked with Google."
                         _isLoading.value = false
                     } else {
-                        // Case: Đã link Google, tiến hành đăng nhập
                         authRepository.signInWithGoogle(account, {
                             val firebaseUser = authRepository.getCurrentUser() ?: return@signInWithGoogle
                             userRepository.getUserById(firebaseUser.uid, { existingUser ->
@@ -316,7 +299,8 @@ class AuthViewModel : ViewModel() {
                                     signOut()
                                     _isLoading.value = false
                                 } else {
-                                    completeLoginWithRole(existingUser, firebaseUser.uid, onSuccess)
+                                    // Use the stored active role
+                                    completeSuccessfulLogin(existingUser.role, onSuccess)
                                 }
                             }, { 
                                 _isLoading.value = false
@@ -336,24 +320,6 @@ class AuthViewModel : ViewModel() {
             _errorMessage.value = "Google login error: ${e.statusCode}"
             _isLoading.value = false
         }
-    }
-    
-    private fun completeLoginWithRole(user: User, uid: String, onSuccess: () -> Unit) {
-        val selectedRoleValue = _selectedRole.value.value
-        val userRoles = if (user.roles.isNotEmpty()) user.roles else listOf(user.role)
-        
-        if (!userRoles.contains(selectedRoleValue)) {
-            _errorMessage.value = "Account does not have access for role $selectedRoleValue."
-            _isLoading.value = false
-            authRepository.signOut()
-            return
-        }
-
-        if (user.role != selectedRoleValue) {
-            userRepository.updateUserFields(uid, mapOf("role" to selectedRoleValue), {}, {})
-        }
-
-        completeSuccessfulLogin(selectedRoleValue, onSuccess)
     }
 
     fun linkGoogleAccount(task: com.google.android.gms.tasks.Task<GoogleSignInAccount>, onSuccess: () -> Unit) {

@@ -29,8 +29,6 @@ import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.dormdeli.R
-import com.example.dormdeli.enums.UserRole
-import com.example.dormdeli.ui.components.customer.RoleSelectionButton
 
 @Composable
 fun LoginScreen(
@@ -47,7 +45,6 @@ fun LoginScreen(
     var rememberMe by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val currentRole = authViewModel?.selectedRole?.value ?: UserRole.STUDENT
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -82,26 +79,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RoleSelectionButton(
-                    text = "Customer",
-                    isSelected = currentRole == UserRole.STUDENT,
-                    onClick = { authViewModel?.setRole(UserRole.STUDENT) }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                RoleSelectionButton(
-                    text = "Shipper",
-                    isSelected = currentRole == UserRole.SHIPPER,
-                    onClick = { authViewModel?.setRole(UserRole.SHIPPER) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Email Input
             OutlinedTextField(
@@ -174,7 +152,7 @@ fun LoginScreen(
                 )
             ) {
                 Text(
-                    text = "Sign in as ${if (currentRole == UserRole.STUDENT) "Customer" else "Shipper"}",
+                    text = "Sign in",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )

@@ -53,7 +53,14 @@ class SellerViewModel : ViewModel() {
 
     val restaurantStatus: StateFlow<RestaurantStatus> = restaurant.map { restaurant ->
         if (restaurant == null) RestaurantStatus.NONE
-        else try { enumValueOf<RestaurantStatus>(restaurant.status) } catch (e: Exception) { RestaurantStatus.NONE }
+        else {
+            try {
+                // Parse enum safely, ignoring case
+                RestaurantStatus.valueOf(restaurant.status.uppercase())
+            } catch (e: Exception) {
+                RestaurantStatus.NONE
+            }
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RestaurantStatus.NONE)
 
     val menuItems: StateFlow<List<MenuItem>> = restaurant.flatMapLatest { restaurant ->

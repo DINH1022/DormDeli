@@ -53,4 +53,10 @@ sealed class Screen(val route: String) {
         fun createRoute(orderId: String) = "delivery_detail/$orderId"
     }
     object ShipperOrders : Screen("shipper_orders")
+
+    // Seller Screens
+    object SellerMain : Screen("seller_main")
+
+    // Admin Screens
+    object AdminMain : Screen("admin_main")
 }

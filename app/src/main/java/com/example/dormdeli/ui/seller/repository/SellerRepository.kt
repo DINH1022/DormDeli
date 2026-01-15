@@ -21,10 +21,15 @@ class SellerRepository {
     private val db = FirebaseFirestore.getInstance()
     private val restaurantsCollection = db.collection("restaurants")
 
-    private fun getCurrentUserId(): String = "TEST_SELLER_ID" // Hardcoded for testing
+    private fun getCurrentUserId(): String = auth.currentUser?.uid ?: ""
 
     fun getRestaurantFlow(): Flow<Restaurant?> = callbackFlow {
         val userId = getCurrentUserId()
+        if (userId.isEmpty()) {
+            trySend(null)
+            return@callbackFlow
+        }
+        
         val registration = restaurantsCollection.whereEqualTo("ownerId", userId)
             .limit(1)
             .addSnapshotListener { snapshot, error ->
@@ -47,7 +52,7 @@ class SellerRepository {
             description = description,
             location = location,
             openingHours = openingHours,
-            status = RestaurantStatus.PENDING.name // QUAN TRỌNG: Trở về PENDING để test luồng duyệt
+            status = RestaurantStatus.PENDING.name
         )
         restaurantsCollection.add(restaurant).await()
         Result.success(Unit)
@@ -102,10 +107,9 @@ class SellerRepository {
     }
 
     suspend fun addMenuItem(restaurantId: String, item: MenuItem): Result<Unit> = try {
-        // Dùng .document(item.id).set(item) để đồng bộ ID
         restaurantsCollection.document(restaurantId)
             .collection("menuItems")
-            .document(item.id) // Đảm bảo ID trên Firestore khớp với ID trong object
+            .document(item.id)
             .set(item)
             .await()
         Result.success(Unit)

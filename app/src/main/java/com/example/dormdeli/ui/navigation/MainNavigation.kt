@@ -31,6 +31,7 @@ import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
+import com.example.dormdeli.ui.screens.admin.AdminScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -59,13 +60,26 @@ fun MainNavigation(
 
     val navigateAfterLogin: () -> Unit = {
         val role = authViewModel.selectedRole.value.value
-        if (role == "shipper") {
-            navController.navigate(Screen.ShipperHome.route) {
-                popUpTo(0) { inclusive = true }
+        when (role) {
+            "admin" -> {
+                navController.navigate(Screen.AdminMain.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
-        } else {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(0) { inclusive = true }
+            "shipper" -> {
+                navController.navigate(Screen.ShipperHome.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            "seller" -> {
+                navController.navigate(Screen.SellerMain.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            else -> {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
@@ -112,7 +126,17 @@ fun MainNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable("seller_main") {
+        composable(Screen.AdminMain.route) {
+            AdminScreen(
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.SellerMain.route) {
             SellerMainScreen(
                 onLogout = {
                     authViewModel.signOut()

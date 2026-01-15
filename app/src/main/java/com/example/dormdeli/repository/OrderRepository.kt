@@ -1,5 +1,6 @@
 package com.example.dormdeli.repository
 
+import android.util.Log
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,16 +16,33 @@ class OrderRepository {
     private val ordersCollection = db.collection("orders")
 
     fun getOrdersStreamForStore(storeId: String): Flow<List<Order>> = callbackFlow {
+        if (storeId.isEmpty()) {
+            trySend(emptyList())
+            return@callbackFlow
+        }
+
         val listener = ordersCollection
-            .whereEqualTo("storeId", storeId) // Truy vấn theo storeId mới
-            // .orderBy("createdAt", Query.Direction.DESCENDING) // TẠM THỜI XOÁ ĐỂ TRÁNH SẬP APP
+            .whereEqualTo("storeId", storeId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.e("OrderRepository", "Listen failed: ${error.message}")
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
+
                 if (snapshot != null) {
-                    val orders = snapshot.toObjects(Order::class.java)
+                    val orders = mutableListOf<Order>()
+                    for (doc in snapshot.documents) {
+                        try {
+                            val order = doc.toObject(Order::class.java)
+                            if (order != null) {
+                                orders.add(order)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("OrderRepository", "Error mapping order ${doc.id}: ${e.message}")
+                            // Tiếp tục với các document khác thay vì crash
+                        }
+                    }
                     trySend(orders)
                 }
             }
@@ -43,7 +61,7 @@ class OrderRepository {
         val sampleOrders = listOf(
             Order(
                 id = "sample_order_1",
-                storeId = storeId, // Thêm storeId
+                storeId = storeId,
                 userId = "user_A",
                 totalPrice = 55000,
                 paymentMethod = "cash",
@@ -54,7 +72,7 @@ class OrderRepository {
             ),
             Order(
                 id = "sample_order_2",
-                storeId = storeId, // Thêm storeId
+                storeId = storeId,
                 userId = "user_B",
                 totalPrice = 70000,
                 paymentMethod = "momo",
