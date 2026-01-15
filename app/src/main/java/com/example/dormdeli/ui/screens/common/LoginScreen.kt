@@ -190,7 +190,7 @@ fun LoginScreen(
                 iconRes = R.drawable.ic_google,
                 onClick = {
                     if (authViewModel != null) {
-                        val signInIntent = authViewModel.getGoogleSignInIntent(context)
+                        val signInIntent = authViewModel.getGoogleLoginIntent(context)
                         googleSignInLauncher.launch(signInIntent)
                     }
                 },

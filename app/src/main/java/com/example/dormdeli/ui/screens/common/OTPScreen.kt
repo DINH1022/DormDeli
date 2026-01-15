@@ -39,7 +39,7 @@ fun OTPScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Xác minh OTP",
+                text = "OTP Verification",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = OrangePrimary,
@@ -47,7 +47,7 @@ fun OTPScreen(
             )
 
             Text(
-                text = "Nhập mã OTP đã được gửi đến\n$phoneNumber",
+                text = "Enter the OTP code sent to\n$phoneNumber",
                 fontSize = 16.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -67,7 +67,7 @@ fun OTPScreen(
                     .height(56.dp),
                 placeholder = {
                     Text(
-                        text = "Nhập mã OTP (6 chữ số)",
+                        text = "Enter 6-digit OTP",
                         fontSize = 16.sp,
                         color = Color.Gray
                     )
@@ -111,7 +111,7 @@ fun OTPScreen(
                     )
                 } else {
                     Text(
-                        text = "Xác minh",
+                        text = "Verify",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -126,7 +126,7 @@ fun OTPScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Gửi lại mã OTP",
+                    text = "Resend OTP Code",
                     fontSize = 14.sp,
                     color = OrangePrimary
                 )
@@ -134,4 +134,3 @@ fun OTPScreen(
         }
     }
 }
-

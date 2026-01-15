@@ -1,6 +1,8 @@
 package com.example.dormdeli.ui.screens.customer.profile
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,12 +22,15 @@ import com.example.dormdeli.ui.screens.profile.LogoutRow
 import com.example.dormdeli.ui.screens.profile.ProfileAvatar
 import com.example.dormdeli.ui.screens.profile.ProfileMenuItem
 import com.example.dormdeli.ui.theme.OrangePrimary
+import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerProfileScreen(
     viewModel: ProfileViewModel,
+    authViewModel: AuthViewModel,
     onBack: () -> Unit,
     onPersonalInfoClick: () -> Unit,
     onLocationClick: () -> Unit,
@@ -33,17 +38,36 @@ fun CustomerProfileScreen(
     onLogout: () -> Unit
 ) {
     val user by viewModel.userState
-    // SỬA: Lắng nghe trạng thái đăng ký shipper riêng biệt
     val registerShipperSuccess by viewModel.registerShipperSuccess
+    val isGoogleLinked by authViewModel.isGoogleLinked
+    val isLoading by authViewModel.isLoading
+    val errorMessage by authViewModel.errorMessage
     val context = LocalContext.current
     val hasShipperRole = user?.roles?.contains("shipper") == true
     
     var showRegisterDialog by remember { mutableStateOf(false) }
 
-    // Lắng nghe khi đăng ký Shipper thành công
+    // Google Link Logic
+    val googleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        authViewModel.linkGoogleAccount(task) {
+            Toast.makeText(context, "Google link successful!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Display error from AuthViewModel
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            authViewModel.clearErrorMessage()
+        }
+    }
+
     LaunchedEffect(registerShipperSuccess) {
         if (registerShipperSuccess) {
-            Toast.makeText(context, "Chúc mừng! Bạn đã trở thành Shipper.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Congratulations! You have become a Shipper.", Toast.LENGTH_LONG).show()
             viewModel.resetUpdateSuccess()
             onSwitchToShipper() 
         }
@@ -53,7 +77,7 @@ fun CustomerProfileScreen(
         AlertDialog(
             onDismissRequest = { showRegisterDialog = false },
             title = { Text("Become a Shipper", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to register as a shipper? You will be able to accept and deliver orders.") },
+            text = { Text("Are you sure you want to register as a shipper? You will be able to receive and deliver orders.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -88,72 +112,98 @@ fun CustomerProfileScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            Box(contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.size(140.dp)) {
-                    drawArc(
-                        color = OrangePrimary,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                    )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                Box(contentAlignment = Alignment.Center) {
+                    Canvas(modifier = Modifier.size(140.dp)) {
+                        drawArc(
+                            color = OrangePrimary,
+                            startAngle = 0f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        )
+                    }
+                    ProfileAvatar(avatarUrl = user?.avatarUrl ?: "", size = 120.dp)
                 }
-                ProfileAvatar(avatarUrl = user?.avatarUrl ?: "", size = 120.dp)
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(user?.fullName ?: "User Name", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Student", color = OrangePrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(user?.fullName ?: "User Name", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Student", color = OrangePrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            ProfileMenuItem(
-                icon = Icons.Default.Person,
-                title = "Personal Info",
-                onClick = onPersonalInfoClick
-            )
-            ProfileMenuItem(icon = Icons.Default.History, title = "My Orders History", onClick = {})
-            ProfileMenuItem(
-                icon = Icons.Default.LocationOn,
-                title = "Delivery Addresses",
-                onClick = onLocationClick
-            )
-            
-            if (hasShipperRole) {
                 ProfileMenuItem(
-                    icon = Icons.Default.DirectionsRun,
-                    title = "Switch to Shipper Mode",
+                    icon = Icons.Default.Person,
+                    title = "Personal Information",
+                    onClick = onPersonalInfoClick
+                )
+                ProfileMenuItem(icon = Icons.Default.History, title = "Order History", onClick = {})
+                ProfileMenuItem(
+                    icon = Icons.Default.LocationOn,
+                    title = "Delivery Address",
+                    onClick = onLocationClick
+                )
+
+                // Google Link Status
+                ProfileMenuItem(
+                    icon = Icons.Default.Link,
+                    title = if (isGoogleLinked) "Google Linked" else "Link Google Account",
                     onClick = {
-                        viewModel.switchActiveRole("shipper") {
-                            onSwitchToShipper()
+                        if (!isGoogleLinked) {
+                            googleLauncher.launch(authViewModel.getGoogleLinkIntent(context))
                         }
                     },
-                    tint = Color(0xFF4CAF50)
+                    tint = if (isGoogleLinked) Color(0xFF4CAF50) else Color(0xFF4285F4),
+                    trailingIcon = if (isGoogleLinked) Icons.Default.CheckCircle else null
                 )
-            } else {
-                ProfileMenuItem(
-                    icon = Icons.Default.Badge,
-                    title = "Become a Shipper",
-                    onClick = { showRegisterDialog = true }
-                )
+                
+                if (hasShipperRole) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.DirectionsRun,
+                        title = "Switch to Shipper Mode",
+                        onClick = {
+                            viewModel.switchActiveRole("shipper") {
+                                onSwitchToShipper()
+                            }
+                        },
+                        tint = Color(0xFF4CAF50)
+                    )
+                } else {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Badge,
+                        title = "Become a Shipper",
+                        onClick = { showRegisterDialog = true }
+                    )
+                }
+
+                ProfileMenuItem(icon = Icons.Default.Settings, title = "App Settings", onClick = {})
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LogoutRow(onLogout = onLogout)
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
-            ProfileMenuItem(icon = Icons.Default.Settings, title = "App Settings", onClick = {})
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LogoutRow(onLogout = onLogout)
-            Spacer(modifier = Modifier.height(32.dp))
+            if (isLoading) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.Black.copy(alpha = 0.3f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = OrangePrimary)
+                    }
+                }
+            }
         }
     }
 }

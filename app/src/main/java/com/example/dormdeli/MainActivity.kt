@@ -10,17 +10,29 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
 import com.cloudinary.android.MediaManager
+import com.example.dormdeli.repository.UserRepository
+import com.example.dormdeli.ui.components.DaisyLoadingScreen
 import com.example.dormdeli.ui.navigation.MainNavigation
 import com.example.dormdeli.ui.navigation.Screen
 import com.example.dormdeli.ui.theme.DormDeliTheme
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.utils.NotificationHelper
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val authViewModel by viewModels<AuthViewModel>()
@@ -29,6 +41,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Khởi tạo kênh thông báo ngay khi app bắt đầu
+        NotificationHelper.createNotificationChannel(this)
+
+        checkAndRequestNotificationPermission()
         initCloudinary()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)
@@ -40,12 +57,23 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val isSignedIn by authViewModel.isSignedIn
+                    val userRole by authViewModel.currentUserRole
 
                     // Determine start destination based on auth state
 //                    val startDestination = remember {
 //                        if (authViewModel.isSignedIn.value) Screen.Home.route else Screen.Login.route
 //                    }
                     val startDestination = "seller_main"
+                    // Lấy FCM Token khi đã đăng nhập
+                    LaunchedEffect(isSignedIn) {
+                        if (isSignedIn) {
+                            fetchAndStoreFcmToken()
+                        }
+                    }
+
+                    // Trạng thái để kiểm soát việc hiển thị màn hình chính
+                    var isReady by remember { mutableStateOf(false) }
 
 
                     MainNavigation(
@@ -55,6 +83,22 @@ class MainActivity : ComponentActivity() {
                         favoriteViewModel = favoriteViewModel, // Added
                         startDestination = startDestination
                     )
+                }
+            }
+        }
+    }
+
+    private fun fetchAndStoreFcmToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (userId != null) {
+                    val userRepository = UserRepository()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        userRepository.updateFcmToken(userId, token)
+                        Log.d("FCM_TOKEN", "Token synced for user: $userId")
+                    }
                 }
             }
         }

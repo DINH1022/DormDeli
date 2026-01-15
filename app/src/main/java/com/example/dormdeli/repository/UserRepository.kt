@@ -75,6 +75,25 @@ class UserRepository {
             .addOnFailureListener { onFailure(it) }
     }
 
+    fun getUserByEmail(
+        email: String,
+        onSuccess: (User?, String?) -> Unit, // Trả về User object và Document ID (UID)
+        onFailure: (Exception) -> Unit
+    ) {
+        userCol.whereEqualTo("email", email)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    val doc = snapshot.documents[0]
+                    onSuccess(doc.toObject(User::class.java), doc.id)
+                } else {
+                    onSuccess(null, null)
+                }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
 
     fun getUsersByRole(
         role: UserRole,

@@ -27,7 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,15 +59,15 @@ fun MyBasketScreen(
     val isLoading by orderViewModel.isLoading.collectAsState()
     val context = LocalContext.current
 
-    val subtotal = remember(cartItems) { 
+    val subtotal = remember(cartItems) {
         cartItems.sumOf { item ->
             val optionsPrice = item.selectedOptions.sumOf { it.second }
-            (item.food.price + optionsPrice) * item.quantity 
-        } 
+            (item.food.price + optionsPrice) * item.quantity
+        }
     }
     val distinctStoresCount = remember(cartItems) { cartItems.map { it.food.storeId }.distinct().size }
     val deliveryFee = (distinctStoresCount * 4000.0)
-    val discount = 0.0    
+    val discount = 0.0
     val total = subtotal + deliveryFee - discount
 
     if (isLoading) {

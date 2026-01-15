@@ -24,6 +24,7 @@ import com.example.dormdeli.ui.screens.shipper.earning.ShipperEarningsScreen
 import com.example.dormdeli.ui.screens.shipper.history.ShipperHistoryScreen
 import com.example.dormdeli.ui.screens.shipper.profile.ShipperProfileScreen
 import com.example.dormdeli.ui.theme.OrangePrimary
+import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.*
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -36,7 +37,8 @@ fun ShipperHomeScreen(
     onSwitchToCustomer: () -> Unit,
     onBackNav: () -> Unit,
     viewModel: ShipperViewModel = viewModel(),
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    authViewModel: AuthViewModel
 ) {
     val selectedBottomTab by viewModel.selectedTab
     val snackbarHostState = remember { SnackbarHostState() }
@@ -92,6 +94,7 @@ fun ShipperHomeScreen(
                 3 -> ShipperNotificationsScreen(notificationsViewModel)
                 4 -> ShipperProfileScreen(
                     viewModel = profileViewModel,
+                    authViewModel = authViewModel,
                     onPersonalInfoClick = onPersonalInfoClick,
                     onHistoryClick = { viewModel.selectTab(1) },
                     onEarningsClick = { viewModel.selectTab(2) },

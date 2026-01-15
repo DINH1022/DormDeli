@@ -31,6 +31,8 @@ import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
+import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
+import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -243,6 +245,7 @@ fun MainNavigation(
         composable(Screen.Profile.route) {
             CustomerProfileScreen(
                 viewModel = profileViewModel,
+                authViewModel = authViewModel,
                 onBack = { navController.popBackStack() },
                 onPersonalInfoClick = { navController.navigate(Screen.PersonalInfo.route) },
                 onLocationClick = { navController.navigate(Screen.Location.route) },
@@ -410,7 +413,8 @@ fun MainNavigation(
                     navController.popBackStack()
                 },
                 viewModel = shipperViewModel,
-                profileViewModel = profileViewModel
+                profileViewModel = profileViewModel,
+                authViewModel = authViewModel
             )
         }
 
