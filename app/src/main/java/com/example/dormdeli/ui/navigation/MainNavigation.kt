@@ -239,6 +239,7 @@ fun MainNavigation(
         composable(Screen.Profile.route) {
             CustomerProfileScreen(
                 viewModel = profileViewModel,
+                authViewModel = authViewModel,
                 onBack = { navController.popBackStack() },
                 onPersonalInfoClick = { navController.navigate(Screen.PersonalInfo.route) },
                 onLocationClick = { navController.navigate(Screen.Location.route) },
@@ -276,6 +277,7 @@ fun MainNavigation(
         }
 
         composable(Screen.Favorites.route) {
+            val favoriteViewModel: FavoriteViewModel = viewModel()
             FavoritesScreen(
                 favoriteViewModel = favoriteViewModel,
                 onBackClick = { navController.popBackStack() },
@@ -402,7 +404,8 @@ fun MainNavigation(
                     navController.popBackStack()
                 },
                 viewModel = shipperViewModel,
-                profileViewModel = profileViewModel
+                profileViewModel = profileViewModel,
+                authViewModel = authViewModel
             )
         }
 

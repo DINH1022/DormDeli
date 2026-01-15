@@ -16,13 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.dormdeli.R
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @Composable
@@ -43,7 +41,6 @@ fun ProfileAvatar(avatarUrl: String, size: Dp) {
                 contentScale = ContentScale.Crop
             )
         } else {
-            // Hiển thị ảnh Mock (icon Person) nếu chưa có avatar
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
@@ -59,7 +56,9 @@ fun ProfileMenuItem(
     icon: ImageVector,
     title: String,
     onClick: () -> Unit,
-    tint: Color = OrangePrimary
+    tint: Color = OrangePrimary,
+    trailingIcon: ImageVector? = null,
+    trailingIconTint: Color = Color(0xFF4CAF50)
 ) {
     Card(
         modifier = Modifier
@@ -84,12 +83,22 @@ fun ProfileMenuItem(
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = title, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = null,
-                tint = Color.Gray,
-                modifier = Modifier.size(16.dp)
-            )
+            
+            if (trailingIcon != null) {
+                Icon(
+                    trailingIcon,
+                    contentDescription = null,
+                    tint = trailingIconTint,
+                    modifier = Modifier.size(20.dp).padding(end = 4.dp)
+                )
+            } else {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
@@ -105,7 +114,7 @@ fun LogoutRow(onLogout: () -> Unit) {
     ) {
         Icon(Icons.Default.Logout, contentDescription = null, tint = Color.Red)
         Spacer(modifier = Modifier.width(16.dp))
-        Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Text("Log out", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Icon(
             Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = null,
