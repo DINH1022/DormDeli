@@ -32,6 +32,7 @@ import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.screens.admin.AdminScreen
+import com.example.dormdeli.ui.screens.customer.auth.StudentVerificationScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -55,6 +56,7 @@ fun MainNavigation(
     val errorMessage by authViewModel.errorMessage
     val phoneNumber by authViewModel.phoneNumber
     val currentUserRole by authViewModel.currentUserRole
+    val isVerifiedStudent by authViewModel.isVerifiedStudent
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
@@ -78,8 +80,15 @@ fun MainNavigation(
                 }
             }
             else -> {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(0) { inclusive = true }
+                // Nếu là student mà chưa xác thực thì đi tới màn hình xác thực
+                if (role == "student" && !isVerifiedStudent) {
+                    navController.navigate(Screen.StudentVerification.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
         }
@@ -223,34 +232,60 @@ fun MainNavigation(
             )
         }
 
-        composable(Screen.Home.route) {
-            val selectedAddress by locationViewModel.selectedAddress.collectAsState()
-            HomeScreen(
-                selectedAddress = selectedAddress?.label ?: "Select Location",
-                onStoreClick = { storeId ->
-                    navController.navigate(Screen.StoreDetail.createRoute(storeId))
+        composable(Screen.StudentVerification.route) {
+            StudentVerificationScreen(
+                authViewModel = authViewModel,
+                onVerificationSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
-                onFoodClick = { foodId ->
-                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
-                },
-                onProfileClick = {
-                    navController.navigate(Screen.Profile.route)
-                },
-                onLocationClick = {
-                    navController.navigate(Screen.Location.route)
-                },
-                onCartClick = {
-                    navController.navigate(Screen.Cart.route)
-                },
-                onFavoritesClick = {
-                    navController.navigate(Screen.Favorites.route)
-                },
-                onOrdersClick = { navController.navigate(Screen.Orders.route) },
-                onAddToCart = { food ->
-                    cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
-                },
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
+        }
+
+        composable(Screen.Home.route) {
+            // Kiểm tra bảo vệ route
+            if (currentUserRole == "student" && !isVerifiedStudent) {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.StudentVerification.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            } else {
+                val selectedAddress by locationViewModel.selectedAddress.collectAsState()
+                HomeScreen(
+                    selectedAddress = selectedAddress?.label ?: "Select Location",
+                    onStoreClick = { storeId ->
+                        navController.navigate(Screen.StoreDetail.createRoute(storeId))
+                    },
+                    onFoodClick = { foodId ->
+                        navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                    },
+                    onProfileClick = {
+                        navController.navigate(Screen.Profile.route)
+                    },
+                    onLocationClick = {
+                        navController.navigate(Screen.Location.route)
+                    },
+                    onCartClick = {
+                        navController.navigate(Screen.Cart.route)
+                    },
+                    onFavoritesClick = {
+                        navController.navigate(Screen.Favorites.route)
+                    },
+                    onOrdersClick = { navController.navigate(Screen.Orders.route) },
+                    onAddToCart = { food ->
+                        cartViewModel.addToCart(food, 1, emptyList())
+                        Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    },
+                )
+            }
         }
 
         composable(Screen.Location.route) {

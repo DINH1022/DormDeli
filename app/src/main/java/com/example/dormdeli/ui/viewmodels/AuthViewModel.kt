@@ -58,6 +58,9 @@ class AuthViewModel : ViewModel() {
     private val _currentUserRole = mutableStateOf<String?>(null)
     val currentUserRole: State<String?> = _currentUserRole
 
+    private val _isVerifiedStudent = mutableStateOf(false)
+    val isVerifiedStudent: State<Boolean> = _isVerifiedStudent
+
     private var tempRegistrationData: Map<String, String>? = null
 
     init {
@@ -69,18 +72,50 @@ class AuthViewModel : ViewModel() {
                 fetchCurrentUserRole()
             } else {
                 _currentUserRole.value = null
+                _isVerifiedStudent.value = false
             }
         }
     }
 
-    private fun fetchCurrentUserRole() {
+    fun fetchCurrentUserRole() {
         val uid = authRepository.getCurrentUser()?.uid ?: return
         userRepository.getUserById(uid, { user ->
             if (user != null) {
                 _currentUserRole.value = user.role
+                _isVerifiedStudent.value = user.isVerifiedStudent
                 _selectedRole.value = UserRole.from(user.role)
             }
         }, {})
+    }
+
+    fun verifyStudentIdentity(studentId: String, onSuccess: () -> Unit) {
+        val uid = authRepository.getCurrentUser()?.uid ?: return
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        // Kiểm tra xem MSSV đã được sử dụng bởi tài khoản khác chưa
+        userRepository.getUserByStudentId(studentId, { existingUser ->
+            if (existingUser != null && existingUser.uid != uid) {
+                _isLoading.value = false
+                _errorMessage.value = "The student ID $studentId has already been used by another account."
+            } else {
+                // Nếu chưa có ai dùng, tiến hành cập nhật
+                userRepository.updateUserFields(uid, mapOf(
+                    "isVerifiedStudent" to true,
+                    "studentId" to studentId
+                ), {
+                    _isVerifiedStudent.value = true
+                    _isLoading.value = false
+                    onSuccess()
+                }, {
+                    _errorMessage.value = "Authentication failed: ${it.message}"
+                    _isLoading.value = false
+                })
+            }
+        }, {
+            _errorMessage.value = "Student ID validation error: ${it.message}"
+            _isLoading.value = false
+        })
     }
 
     fun setRole(role: UserRole) {
@@ -119,7 +154,7 @@ class AuthViewModel : ViewModel() {
                             if (user != null) {
                                 // ROLE VERIFICATION: Account must match the selected role
                                 if (user.role == _selectedRole.value.value) {
-                                    completeSuccessfulLogin(user.role, onSuccess)
+                                    completeSuccessfulLogin(user, onSuccess)
                                 } else {
                                     _errorMessage.value = "This account does not have ${_selectedRole.value.value} permissions."
                                     authRepository.signOut()
@@ -145,9 +180,10 @@ class AuthViewModel : ViewModel() {
         )
     }
 
-    private fun completeSuccessfulLogin(role: String, onSuccess: () -> Unit) {
-        _currentUserRole.value = role
-        _selectedRole.value = UserRole.from(role)
+    private fun completeSuccessfulLogin(user: User, onSuccess: () -> Unit) {
+        _currentUserRole.value = user.role
+        _isVerifiedStudent.value = user.isVerifiedStudent
+        _selectedRole.value = UserRole.from(user.role)
         _isLoading.value = false
         onSuccess()
     }
@@ -208,7 +244,7 @@ class AuthViewModel : ViewModel() {
                             val roles = user.roles.toMutableList()
                             if (!roles.contains(role)) roles.add(role)
                             userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to roles, "role" to role), {
-                                completeSuccessfulLogin(role, onSuccess)
+                                completeSuccessfulLogin(user.copy(role = role), onSuccess)
                             }, { _isLoading.value = false })
                         }
                     }, { _isLoading.value = false })
@@ -219,7 +255,7 @@ class AuthViewModel : ViewModel() {
                         if (linkTask.isSuccessful) {
                             val newUser = User(phone = regData["phone"]!!, email = email, fullName = regData["fullName"]!!, role = role, roles = listOf(role))
                             userRepository.createUser(firebaseUser.uid, newUser, {
-                                completeSuccessfulLogin(role, onSuccess)
+                                completeSuccessfulLogin(newUser, onSuccess)
                             }, { _isLoading.value = false })
                         } else {
                             _errorMessage.value = "Email link error."
@@ -243,6 +279,7 @@ class AuthViewModel : ViewModel() {
             _isSignedIn.value = false
             _isGoogleLinked.value = false
             _currentUserRole.value = null
+            _isVerifiedStudent.value = false
             _currentScreen.value = AuthScreen.Login
             _phoneNumber.value = ""
             _verificationId.value = null
@@ -307,7 +344,7 @@ class AuthViewModel : ViewModel() {
                                 } else {
                                     // ROLE VERIFICATION: Tương tự login email
                                     if (existingUser.role == _selectedRole.value.value) {
-                                        completeSuccessfulLogin(existingUser.role, onSuccess)
+                                        completeSuccessfulLogin(existingUser, onSuccess)
                                     } else {
                                         _errorMessage.value = "This account does not have ${_selectedRole.value.value} permissions."
                                         signOut()

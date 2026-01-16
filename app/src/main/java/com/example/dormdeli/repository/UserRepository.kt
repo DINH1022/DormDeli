@@ -94,6 +94,24 @@ class UserRepository {
             .addOnFailureListener { onFailure(it) }
     }
 
+    fun getUserByStudentId(
+        studentId: String,
+        onSuccess: (User?) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        userCol.whereEqualTo("studentId", studentId)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    onSuccess(snapshot.documents[0].toObject(User::class.java))
+                } else {
+                    onSuccess(null)
+                }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
 
     fun getUsersByRole(
         role: UserRole,

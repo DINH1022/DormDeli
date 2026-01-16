@@ -13,5 +13,7 @@ data class User(
     val roles: List<String> = listOf("student"), // Support for multiple roles
     val avatarUrl: String = "",
     val active: Boolean = true,
+    val isVerifiedStudent: Boolean = false, // Xác thực sinh viên
+    val studentId: String = "", // MSSV sau khi quét thẻ
     val createdAt: Long = System.currentTimeMillis()
 )
