@@ -29,17 +29,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.dormdeli.model.Store
 import com.example.dormdeli.ui.screens.profile.LogoutRow
-import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import com.example.dormdeli.ui.seller.components.CustomTextField
 import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @Composable
 fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     val status by viewModel.restaurantStatus.collectAsState()
-    val restaurant by viewModel.restaurant.collectAsState()
+    val store by viewModel.store.collectAsState()
     val error by viewModel.error.collectAsState()
     val context = LocalContext.current
 
@@ -50,7 +51,7 @@ fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
             when (status) {
                 RestaurantStatus.NONE -> RegistrationForm(viewModel, onLogout)
                 RestaurantStatus.PENDING -> PendingScreen(onLogout)
-                RestaurantStatus.APPROVED -> restaurant?.let { r -> ApprovedRestaurantProfile(r, viewModel, onLogout) }
+                RestaurantStatus.APPROVED -> store?.let { r -> ApprovedRestaurantProfile(r, viewModel, onLogout) }
                 RestaurantStatus.REJECTED -> RejectedScreen(viewModel, onLogout)
             }
         }
@@ -95,7 +96,7 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = { viewModel.createRestaurant(name, description, location, openingHours) },
+            onClick = { viewModel.createStore(name, description, location, openingHours) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
             shape = RoundedCornerShape(12.dp),
@@ -129,7 +130,7 @@ fun RejectedScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
             Text("Hồ sơ bị từ chối", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFEA4335))
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { viewModel.deleteCurrentRestaurant() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA4335))) {
+            Button(onClick = { viewModel.deleteCurrentStore() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA4335))) {
                 Text("Đăng ký lại")
             }
             
@@ -140,11 +141,11 @@ fun RejectedScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
 }
 
 @Composable
-fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel, onLogout: () -> Unit) {
-    var name by remember(restaurant) { mutableStateOf(restaurant.name) }
-    var description by remember(restaurant) { mutableStateOf(restaurant.description) }
-    var location by remember(restaurant) { mutableStateOf(restaurant.location) }
-    var openingHours by remember { mutableStateOf(restaurant.openingHours) }
+fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout: () -> Unit) {
+    var name by remember(store) { mutableStateOf(store.name) }
+    var description by remember(store) { mutableStateOf(store.description) }
+    var location by remember(store) { mutableStateOf(store.location) }
+    var openingHours by remember { mutableStateOf(store.openTime) } // Using openTime
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -175,7 +176,7 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
                     .clip(CircleShape)
             ) {
                 Image(
-                    painter = rememberAsyncImagePainter(model = imageUri ?: restaurant.imageUrl),
+                    painter = rememberAsyncImagePainter(model = imageUri ?: store.imageUrl),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize().clickable { imagePickerLauncher.launch("image/*") },
                     contentScale = ContentScale.Crop
@@ -213,7 +214,7 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
 
         // Save Button
         Button(
-            onClick = { viewModel.updateRestaurantProfile(name, description, location, openingHours, imageUri) },
+            onClick = { viewModel.updateStoreProfile(name, description, location, openingHours, imageUri) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             contentPadding = PaddingValues(),
@@ -235,7 +236,7 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
 
         // Delete Button
         OutlinedButton(
-            onClick = { viewModel.deleteCurrentRestaurant() },
+            onClick = { viewModel.deleteCurrentStore() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEA4335)),
             border = BorderStroke(1.dp, Color(0xFFEA4335).copy(alpha = 0.5f)),
@@ -250,19 +251,4 @@ fun ApprovedRestaurantProfile(restaurant: Restaurant, viewModel: SellerViewModel
         
         Spacer(modifier = Modifier.height(32.dp))
     }
-}
-
-@Composable
-fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = OrangePrimary,
-            unfocusedBorderColor = Color.LightGray
-        )
-    )
 }

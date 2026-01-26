@@ -15,7 +15,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
+import com.example.dormdeli.ui.seller.components.CustomTextField
 import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
@@ -42,17 +42,17 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 @Composable
 fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
-    val editingMenuItem by viewModel.editingMenuItem.collectAsState()
+    val editingFood by viewModel.editingFood.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val isAutofillLoading by viewModel.isAutofillLoading.collectAsState()
     val autofilledDescription by viewModel.autofilledDescription.collectAsState()
     val autofillError by viewModel.autofillError.collectAsState()
 
-    var name by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.name ?: "") }
-    var price by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.price?.toString() ?: "") }
-    var description by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.description ?: "") }
-    var isAvailable by remember(editingMenuItem) { mutableStateOf(editingMenuItem?.isAvailable ?: true) }
+    var name by remember(editingFood) { mutableStateOf(editingFood?.name ?: "") }
+    var price by remember(editingFood) { mutableStateOf(editingFood?.price?.toString() ?: "") }
+    var description by remember(editingFood) { mutableStateOf(editingFood?.description ?: "") }
+    var keyAvailable by remember(editingFood) { mutableStateOf(editingFood?.available ?: true) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -60,7 +60,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     LaunchedEffect(autofilledDescription) { autofilledDescription?.let { description = it } }
     LaunchedEffect(error) { error?.let { Toast.makeText(context, "Lỗi: $it", Toast.LENGTH_LONG).show() } }
 
-    val displayImage: Any? = imageUri ?: editingMenuItem?.imageUrl
+    val displayImage: Any? = imageUri ?: editingFood?.imageUrl
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
@@ -80,7 +80,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
         ) {
             // Header Title
             Text(
-                text = if (editingMenuItem == null) "Thêm món mới" else "Chỉnh sửa món",
+                text = if (editingFood == null) "Thêm món mới" else "Chỉnh sửa món",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(16.dp)
             )
@@ -164,10 +164,10 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Trạng thái: ${if(isAvailable) "Đang bán" else "Hết hàng"}", fontWeight = FontWeight.SemiBold)
+                            Text("Trạng thái: ${if(keyAvailable) "Đang bán" else "Hết hàng"}", fontWeight = FontWeight.SemiBold)
                             Switch(
-                                checked = isAvailable,
-                                onCheckedChange = { isAvailable = it },
+                                checked = keyAvailable,
+                                onCheckedChange = { keyAvailable = it },
                                 colors = SwitchDefaults.colors(checkedThumbColor = OrangePrimary, checkedTrackColor = OrangeLight)
                             )
                         }
@@ -179,11 +179,11 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                 // Save Button Gradient
                 Button(
                     onClick = {
-                        viewModel.saveMenuItem(
+                        viewModel.saveFood(
                             name = name,
                             description = description,
                             price = price.toDoubleOrNull() ?: 0.0,
-                            isAvailable = isAvailable,
+                            isAvailable = keyAvailable,
                             imageUri = imageUri
                         ) { onNavigateBack() }
                     },
@@ -212,35 +212,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     }
 }
 
-// ĐÂY LÀ PHIÊN BẢN ĐÃ SỬA LỖI
-@Composable
-fun CustomTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    maxLines: Int = 1
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = OrangePrimary,
-            unfocusedBorderColor = Color.LightGray,
-            focusedLabelColor = OrangePrimary,
-            cursorColor = OrangePrimary,
-            focusedContainerColor = Color(0xFFFAFAFA),
-            unfocusedContainerColor = Color(0xFFFAFAFA)
-        ),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        maxLines = maxLines
-    )
-}
-
+// Helper Uri to Bitmap
 private fun Uri.toBitmap(context: Context): Bitmap? {
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

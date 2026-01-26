@@ -1,5 +1,7 @@
 package com.example.dormdeli.ui.screens.admin.features.store
 
+import com.example.dormdeli.model.Store
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.theme.BackgroundGray
 import com.example.dormdeli.ui.theme.CardBorder
 import com.example.dormdeli.ui.theme.Green
@@ -102,8 +103,8 @@ fun AdminApprovedStoresScreen(viewModel: AdminStoreManagementViewModel) {
 
 @Composable
 fun StoreItemCard(
-    store: Restaurant,
-    isPending: Boolean, // Thay isAdmin bằng isPending
+    store: Store,
+    isPending: Boolean,
     viewModel: AdminStoreManagementViewModel
 ) {
     Card(

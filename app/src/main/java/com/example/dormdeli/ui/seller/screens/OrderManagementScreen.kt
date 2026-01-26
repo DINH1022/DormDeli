@@ -86,7 +86,7 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
 
             // Nút tạo đơn mẫu (Optional)
             TextButton(
-                onClick = { viewModel.addSampleOrdersForCurrentRestaurant() },
+                onClick = { viewModel.addSampleOrdersForCurrentStore() },
                 modifier = Modifier.align(Alignment.End).padding(end = 8.dp)
             ) {
                 Text("Tạo đơn mẫu (+)", color = OrangePrimary)

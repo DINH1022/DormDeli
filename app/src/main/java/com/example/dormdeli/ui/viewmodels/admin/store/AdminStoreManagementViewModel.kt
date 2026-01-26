@@ -2,9 +2,8 @@ package com.example.dormdeli.ui.viewmodels.admin.store
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.model.Store
 import com.example.dormdeli.ui.admin.repository.AdminRepository
-import com.example.dormdeli.ui.seller.model.Restaurant
-import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,18 +23,18 @@ class AdminStoreManagementViewModel: ViewModel() {
 
     private val adminRepository = AdminRepository()
 
-    // Lấy tất cả cửa hàng từ repository
-    private val _allStores: StateFlow<List<Restaurant>> = adminRepository.getAllStoresStream()
+    // Lấy tất cả cửa hàng từ repository (Store model)
+    private val _allStores: StateFlow<List<Store>> = adminRepository.getAllStoresStream()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Lọc danh sách cửa hàng chờ duyệt
-    val pendingStores: StateFlow<List<Restaurant>> = _allStores
-        .map { stores -> stores.filter { it.status == RestaurantStatus.PENDING.name } }
+    // Lọc danh sách cửa hàng chờ duyệt (approved == false)
+    val pendingStores: StateFlow<List<Store>> = _allStores
+        .map { stores -> stores.filter { !it.approved } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Lọc danh sách cửa hàng đã duyệt
-    val approvedStores: StateFlow<List<Restaurant>> = _allStores
-        .map { stores -> stores.filter { it.status == RestaurantStatus.APPROVED.name } }
+    // Lọc danh sách cửa hàng đã duyệt (approved == true)
+    val approvedStores: StateFlow<List<Store>> = _allStores
+        .map { stores -> stores.filter { it.approved } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun selectTab(tab: String) {

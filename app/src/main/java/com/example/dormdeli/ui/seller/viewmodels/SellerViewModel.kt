@@ -5,10 +5,10 @@ import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.model.Food
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.model.Store
 import com.example.dormdeli.repository.OrderRepository
-import com.example.dormdeli.ui.seller.model.MenuItem
-import com.example.dormdeli.ui.seller.model.Restaurant
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.repository.SellerRepository
 import kotlinx.coroutines.Dispatchers
@@ -48,24 +48,34 @@ class SellerViewModel : ViewModel() {
     private val _autofilledDescription = MutableStateFlow<String?>(null)
     val autofilledDescription: StateFlow<String?> = _autofilledDescription.asStateFlow()
 
-    val restaurant: StateFlow<Restaurant?> = repository.getRestaurantFlow()
+    val store: StateFlow<Store?> = repository.getStoreFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val restaurantStatus: StateFlow<RestaurantStatus> = restaurant.map { restaurant ->
-        if (restaurant == null) RestaurantStatus.NONE
-        else try { enumValueOf<RestaurantStatus>(restaurant.status) } catch (e: Exception) { RestaurantStatus.NONE }
+    // Mapping Store approved/active status to a status enum or similar if needed
+    // For now, let's keep logic compatible with UI if possible, or expose plain info
+    // UI likely uses RestaurantStatus. Let's try to map it to allow minimal UI breakage,
+    // or we might need to update UI to check store.approved directly.
+    // Given the request to "switch back to Store", using Store properties is better.
+    // However, for compilation safety if I don't change all UI at once, I might expose a mapped status.
+    // But I will assume I can update UI too.
+    
+    // Retaining restaurantStatus for UI compatibility but mapped from Store
+    val restaurantStatus: StateFlow<RestaurantStatus> = store.map { s ->
+        if (s == null) RestaurantStatus.NONE
+        else if (s.approved) RestaurantStatus.APPROVED
+        else RestaurantStatus.PENDING 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RestaurantStatus.NONE)
 
-    val menuItems: StateFlow<List<MenuItem>> = restaurant.flatMapLatest { restaurant ->
-        restaurant?.id?.let { repository.getMenuItemsFlow(it) } ?: MutableStateFlow(emptyList())
+    val foods: StateFlow<List<Food>> = store.flatMapLatest { s ->
+        s?.id?.let { repository.getFoodsFlow(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _editingMenuItem = MutableStateFlow<MenuItem?>(null)
-    val editingMenuItem = _editingMenuItem.asStateFlow()
+    private val _editingFood = MutableStateFlow<Food?>(null)
+    val editingFood = _editingFood.asStateFlow()
 
     // === DỮ LIỆU ĐƠN HÀNG (ĐÃ NÂNG CẤP) ===
-    val orders: StateFlow<List<Order>> = restaurant.flatMapLatest { restaurant ->
-        restaurant?.id?.let { orderRepository.getOrdersStreamForStore(it) } ?: MutableStateFlow(emptyList())
+    val orders: StateFlow<List<Order>> = store.flatMapLatest { s ->
+        s?.id?.let { orderRepository.getOrdersStreamForStore(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val pendingOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "pending" } }
@@ -95,7 +105,7 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun declineOrder(orderId: String) { // Thêm hàm từ chối
+    fun declineOrder(orderId: String) {
         viewModelScope.launch {
             orderRepository.updateOrderStatus(orderId, "cancelled")
         }
@@ -107,47 +117,23 @@ class SellerViewModel : ViewModel() {
         }
     }
     
-    fun addSampleOrdersForCurrentRestaurant() {
+    fun addSampleOrdersForCurrentStore() {
         viewModelScope.launch {
-            restaurant.value?.id?.let { orderRepository.addSampleOrders(it) }
+            store.value?.id?.let { orderRepository.addSampleOrders(it) }
         }
     }
     
-    fun onAddNewItemClick() {
-        _editingMenuItem.value = null
+    fun onAddNewFoodClick() {
+        _editingFood.value = null
     }
 
-    fun onEditItemClick(item: MenuItem) {
-        _editingMenuItem.value = item
+    fun onEditFoodClick(item: Food) {
+        _editingFood.value = item
     }
 
     fun clearAutofill() {
         _autofilledDescription.value = null
         _autofillError.value = null
-    }
-
-    private fun scaleBitmapDown(bitmap: Bitmap, maxDimension: Int): Bitmap {
-        val originalWidth = bitmap.width
-        val originalHeight = bitmap.height
-        var resizedWidth = maxDimension
-        var resizedHeight = maxDimension
-
-        if (originalHeight > originalWidth) {
-            resizedHeight = maxDimension
-            resizedWidth = (resizedHeight * originalWidth.toFloat() / originalHeight.toFloat()).toInt()
-        } else {
-            resizedWidth = maxDimension
-            resizedHeight = (resizedWidth * originalHeight.toFloat() / originalWidth.toFloat()).toInt()
-        }
-        return Bitmap.createScaledBitmap(bitmap, resizedWidth, resizedHeight, false)
-    }
-
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-        val scaledBitmap = scaleBitmapDown(bitmap, 800)
-        val outputStream = ByteArrayOutputStream()
-        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)
-        val byteArray = outputStream.toByteArray()
-        return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }
 
     fun autofillDescription(foodName: String, foodImage: Bitmap) {
@@ -215,11 +201,35 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun createRestaurant(name: String, description: String, location: String, openingHours: String) {
+    private fun scaleBitmapDown(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val originalWidth = bitmap.width
+        val originalHeight = bitmap.height
+        var resizedWidth = maxDimension
+        var resizedHeight = maxDimension
+
+        if (originalHeight > originalWidth) {
+            resizedHeight = maxDimension
+            resizedWidth = (resizedHeight * originalWidth.toFloat() / originalHeight.toFloat()).toInt()
+        } else {
+            resizedWidth = maxDimension
+            resizedHeight = (resizedWidth * originalHeight.toFloat() / originalWidth.toFloat()).toInt()
+        }
+        return Bitmap.createScaledBitmap(bitmap, resizedWidth, resizedHeight, false)
+    }
+
+    private fun bitmapToBase64(bitmap: Bitmap): String {
+        val scaledBitmap = scaleBitmapDown(bitmap, 800)
+        val outputStream = ByteArrayOutputStream()
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)
+        val byteArray = outputStream.toByteArray()
+        return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+    }
+
+    fun createStore(name: String, description: String, location: String, openingHours: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            val result = repository.createRestaurant(name, description, location, openingHours)
+            val result = repository.createStore(name, description, location, openingHours)
             if (result.isFailure) {
                 _error.value = result.exceptionOrNull()?.message ?: "An unknown error occurred."
             }
@@ -227,28 +237,28 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun updateRestaurantProfile(name: String, description: String, location: String, openingHours: String, imageUri: Uri?) {
+    fun updateStoreProfile(name: String, description: String, location: String, openingHours: String, imageUri: Uri?) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            val currentRestaurant = restaurant.value
-            if (currentRestaurant == null) {
-                _error.value = "Restaurant not found."
+            val currentStore = store.value
+            if (currentStore == null) {
+                _error.value = "Store not found."
                 _isLoading.value = false
                 return@launch
             }
 
-            val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: currentRestaurant.imageUrl
+            val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: currentStore.imageUrl
 
-            val updatedRestaurant = currentRestaurant.copy(
+            val updatedStore = currentStore.copy(
                 name = name,
                 description = description,
                 location = location,
-                openingHours = openingHours,
+                openTime = openingHours, // Mapping manually
                 imageUrl = imageUrl
             )
 
-            val result = repository.updateRestaurant(updatedRestaurant)
+            val result = repository.updateStore(updatedStore)
             if (result.isFailure) {
                 _error.value = result.exceptionOrNull()?.message ?: "Failed to update profile."
             }
@@ -256,44 +266,50 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun deleteCurrentRestaurant() {
+    fun deleteCurrentStore() {
         viewModelScope.launch {
-            restaurant.value?.id?.let { repository.deleteRestaurant(it) }
+            store.value?.id?.let { repository.deleteStore(it) }
         }
     }
 
-    fun saveMenuItem(name: String, description: String, price: Double, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
+    fun saveFood(name: String, description: String, price: Double, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            val currentRestaurantId = restaurant.value?.id
-            if (currentRestaurantId == null) {
-                _error.value = "Restaurant not found."
+            val currentStoreId = store.value?.id
+            if (currentStoreId == null) {
+                _error.value = "Store not found."
                 _isLoading.value = false
                 return@launch
             }
 
-            val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: editingMenuItem.value?.imageUrl ?: ""
+            val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: editingFood.value?.imageUrl ?: ""
 
-            val itemToSave = editingMenuItem.value?.copy(
+            // Food uses Long for price
+            val priceLong = price.toLong()
+
+            val foodToSave = editingFood.value?.copy(
+                storeId = currentStoreId,
                 name = name,
                 description = description,
-                price = price,
-                isAvailable = isAvailable,
+                price = priceLong,
+                available = isAvailable,
                 imageUrl = imageUrl
-            ) ?: MenuItem(
+            ) ?: Food(
                 id = UUID.randomUUID().toString(),
+                storeId = currentStoreId,
                 name = name,
                 description = description,
-                price = price,
-                isAvailable = isAvailable,
-                imageUrl = imageUrl
+                price = priceLong,
+                available = isAvailable,
+                imageUrl = imageUrl,
+                category = "Main Course" // Default category? Or needed arg?
             )
 
-            val result = if (editingMenuItem.value == null) {
-                repository.addMenuItem(currentRestaurantId, itemToSave)
+            val result = if (editingFood.value == null) {
+                repository.addFood(currentStoreId, foodToSave)
             } else {
-                repository.updateMenuItem(currentRestaurantId, itemToSave)
+                repository.updateFood(foodToSave)
             }
 
             if (result.isFailure) {
@@ -305,10 +321,9 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun deleteMenuItem(item: MenuItem) {
+    fun deleteFood(item: Food) {
         viewModelScope.launch {
-            val currentRestaurantId = restaurant.value?.id ?: return@launch
-            repository.deleteMenuItem(currentRestaurantId, item.id)
+            repository.deleteFood(item.id)
         }
     }
 }

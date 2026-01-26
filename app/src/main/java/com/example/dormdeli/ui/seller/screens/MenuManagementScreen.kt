@@ -1,11 +1,9 @@
 package com.example.dormdeli.ui.seller.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -18,18 +16,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.dormdeli.R
-import com.example.dormdeli.ui.seller.model.MenuItem
+import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 import com.example.dormdeli.ui.theme.OrangePrimary
 import java.text.NumberFormat
@@ -37,14 +33,14 @@ import java.util.Locale
 
 @Composable
 fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavigateToAddEdit: () -> Unit) {
-    val menuItems by sellerViewModel.menuItems.collectAsState()
+    val foods by sellerViewModel.foods.collectAsState()
 
     Scaffold(
         containerColor = Color(0xFFF8F9FA), // Nền xám hiện đại
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    sellerViewModel.onAddNewItemClick()
+                    sellerViewModel.onAddNewFoodClick()
                     onNavigateToAddEdit()
                 },
                 shape = RoundedCornerShape(16.dp), // Bo góc vuông mềm thay vì tròn hẳn
@@ -72,14 +68,14 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
                 )
             }
 
-            items(menuItems, key = { it.id }) { item ->
-                MenuItemRow(
+            items(foods, key = { it.id }) { item ->
+                FoodItemRow(
                     item = item,
                     onEditClick = {
-                        sellerViewModel.onEditItemClick(item)
+                        sellerViewModel.onEditFoodClick(item)
                         onNavigateToAddEdit()
                     },
-                    onDeleteClick = { sellerViewModel.deleteMenuItem(item) }
+                    onDeleteClick = { sellerViewModel.deleteFood(item) }
                 )
             }
 
@@ -89,7 +85,7 @@ fun MenuManagementScreen(sellerViewModel: SellerViewModel = viewModel(), onNavig
 }
 
 @Composable
-fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
+fun FoodItemRow(item: Food, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -104,7 +100,7 @@ fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Un
         ) {
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = item.imageUrl,
+                    model = item.imageUrl.ifEmpty { R.drawable.ic_launcher_background }, // Placeholder handling if empty
                     placeholder = painterResource(id = R.drawable.ic_launcher_background),
                     error = painterResource(id = R.drawable.ic_launcher_background)
                 ),
@@ -128,12 +124,12 @@ fun MenuItemRow(item: MenuItem, onEditClick: () -> Unit, onDeleteClick: () -> Un
 
                 // Badge trạng thái
                 Surface(
-                    color = if (item.isAvailable) Color(0xFFE6F4EA) else Color(0xFFFCE8E6),
+                    color = if (item.available) Color(0xFFE6F4EA) else Color(0xFFFCE8E6),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (item.isAvailable) "Đang bán" else "Hết hàng",
-                        color = if (item.isAvailable) Color(0xFF34A853) else Color(0xFFEA4335),
+                        text = if (item.available) "Đang bán" else "Hết hàng",
+                        color = if (item.available) Color(0xFF34A853) else Color(0xFFEA4335),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
