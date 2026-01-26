@@ -9,11 +9,15 @@ data class User(
     val phone: String = "",
     val dormBlock: String = "",
     val roomNumber: String = "",
-    val role: String = "student", // Primary role for backward compatibility
-    val roles: List<String> = listOf("student"), // Support for multiple roles
+    val role: String = "student",
+    val roles: List<String> = listOf("student"),
     val avatarUrl: String = "",
     val active: Boolean = true,
-    val isVerifiedStudent: Boolean = false, // Xác thực sinh viên
-    val studentId: String = "", // MSSV sau khi quét thẻ
+    
+    @get:PropertyName("isVerifiedStudent")
+    @PropertyName("isVerifiedStudent")
+    val isVerifiedStudent: Boolean = false, 
+    
+    val studentId: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )

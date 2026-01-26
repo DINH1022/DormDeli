@@ -1,8 +1,14 @@
 package com.example.dormdeli.ui.navigation
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -57,12 +63,18 @@ fun MainNavigation(
     val phoneNumber by authViewModel.phoneNumber
     val currentUserRole by authViewModel.currentUserRole
     val isVerifiedStudent by authViewModel.isVerifiedStudent
+    val isDataLoaded by authViewModel.isDataLoaded
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
 
     val navigateAfterLogin: () -> Unit = {
-        val role = authViewModel.selectedRole.value.value
+        // Lấy giá trị thực tế nhất từ ViewModel
+        val role = authViewModel.currentUserRole.value ?: authViewModel.selectedRole.value.value
+        val isVerified = authViewModel.isVerifiedStudent.value 
+
+        Log.d("Navigation", "Navigating after login: Role=$role, Verified=$isVerified")
+
         when (role) {
             "admin" -> {
                 navController.navigate(Screen.AdminMain.route) {
@@ -80,12 +92,14 @@ fun MainNavigation(
                 }
             }
             else -> {
-                // Nếu là student mà chưa xác thực thì đi tới màn hình xác thực
-                if (role == "student" && !isVerifiedStudent) {
+                // Kiểm tra kỹ điều kiện student
+                if ((role == "student" || role == "customer") && !isVerified) {
+                    Log.d("Navigation", "User not verified, redirecting to Verification")
                     navController.navigate(Screen.StudentVerification.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 } else {
+                    Log.d("Navigation", "User verified or other role, redirecting to Home")
                     navController.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -221,7 +235,7 @@ fun MainNavigation(
                 phoneNumber = phoneNumber,
                 onVerifyClick = { code ->
                     authViewModel.verifyOTP(code) {
-                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
                         navigateAfterLogin()
                     }
                 },
@@ -233,6 +247,15 @@ fun MainNavigation(
         }
 
         composable(Screen.StudentVerification.route) {
+            // Tự động điều hướng nếu dữ liệu báo đã xác thực
+            LaunchedEffect(isVerifiedStudent, isDataLoaded) {
+                if (isDataLoaded && isVerifiedStudent) {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+            
             StudentVerificationScreen(
                 authViewModel = authViewModel,
                 onVerificationSuccess = {
@@ -250,8 +273,11 @@ fun MainNavigation(
         }
 
         composable(Screen.Home.route) {
-            // Kiểm tra bảo vệ route
-            if (currentUserRole == "student" && !isVerifiedStudent) {
+            if (!isDataLoaded) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if ((currentUserRole == "student" || currentUserRole == "customer") && !isVerifiedStudent) {
                 LaunchedEffect(Unit) {
                     navController.navigate(Screen.StudentVerification.route) {
                         popUpTo(0) { inclusive = true }
@@ -282,7 +308,7 @@ fun MainNavigation(
                     onOrdersClick = { navController.navigate(Screen.Orders.route) },
                     onAddToCart = { food ->
                         cartViewModel.addToCart(food, 1, emptyList())
-                        Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                     },
                 )
             }
@@ -381,7 +407,7 @@ fun MainNavigation(
                 },
                 onAddToCart = { food ->
                     cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -439,7 +465,7 @@ fun MainNavigation(
                 },
                 onAddToCart = { food ->
                     cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -456,7 +482,7 @@ fun MainNavigation(
                 onBackClick = { navController.popBackStack() },
                 onAddToCart = { food, quantity, options ->
                     cartViewModel.addToCart(food, quantity, options)
-                    Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added $quantity items to cart", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = { navController.navigate(Screen.Reviews.createRoute(foodId)) },
                 isFavorite = isFav,
