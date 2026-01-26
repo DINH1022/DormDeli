@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController // Vô hiệu hóa
+import androidx.navigation.compose.rememberNavController
 import com.cloudinary.android.MediaManager
 import com.example.dormdeli.repository.UserRepository
 import com.example.dormdeli.ui.components.DaisyLoadingScreen
@@ -42,9 +42,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Khởi tạo kênh thông báo ngay khi app bắt đầu
         NotificationHelper.createNotificationChannel(this)
-
         checkAndRequestNotificationPermission()
         initCloudinary()
         enableEdgeToEdge()
@@ -58,31 +56,44 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val isSignedIn by authViewModel.isSignedIn
-                    val userRole by authViewModel.currentUserRole
+                    val currentUserRole by authViewModel.currentUserRole
 
-                    // Determine start destination based on auth state
-//                    val startDestination = remember {
-//                        if (authViewModel.isSignedIn.value) Screen.Home.route else Screen.Login.route
-//                    }
-                    val startDestination = "seller_main"
-                    // Lấy FCM Token khi đã đăng nhập
-                    LaunchedEffect(isSignedIn) {
-                        if (isSignedIn) {
-                            fetchAndStoreFcmToken()
-                        }
+                    // Use a state to check if the app is finished initializing the role
+                    val isReady = remember(isSignedIn, currentUserRole) {
+                        !isSignedIn || currentUserRole != null
                     }
 
-                    // Trạng thái để kiểm soát việc hiển thị màn hình chính
-                    var isReady by remember { mutableStateOf(false) }
+                    if (!isReady) {
+                        // Show a loading screen while fetching the role from Firestore
+                        DaisyLoadingScreen()
+                    } else {
+                        val startDestination = remember(isSignedIn, currentUserRole) {
+                            if (!isSignedIn) {
+                                Screen.Login.route
+                            } else {
+                                when (currentUserRole) {
+                                    "admin" -> Screen.AdminMain.route
+                                    "seller" -> Screen.SellerMain.route
+                                    "shipper" -> Screen.ShipperHome.route
+                                    else -> Screen.Home.route
+                                }
+                            }
+                        }
 
+                        LaunchedEffect(isSignedIn) {
+                            if (isSignedIn) {
+                                fetchAndStoreFcmToken()
+                            }
+                        }
 
-                    MainNavigation(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        cartViewModel = cartViewModel,
-                        favoriteViewModel = favoriteViewModel, // Added
-                        startDestination = startDestination
-                    )
+                        MainNavigation(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            cartViewModel = cartViewModel,
+                            favoriteViewModel = favoriteViewModel,
+                            startDestination = startDestination
+                        )
+                    }
                 }
             }
         }
@@ -112,7 +123,7 @@ class MainActivity : ComponentActivity() {
         try {
             MediaManager.init(this, config)
         } catch (e: Exception) {
-            // MediaManager đã init
+            // Already initialized
         }
     }
 
@@ -125,12 +136,7 @@ class MainActivity : ComponentActivity() {
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
                     1001
                 )
-            } else {
-                Log.d("NOTI_PERMISSION", "Notification permission đã được cấp")
             }
-        } else {
-            Log.d("NOTI_PERMISSION", "Android < 13, không cần xin quyền")
         }
     }
-
 }

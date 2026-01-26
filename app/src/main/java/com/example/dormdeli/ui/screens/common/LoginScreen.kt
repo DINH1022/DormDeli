@@ -1,6 +1,8 @@
 package com.example.dormdeli.ui.screens.common
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -29,8 +31,6 @@ import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.viewmodels.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.dormdeli.R
-import com.example.dormdeli.enums.UserRole
-import com.example.dormdeli.ui.components.customer.RoleSelectionButton
 
 @Composable
 fun LoginScreen(
@@ -47,7 +47,6 @@ fun LoginScreen(
     var rememberMe by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val currentRole = authViewModel?.selectedRole?.value ?: UserRole.STUDENT
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -82,26 +81,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                RoleSelectionButton(
-                    text = "Customer",
-                    isSelected = currentRole == UserRole.STUDENT,
-                    onClick = { authViewModel?.setRole(UserRole.STUDENT) }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                RoleSelectionButton(
-                    text = "Shipper",
-                    isSelected = currentRole == UserRole.SHIPPER,
-                    onClick = { authViewModel?.setRole(UserRole.SHIPPER) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Email Input
             OutlinedTextField(
@@ -174,7 +154,7 @@ fun LoginScreen(
                 )
             ) {
                 Text(
-                    text = "Sign in as ${if (currentRole == UserRole.STUDENT) "Customer" else "Shipper"}",
+                    text = "Sign in",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -200,7 +180,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(text = "Don't have an account? ", fontSize = 14.sp, color = Color.Gray)
@@ -212,6 +192,33 @@ fun LoginScreen(
                     modifier = Modifier.clickable { onRegisterClick() }
                 )
             }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = "To become seller, contact: ",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "0123456789",
+                    fontSize = 14.sp,
+                    color = OrangePrimary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:0123456789")
+                        }
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
         }
     }
 }

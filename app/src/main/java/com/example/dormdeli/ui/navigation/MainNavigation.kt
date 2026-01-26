@@ -1,8 +1,14 @@
 package com.example.dormdeli.ui.navigation
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -31,6 +37,8 @@ import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
+import com.example.dormdeli.ui.screens.admin.AdminScreen
+import com.example.dormdeli.ui.screens.customer.auth.StudentVerificationScreen
 import com.example.dormdeli.ui.viewmodels.customer.CartViewModel
 import com.example.dormdeli.ui.viewmodels.LocationViewModel
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
@@ -53,19 +61,49 @@ fun MainNavigation(
     val currentAuthScreen by authViewModel.currentScreen
     val errorMessage by authViewModel.errorMessage
     val phoneNumber by authViewModel.phoneNumber
+    val currentUserRole by authViewModel.currentUserRole
+    val isVerifiedStudent by authViewModel.isVerifiedStudent
+    val isDataLoaded by authViewModel.isDataLoaded
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
 
     val navigateAfterLogin: () -> Unit = {
-        val role = authViewModel.selectedRole.value.value
-        if (role == "shipper") {
-            navController.navigate(Screen.ShipperHome.route) {
-                popUpTo(0) { inclusive = true }
+        // Lấy giá trị thực tế nhất từ ViewModel
+        val role = authViewModel.currentUserRole.value ?: authViewModel.selectedRole.value.value
+        val isVerified = authViewModel.isVerifiedStudent.value 
+
+        Log.d("Navigation", "Navigating after login: Role=$role, Verified=$isVerified")
+
+        when (role) {
+            "admin" -> {
+                navController.navigate(Screen.AdminMain.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
-        } else {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(0) { inclusive = true }
+            "shipper" -> {
+                navController.navigate(Screen.ShipperHome.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            "seller" -> {
+                navController.navigate(Screen.SellerMain.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            else -> {
+                // Kiểm tra kỹ điều kiện student
+                if ((role == "student" || role == "customer") && !isVerified) {
+                    Log.d("Navigation", "User not verified, redirecting to Verification")
+                    navController.navigate(Screen.StudentVerification.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } else {
+                    Log.d("Navigation", "User verified or other role, redirecting to Home")
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             }
         }
     }
@@ -112,16 +150,44 @@ fun MainNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable("seller_main") {
-            SellerMainScreen(
-                onLogout = {
-                    authViewModel.signOut()
+        composable(Screen.AdminMain.route) {
+            if (currentUserRole == "admin") {
+                AdminScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
-            )
+            }
         }
+        
+        composable(Screen.SellerMain.route) {
+            if (currentUserRole == "seller") {
+                SellerMainScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
+
         composable(Screen.Login.route) {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -169,7 +235,7 @@ fun MainNavigation(
                 phoneNumber = phoneNumber,
                 onVerifyClick = { code ->
                     authViewModel.verifyOTP(code) {
-                        Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
                         navigateAfterLogin()
                     }
                 },
@@ -180,34 +246,72 @@ fun MainNavigation(
             )
         }
 
-        composable(Screen.Home.route) {
-            val selectedAddress by locationViewModel.selectedAddress.collectAsState()
-            HomeScreen(
-                selectedAddress = selectedAddress?.label ?: "Select Location",
-                onStoreClick = { storeId ->
-                    navController.navigate(Screen.StoreDetail.createRoute(storeId))
+        composable(Screen.StudentVerification.route) {
+            // Tự động điều hướng nếu dữ liệu báo đã xác thực
+            LaunchedEffect(isVerifiedStudent, isDataLoaded) {
+                if (isDataLoaded && isVerifiedStudent) {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+            
+            StudentVerificationScreen(
+                authViewModel = authViewModel,
+                onVerificationSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
-                onFoodClick = { foodId ->
-                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
-                },
-                onProfileClick = {
-                    navController.navigate(Screen.Profile.route)
-                },
-                onLocationClick = {
-                    navController.navigate(Screen.Location.route)
-                },
-                onCartClick = {
-                    navController.navigate(Screen.Cart.route)
-                },
-                onFavoritesClick = {
-                    navController.navigate(Screen.Favorites.route)
-                },
-                onOrdersClick = { navController.navigate(Screen.Orders.route) },
-                onAddToCart = { food ->
-                    cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
-                },
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
+        }
+
+        composable(Screen.Home.route) {
+            if (!isDataLoaded) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if ((currentUserRole == "student" || currentUserRole == "customer") && !isVerifiedStudent) {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.StudentVerification.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            } else {
+                val selectedAddress by locationViewModel.selectedAddress.collectAsState()
+                HomeScreen(
+                    selectedAddress = selectedAddress?.label ?: "Select Location",
+                    onStoreClick = { storeId ->
+                        navController.navigate(Screen.StoreDetail.createRoute(storeId))
+                    },
+                    onFoodClick = { foodId ->
+                        navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                    },
+                    onProfileClick = {
+                        navController.navigate(Screen.Profile.route)
+                    },
+                    onLocationClick = {
+                        navController.navigate(Screen.Location.route)
+                    },
+                    onCartClick = {
+                        navController.navigate(Screen.Cart.route)
+                    },
+                    onFavoritesClick = {
+                        navController.navigate(Screen.Favorites.route)
+                    },
+                    onOrdersClick = { navController.navigate(Screen.Orders.route) },
+                    onAddToCart = { food ->
+                        cartViewModel.addToCart(food, 1, emptyList())
+                        Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
+                    },
+                )
+            }
         }
 
         composable(Screen.Location.route) {
@@ -303,7 +407,7 @@ fun MainNavigation(
                 },
                 onAddToCart = { food ->
                     cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -361,7 +465,7 @@ fun MainNavigation(
                 },
                 onAddToCart = { food ->
                     cartViewModel.addToCart(food, 1, emptyList())
-                    Toast.makeText(context, "Đã thêm 1 món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -378,7 +482,7 @@ fun MainNavigation(
                 onBackClick = { navController.popBackStack() },
                 onAddToCart = { food, quantity, options ->
                     cartViewModel.addToCart(food, quantity, options)
-                    Toast.makeText(context, "Đã thêm $quantity món vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Added $quantity items to cart", Toast.LENGTH_SHORT).show()
                 },
                 onSeeReviewsClick = { navController.navigate(Screen.Reviews.createRoute(foodId)) },
                 isFavorite = isFav,
@@ -395,32 +499,40 @@ fun MainNavigation(
         }
 
         composable(Screen.ShipperHome.route) {
-            val shipperViewModel: ShipperViewModel = viewModel()
-            ShipperHomeScreen(
-                onLogout = {
-                    authViewModel.signOut()
+            if (currentUserRole == "shipper") {
+                val shipperViewModel: ShipperViewModel = viewModel()
+                ShipperHomeScreen(
+                    onLogout = {
+                        authViewModel.signOut()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onOrderDetail = { orderId ->
+                        navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
+                    },
+                    onPersonalInfoClick = {
+                        navController.navigate(Screen.PersonalInfo.route)
+                    },
+                    onSwitchToCustomer = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onBackNav = {
+                        navController.popBackStack()
+                    },
+                    viewModel = shipperViewModel,
+                    profileViewModel = profileViewModel,
+                    authViewModel = authViewModel
+                )
+            } else if (currentUserRole != null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                },
-                onOrderDetail = { orderId ->
-                    navController.navigate(Screen.DeliveryDetail.createRoute(orderId))
-                },
-                onPersonalInfoClick = {
-                    navController.navigate(Screen.PersonalInfo.route)
-                },
-                onSwitchToCustomer = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                onBackNav = {
-                    navController.popBackStack()
-                },
-                viewModel = shipperViewModel,
-                profileViewModel = profileViewModel,
-                authViewModel = authViewModel
-            )
+                }
+            }
         }
 
         composable(

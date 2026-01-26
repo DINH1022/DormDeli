@@ -61,6 +61,7 @@ import com.example.dormdeli.ui.viewmodels.admin.AdminViewModel
 @Composable
 fun AdminScreen(
     viewModel: AdminViewModel = viewModel(),
+    onLogout: () -> Unit // Thêm tham số onLogout
 ) {
     val features = viewModel.features.value
     val selectedFeature = viewModel.selectedFeature.value
@@ -230,7 +231,6 @@ fun AdminScreen(
                                                 }
                                             },
                                             onClick = {
-                                                // TODO: Handle Profile click
                                                 showProfileMenu = false
                                             }
                                         )
@@ -258,8 +258,8 @@ fun AdminScreen(
                                                 }
                                             },
                                             onClick = {
-                                                // TODO: Handle Logout click
                                                 showProfileMenu = false
+                                                onLogout() // Gọi callback onLogout
                                             }
                                         )
                                     }

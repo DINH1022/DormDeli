@@ -107,7 +107,7 @@ fun SellerMainScreen(
 fun UnauthorizedScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = "Bạn chưa có quán ăn được cấp phép",
+            text = "Bạn chưa có quán ăn được cấp phép hoặc đang chờ duyệt.",
             textAlign = TextAlign.Center
         )
     }

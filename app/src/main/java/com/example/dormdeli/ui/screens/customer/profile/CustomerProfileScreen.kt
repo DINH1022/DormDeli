@@ -38,12 +38,15 @@ fun CustomerProfileScreen(
     onLogout: () -> Unit
 ) {
     val user by viewModel.userState
+    val shipperRequest by viewModel.shipperRequestState
     val registerShipperSuccess by viewModel.registerShipperSuccess
     val isGoogleLinked by authViewModel.isGoogleLinked
     val isLoading by authViewModel.isLoading
     val errorMessage by authViewModel.errorMessage
     val context = LocalContext.current
+    
     val hasShipperRole = user?.roles?.contains("shipper") == true
+    val isRequestPending = shipperRequest != null && !shipperRequest!!.approved
     
     var showRegisterDialog by remember { mutableStateOf(false) }
 
@@ -67,9 +70,8 @@ fun CustomerProfileScreen(
 
     LaunchedEffect(registerShipperSuccess) {
         if (registerShipperSuccess) {
-            Toast.makeText(context, "Congratulations! You have become a Shipper.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Your request has been sent to Admin. Please wait for approval.", Toast.LENGTH_LONG).show()
             viewModel.resetUpdateSuccess()
-            onSwitchToShipper() 
         }
     }
 
@@ -77,7 +79,7 @@ fun CustomerProfileScreen(
         AlertDialog(
             onDismissRequest = { showRegisterDialog = false },
             title = { Text("Become a Shipper", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to register as a shipper? You will be able to receive and deliver orders.") },
+            text = { Text("Your registration will be reviewed by the Admin. Once approved, you can start delivering orders.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -86,7 +88,7 @@ fun CustomerProfileScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
                 ) {
-                    Text("Register", color = Color.White)
+                    Text("Send Request", color = Color.White)
                 }
             },
             dismissButton = {
@@ -167,23 +169,36 @@ fun CustomerProfileScreen(
                     trailingIcon = if (isGoogleLinked) Icons.Default.CheckCircle else null
                 )
                 
-                if (hasShipperRole) {
-                    ProfileMenuItem(
-                        icon = Icons.Default.DirectionsRun,
-                        title = "Switch to Shipper Mode",
-                        onClick = {
-                            viewModel.switchActiveRole("shipper") {
-                                onSwitchToShipper()
-                            }
-                        },
-                        tint = Color(0xFF4CAF50)
-                    )
-                } else {
-                    ProfileMenuItem(
-                        icon = Icons.Default.Badge,
-                        title = "Become a Shipper",
-                        onClick = { showRegisterDialog = true }
-                    )
+                when {
+                    hasShipperRole -> {
+                        ProfileMenuItem(
+                            icon = Icons.Default.DirectionsRun,
+                            title = "Switch to Shipper Mode",
+                            onClick = {
+                                viewModel.switchActiveRole("shipper") {
+                                    onSwitchToShipper()
+                                }
+                            },
+                            tint = Color(0xFF4CAF50)
+                        )
+                    }
+                    isRequestPending -> {
+                        ProfileMenuItem(
+                            icon = Icons.Default.HourglassEmpty,
+                            title = "Shipper Request Pending...",
+                            onClick = { 
+                                Toast.makeText(context, "Admin is reviewing your request.", Toast.LENGTH_SHORT).show()
+                            },
+                            tint = Color.Gray
+                        )
+                    }
+                    else -> {
+                        ProfileMenuItem(
+                            icon = Icons.Default.Badge,
+                            title = "Become a Shipper",
+                            onClick = { showRegisterDialog = true }
+                        )
+                    }
                 }
 
                 ProfileMenuItem(icon = Icons.Default.Settings, title = "App Settings", onClick = {})

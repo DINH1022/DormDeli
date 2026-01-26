@@ -89,7 +89,7 @@ class AuthRepository {
         }
     }
 
-    // Gửi OTP đến số điện thoại
+    // Gửi OTP đến số điện thoại lần đầu
     fun sendPhoneVerificationCode(
         phoneNumber: String,
         activity: android.app.Activity,
@@ -100,6 +100,23 @@ class AuthRepository {
             .setTimeout(60L, TimeUnit.SECONDS)
             .setActivity(activity)
             .setCallbacks(callback)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    // Gửi lại OTP (Resend)
+    fun resendPhoneVerificationCode(
+        phoneNumber: String,
+        activity: android.app.Activity,
+        callback: PhoneAuthProvider.OnVerificationStateChangedCallbacks
+    ) {
+        val token = resendToken ?: return
+        val options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setCallbacks(callback)
+            .setForceResendingToken(token)
             .build()
         PhoneAuthProvider.verifyPhoneNumber(options)
     }
