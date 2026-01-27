@@ -39,13 +39,16 @@ class SellerRepository {
         awaitClose { registration.remove() }
     }
 
-    suspend fun createStore(name: String, description: String, location: String, openingHours: String): Result<Unit> = try {
+    suspend fun createStore(name: String, description: String, address: String, latitude: Double, longitude: Double, openingHours: String): Result<Unit> = try {
         val userId = getCurrentUserId()
         val store = Store(
             ownerId = userId,
             name = name,
             description = description,
-            location = location,
+            location = address, // Use address for location field too for now
+            address = address,
+            latitude = latitude,
+            longitude = longitude,
             openTime = openingHours, 
             approved = true, // Auto-approve as requested
             active = true

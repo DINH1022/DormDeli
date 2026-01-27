@@ -37,6 +37,9 @@ import com.example.dormdeli.ui.seller.components.CustomTextField
 import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
+import androidx.compose.material.icons.filled.Map
+import com.example.dormdeli.ui.seller.components.LocationPickerDialog
+
 @Composable
 fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     val status by viewModel.restaurantStatus.collectAsState()
@@ -73,9 +76,26 @@ fun ScreenTitle(title: String) {
 fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf(0.0) }
+    var longitude by remember { mutableStateOf(0.0) }
     var openingHours by remember { mutableStateOf("") }
     val isLoading by viewModel.isLoading.collectAsState()
+    var showMapDialog by remember { mutableStateOf(false) }
+
+    if (showMapDialog) {
+        LocationPickerDialog(
+            initialLatitude = latitude,
+            initialLongitude = longitude,
+            onDismiss = { showMapDialog = false },
+            onLocationSelected = { addr, lat, lng ->
+                address = addr
+                latitude = lat
+                longitude = lng
+                showMapDialog = false
+            }
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -90,13 +110,22 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CustomTextField(value = name, onValueChange = { name = it }, label = "Tên quán ăn")
                 CustomTextField(value = description, onValueChange = { description = it }, label = "Mô tả")
-                CustomTextField(value = location, onValueChange = { location = it }, label = "Địa chỉ")
+                CustomTextField(
+                    value = address, 
+                    onValueChange = { address = it }, 
+                    label = "Địa chỉ",
+                    trailingIcon = {
+                        IconButton(onClick = { showMapDialog = true }) {
+                            Icon(Icons.Default.Map, contentDescription = "Pick Location", tint = OrangePrimary)
+                        }
+                    }
+                )
                 CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = { viewModel.createStore(name, description, location, openingHours) },
+            onClick = { viewModel.createStore(name, description, address, latitude, longitude, openingHours) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
             shape = RoundedCornerShape(12.dp),
@@ -144,15 +173,32 @@ fun RejectedScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
 fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout: () -> Unit) {
     var name by remember(store) { mutableStateOf(store.name) }
     var description by remember(store) { mutableStateOf(store.description) }
-    var location by remember(store) { mutableStateOf(store.location) }
-    var openingHours by remember { mutableStateOf(store.openTime) } // Using openTime
+    var address by remember(store) { mutableStateOf(store.address.ifEmpty { store.location }) }
+    var latitude by remember(store) { mutableStateOf(store.latitude) }
+    var longitude by remember(store) { mutableStateOf(store.longitude) }
+    var openingHours by remember { mutableStateOf(store.openTime) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val isLoading by viewModel.isLoading.collectAsState()
+    var showMapDialog by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? -> imageUri = uri }
     )
+
+    if (showMapDialog) {
+        LocationPickerDialog(
+            initialLatitude = latitude,
+            initialLongitude = longitude,
+            onDismiss = { showMapDialog = false },
+            onLocationSelected = { addr, lat, lng ->
+                address = addr
+                latitude = lat
+                longitude = lng
+                showMapDialog = false
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -205,7 +251,16 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CustomTextField(value = name, onValueChange = { name = it }, label = "Tên quán")
                 CustomTextField(value = description, onValueChange = { description = it }, label = "Mô tả")
-                CustomTextField(value = location, onValueChange = { location = it }, label = "Địa chỉ")
+                CustomTextField(
+                    value = address, 
+                    onValueChange = { address = it }, 
+                    label = "Địa chỉ",
+                    trailingIcon = {
+                        IconButton(onClick = { showMapDialog = true }) {
+                            Icon(Icons.Default.Map, contentDescription = "Pick Location", tint = OrangePrimary)
+                        }
+                    }
+                )
                 CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
             }
         }
@@ -214,7 +269,7 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
 
         // Save Button
         Button(
-            onClick = { viewModel.updateStoreProfile(name, description, location, openingHours, imageUri) },
+            onClick = { viewModel.updateStoreProfile(name, description, address, latitude, longitude, openingHours, imageUri) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             contentPadding = PaddingValues(),

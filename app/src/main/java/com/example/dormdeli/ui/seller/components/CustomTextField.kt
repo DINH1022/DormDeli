@@ -20,7 +20,8 @@ fun CustomTextField(
     label: String,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
-    maxLines: Int = 1
+    maxLines: Int = 1,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -37,6 +38,7 @@ fun CustomTextField(
             unfocusedContainerColor = Color(0xFFFAFAFA)
         ),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        maxLines = maxLines
+        maxLines = maxLines,
+        trailingIcon = trailingIcon
     )
 }
