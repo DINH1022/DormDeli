@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
+import com.example.dormdeli.model.User
+import com.example.dormdeli.repository.UserRepository
 import com.example.dormdeli.ui.components.shipper.InfoRow
 import com.example.dormdeli.ui.components.shipper.getStatusColor
 import com.example.dormdeli.ui.theme.OrangePrimary
@@ -49,9 +51,21 @@ fun DeliveryDetailScreen(
     val myDeliveries by viewModel.myDeliveries.collectAsState()
     val historyOrders by viewModel.historyOrders.collectAsState()
     val isActionLoading by viewModel.isLoading.collectAsState()
-    
+
     val order = remember(availableOrders, myDeliveries, historyOrders) {
         (availableOrders + myDeliveries + historyOrders).find { it.id == orderId }
+    }
+
+    var customerInfo by remember { mutableStateOf<User?>(null) }
+    val userRepository = remember { UserRepository() }
+
+    // Fetch customer info if status is picked_up or later
+    LaunchedEffect(order?.status) {
+        if (order != null && order.status in listOf("picked_up", "delivering", "completed")) {
+            userRepository.getUserById(order.userId, { user ->
+                customerInfo = user
+            }, {})
+        }
     }
 
     var showMapSheet by remember { mutableStateOf(false) }
@@ -91,11 +105,17 @@ fun DeliveryDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item { OrderInfoCard(currentOrder) }
-                    item { 
+
+                    // Customer Contact Card - Only shown when picked up or later
+                    if (customerInfo != null) {
+                        item { CustomerContactCard(customerInfo!!) }
+                    }
+
+                    item {
                         AddressSection(
-                            order = currentOrder, 
+                            order = currentOrder,
                             onDeliverToClick = { showMapSheet = true }
-                        ) 
+                        )
                     }
                     item {
                         Text(
@@ -123,7 +143,7 @@ fun DeliveryDetailScreen(
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
                         val canAction = currentOrder.status !in listOf("completed", "cancelled")
-                        
+
                         if (canAction) {
                             if (currentOrder.status == "accepted") {
                                 Row(
@@ -140,7 +160,7 @@ fun DeliveryDetailScreen(
                                     ) {
                                         Text("RETURN", fontWeight = FontWeight.Bold)
                                     }
-                                    
+
                                     Button(
                                         onClick = { viewModel.updateStatus(currentOrder.id, "picked_up") },
                                         enabled = !isActionLoading,
@@ -219,6 +239,59 @@ fun DeliveryDetailScreen(
     }
 }
 
+@Composable
+fun CustomerContactCard(user: User) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFE8F5E9),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.padding(12.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(text = user.fullName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(text = user.phone, color = Color.Gray, fontSize = 14.sp)
+                }
+            }
+
+            Row {
+                IconButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${user.phone}"))
+                        context.startActivity(intent)
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE8F5E9))
+                ) {
+                    Icon(Icons.Default.Phone, contentDescription = "Call", tint = Color(0xFF4CAF50))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${user.phone}"))
+                        context.startActivity(intent)
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE3F2FD))
+                ) {
+                    Icon(Icons.Default.Sms, contentDescription = "SMS", tint = Color(0xFF2196F3))
+                }
+            }
+        }
+    }
+}
+
 @SuppressLint("MissingPermission")
 @Composable
 fun CustomerLocationMap(
@@ -234,7 +307,7 @@ fun CustomerLocationMap(
     }
 
     var shipperLocation by remember { mutableStateOf<LatLng?>(null) }
-    
+
     val hasLocationPermission = remember {
         ContextCompat.checkSelfPermission(
             context,
@@ -288,24 +361,22 @@ fun CustomerLocationMap(
                     snippet = addressDetail
                 )
             }
-            
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 80.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Nút "Chỉ đường" mở Google Maps App
                 FloatingActionButton(
                     onClick = {
                         val uri = Uri.parse("google.navigation:q=$latitude,$longitude&mode=d")
                         val mapIntent = Intent(Intent.ACTION_VIEW, uri)
                         mapIntent.setPackage("com.google.android.apps.maps")
-                        
+
                         if (mapIntent.resolveActivity(context.packageManager) != null) {
                             context.startActivity(mapIntent)
                         } else {
-                            // Nếu không có Google Maps, mở trình duyệt
                             val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude"))
                             context.startActivity(browserIntent)
                         }
@@ -316,13 +387,12 @@ fun CustomerLocationMap(
                     Icon(Icons.Default.Directions, contentDescription = "Navigate")
                 }
 
-                // Nút căn chỉnh xem cả 2 điểm
                 SmallFloatingActionButton(
                     onClick = {
                         val builder = LatLngBounds.Builder()
                         builder.include(destination)
                         shipperLocation?.let { builder.include(it) }
-                        
+
                         val bounds = builder.build()
                         cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, 150))
                     },
@@ -332,7 +402,7 @@ fun CustomerLocationMap(
                 }
             }
         }
-        
+
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
@@ -348,7 +418,6 @@ fun CustomerLocationMap(
                     Text(text = addressLabel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text(text = addressDetail, color = Color.Gray, fontSize = 14.sp)
                 }
-                // Nút phụ để mở nhanh điều hướng
                 IconButton(onClick = {
                     val uri = Uri.parse("google.navigation:q=$latitude,$longitude")
                     val mapIntent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }

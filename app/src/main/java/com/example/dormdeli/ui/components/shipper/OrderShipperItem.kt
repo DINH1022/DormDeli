@@ -1,22 +1,24 @@
 package com.example.dormdeli.ui.components.shipper
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Room
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.model.User
+import com.example.dormdeli.repository.UserRepository
 import com.example.dormdeli.ui.theme.OrangePrimary
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,8 +32,21 @@ fun OrderShipperItem(
     onCancelAccept: () -> Unit = {},
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val sdf = SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault())
     val dateStr = sdf.format(Date(order.createdAt))
+    
+    var customerInfo by remember { mutableStateOf<User?>(null) }
+    val userRepository = remember { UserRepository() }
+
+    // Fetch customer info if not pending/accepted
+    LaunchedEffect(order.status) {
+        if (order.status in listOf("picked_up", "delivering")) {
+            userRepository.getUserById(order.userId, { user ->
+                customerInfo = user
+            }, {})
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -64,10 +79,41 @@ fun OrderShipperItem(
                     Text(text = order.status.uppercase(), color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontWeight = FontWeight.Bold)
                 }
             }
+            
+            // Customer Info Row (New)
+            if (customerInfo != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(text = customerInfo!!.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = customerInfo!!.phone, fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${customerInfo!!.phone}"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
             InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = "Store Location", color = Color(0xFFE3F2FD))
             Spacer(modifier = Modifier.height(8.dp))
-            InfoRow(icon = Icons.Default.Room, label = "DELIVER TO", value = "${order.deliveryType} - ${order.deliveryNote}", color = Color(0xFFFFEBEE))
+            InfoRow(icon = Icons.Default.Room, label = "DELIVER TO", value = "${order.address?.label ?: order.deliveryType} - ${order.address?.address ?: order.deliveryNote}", color = Color(0xFFFFEBEE))
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
