@@ -1,5 +1,6 @@
 package com.example.dormdeli.ui.screens.customer.store
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,32 +39,30 @@ import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 fun StoreScreen(
     storeId: String,
     viewModel: StoreViewModel = viewModel(),
-    favoriteViewModel: FavoriteViewModel = viewModel(),
     onBack: () -> Unit,
     onMenuClick: () -> Unit,
     onFoodClick: (String) -> Unit,
-    onAddToCart: (Food) -> Unit
+    onAddToCart: (Food) -> Unit,
+    isFavorite: Boolean,
+    onToggleFavorite: (String) -> Unit
 ) {
     val store by viewModel.store
     val categories = viewModel.categories()
     val selectedCategory by viewModel.selectedCategory
     val foods by viewModel.filteredFoods
     val isLoading by viewModel.isLoading
+    val context = LocalContext.current
 
-    // 2. Lấy danh sách ID Store yêu thích & ID Food yêu thích
-    val favStoreIds by favoriteViewModel.favoriteStoreIds.collectAsState()
-    val favFoodIds by favoriteViewModel.favoriteFoodIds.collectAsState() // Nếu muốn hiển thị tim cho từng món
-
-    // Kiểm tra xem Store hiện tại có được thích không
-    val isStoreFavorite = favStoreIds.contains(storeId)
-
-    var localIsFavorite by remember { mutableStateOf(isStoreFavorite) }
+    var localIsFavorite by remember { mutableStateOf(isFavorite) }
 
     LaunchedEffect(storeId) {
         if (store == null && storeId.isNotBlank()) {
             viewModel.loadStore(storeId)
         }
-        localIsFavorite = isStoreFavorite
+    }
+
+    LaunchedEffect(isFavorite) {
+        localIsFavorite = isFavorite
     }
 
     if (isLoading) {
@@ -118,7 +118,9 @@ fun StoreScreen(
                         IconButton(
                             onClick = {
                                 localIsFavorite = !localIsFavorite
-                                favoriteViewModel.toggleStoreFavorite(storeId) },
+                                onToggleFavorite(storeId)
+                                val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                             modifier = Modifier
                                 .size(32.dp)
                                 .background(Color.White.copy(alpha = 0.5f), CircleShape)

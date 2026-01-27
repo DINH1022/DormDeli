@@ -13,6 +13,9 @@ sealed class Screen(val route: String) {
     object Cart : Screen("cart")
     object Orders : Screen("orders")
     object Favorites : Screen("favorites")
+    object SeeAll : Screen("see_all/{type}") {
+        fun createRoute(type: String) = "see_all/$type"
+    }
     
     // Profile Sub-screens
     object PersonalInfo : Screen("personal_info")

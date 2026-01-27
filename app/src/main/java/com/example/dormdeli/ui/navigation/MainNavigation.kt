@@ -47,6 +47,8 @@ import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
+import com.example.dormdeli.ui.screens.customer.home.SeeAllScreen
+import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -67,6 +69,8 @@ fun MainNavigation(
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
+    val favFoodIds by favoriteViewModel.favoriteFoodIds.collectAsState()
+    val favStoreIds by favoriteViewModel.favoriteStoreIds.collectAsState()
 
     val navigateAfterLogin: () -> Unit = {
         // Lấy giá trị thực tế nhất từ ViewModel
@@ -310,8 +314,41 @@ fun MainNavigation(
                         cartViewModel.addToCart(food, 1, emptyList())
                         Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                     },
+                    onSeeAllStores = {
+                        navController.navigate(Screen.SeeAll.createRoute("stores"))
+                    },
+                    onSeeAllFoods = {
+                        navController.navigate(Screen.SeeAll.createRoute("foods"))
+                    },
                 )
             }
+        }
+
+        composable(
+            route = Screen.SeeAll.route,
+            arguments = listOf(navArgument("type") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "foods"
+            
+            val storeViewModel: StoreViewModel = viewModel()
+            val foodViewModel: FoodViewModel = viewModel()
+
+            SeeAllScreen(
+                type = type,
+                onBackClick = { navController.popBackStack() },
+                storeViewModel = storeViewModel,
+                foodViewModel = foodViewModel,
+                onStoreClick = { storeId ->
+                    navController.navigate(Screen.StoreDetail.createRoute(storeId))
+                },
+                onFoodClick = { foodId ->
+                    navController.navigate(Screen.FoodDetail.createRoute(foodId))
+                },
+                onAddToCart = { food ->
+                    cartViewModel.addToCart(food, 1, emptyList())
+                    Toast.makeText(context, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                }
+            )
         }
 
         composable(Screen.Location.route) {
@@ -453,10 +490,11 @@ fun MainNavigation(
             route = Screen.StoreDetail.route,
             arguments = listOf(navArgument("storeId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val storeId = backStackEntry.arguments?.getString("storeId")
+            val storeId = backStackEntry.arguments?.getString("storeId")?: return@composable
             val storeViewModel: StoreViewModel = viewModel()
+            val isFav = favStoreIds.contains(storeId)
             StoreScreen(
-                storeId = "$storeId",
+                storeId = storeId,
                 viewModel = storeViewModel,
                 onBack = { navController.popBackStack() },
                 onMenuClick = {},
@@ -467,6 +505,8 @@ fun MainNavigation(
                     cartViewModel.addToCart(food, 1, emptyList())
                     Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
                 },
+                isFavorite = isFav,
+                onToggleFavorite = { favoriteViewModel.toggleStoreFavorite(storeId) }
             )
         }
 
@@ -475,8 +515,7 @@ fun MainNavigation(
             arguments = listOf(navArgument("foodId") { type = NavType.StringType })
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
-            val favIds by favoriteViewModel.favoriteFoodIds.collectAsState()
-            val isFav = favIds.contains(foodId)
+            val isFav = favFoodIds.contains(foodId)
             FoodDetailScreen(
                 foodId = foodId,
                 onBackClick = { navController.popBackStack() },

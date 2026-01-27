@@ -39,6 +39,8 @@ fun HomeScreen(
     onFavoritesClick: () -> Unit = {},
     onOrdersClick: () -> Unit = {},
     onAddToCart: (Food) -> Unit,
+    onSeeAllStores: () -> Unit,
+    onSeeAllFoods: () -> Unit,
     storeViewModel: StoreViewModel = viewModel(),
     foodViewModel: FoodViewModel = viewModel()
 ) {
@@ -162,7 +164,7 @@ fun HomeScreen(
             item {
                 SectionTitle(
                     title = "Open Restaurants",
-                    onSeeAll = { /* TODO */ }
+                    onSeeAll = onSeeAllStores
                 )
             }
 
@@ -183,7 +185,7 @@ fun HomeScreen(
                 }
             }
 
-            item { SectionTitle(title = "Popular Dishes", onSeeAll = {}) }
+            item { SectionTitle(title = "Popular Dishes", onSeeAll = onSeeAllFoods) }
 
             if (filteredFoods.isEmpty()) {
                 item { Text("Chưa có món ăn nào.", Modifier.padding(16.dp), color = Color.Gray) }

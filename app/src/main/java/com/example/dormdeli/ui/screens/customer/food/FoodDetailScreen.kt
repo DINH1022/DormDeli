@@ -165,7 +165,11 @@ fun FoodDetailContent(
 
                 // Nút Favorite (Giữ nguyên vị trí)
                 IconButton(
-                    onClick = { /* Logic like */ },
+                    onClick = {
+                        localIsFavorite = !localIsFavorite
+                        onToggleFavorite(food.id)
+                        val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)

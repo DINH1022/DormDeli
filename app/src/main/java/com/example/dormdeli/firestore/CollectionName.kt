@@ -10,7 +10,6 @@ enum class CollectionName(val value: String) {
     ORDERS("orders"),
     CART_ITEM("cartItem"),
     ORDER_ITEM("orderItem"),
-
     NOTIFICATION("notifications"),
     MESSAGE_TOKEN("messageToken"),
 }
