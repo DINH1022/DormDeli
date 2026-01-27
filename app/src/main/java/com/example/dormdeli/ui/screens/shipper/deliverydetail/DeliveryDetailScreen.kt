@@ -1,6 +1,14 @@
 package com.example.dormdeli.ui.screens.shipper.deliverydetail
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Looper
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,15 +20,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.example.dormdeli.ui.components.shipper.InfoRow
 import com.example.dormdeli.ui.components.shipper.getStatusColor
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.maps.android.compose.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +53,9 @@ fun DeliveryDetailScreen(
     val order = remember(availableOrders, myDeliveries, historyOrders) {
         (availableOrders + myDeliveries + historyOrders).find { it.id == orderId }
     }
+
+    var showMapSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -72,7 +91,12 @@ fun DeliveryDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item { OrderInfoCard(currentOrder) }
-                    item { AddressSection(currentOrder) }
+                    item { 
+                        AddressSection(
+                            order = currentOrder, 
+                            onDeliverToClick = { showMapSheet = true }
+                        ) 
+                    }
                     item {
                         Text(
                             "Order Items (${currentOrder.items.size})",
@@ -177,6 +201,165 @@ fun DeliveryDetailScreen(
             }
         }
     }
+
+    if (showMapSheet && order?.address != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showMapSheet = false },
+            sheetState = sheetState,
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            CustomerLocationMap(
+                latitude = order.address.latitude,
+                longitude = order.address.longitude,
+                addressLabel = order.address.label,
+                addressDetail = order.address.address
+            )
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+@Composable
+fun CustomerLocationMap(
+    latitude: Double,
+    longitude: Double,
+    addressLabel: String,
+    addressDetail: String
+) {
+    val context = LocalContext.current
+    val destination = LatLng(latitude, longitude)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(destination, 15f)
+    }
+
+    var shipperLocation by remember { mutableStateOf<LatLng?>(null) }
+    
+    val hasLocationPermission = remember {
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000)
+                .setMinUpdateIntervalMillis(1000)
+                .build()
+
+            val locationCallback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    result.lastLocation?.let {
+                        shipperLocation = LatLng(it.latitude, it.longitude)
+                    }
+                }
+            }
+
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.85f)
+    ) {
+        Box(modifier = Modifier.weight(1f)) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    isMyLocationEnabled = hasLocationPermission
+                ),
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = true,
+                    myLocationButtonEnabled = true
+                )
+            ) {
+                Marker(
+                    state = MarkerState(position = destination),
+                    title = "Customer: $addressLabel",
+                    snippet = addressDetail
+                )
+            }
+            
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 80.dp, end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Nút "Chỉ đường" mở Google Maps App
+                FloatingActionButton(
+                    onClick = {
+                        val uri = Uri.parse("google.navigation:q=$latitude,$longitude&mode=d")
+                        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                        mapIntent.setPackage("com.google.android.apps.maps")
+                        
+                        if (mapIntent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(mapIntent)
+                        } else {
+                            // Nếu không có Google Maps, mở trình duyệt
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude"))
+                            context.startActivity(browserIntent)
+                        }
+                    },
+                    containerColor = Color(0xFF4285F4),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Directions, contentDescription = "Navigate")
+                }
+
+                // Nút căn chỉnh xem cả 2 điểm
+                SmallFloatingActionButton(
+                    onClick = {
+                        val builder = LatLngBounds.Builder()
+                        builder.include(destination)
+                        shipperLocation?.let { builder.include(it) }
+                        
+                        val bounds = builder.build()
+                        cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, 150))
+                    },
+                    containerColor = Color.White
+                ) {
+                    Icon(Icons.Default.CompareArrows, contentDescription = "Show both")
+                }
+            }
+        }
+        
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = OrangePrimary)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = addressLabel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(text = addressDetail, color = Color.Gray, fontSize = 14.sp)
+                }
+                // Nút phụ để mở nhanh điều hướng
+                IconButton(onClick = {
+                    val uri = Uri.parse("google.navigation:q=$latitude,$longitude")
+                    val mapIntent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
+                    context.startActivity(mapIntent)
+                }) {
+                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color(0xFF4285F4))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
 }
 
 @Composable
@@ -211,7 +394,7 @@ fun OrderInfoCard(order: Order) {
 }
 
 @Composable
-fun AddressSection(order: Order) {
+fun AddressSection(order: Order, onDeliverToClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -225,12 +408,18 @@ fun AddressSection(order: Order) {
                 color = Color(0xFFE3F2FD)
             )
             Box(modifier = Modifier.padding(start = 22.dp).height(30.dp).width(2.dp).background(Color.LightGray))
-            InfoRow(
-                icon = Icons.Default.Room,
-                label = "DELIVER TO",
-                value = "${order.deliveryType.uppercase()} - ${order.deliveryNote}",
-                color = Color(0xFFFFEBEE)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onDeliverToClick() }
+            ) {
+                InfoRow(
+                    icon = Icons.Default.Room,
+                    label = "DELIVER TO (Tap to see map)",
+                    value = "${order.address?.label ?: order.deliveryType.uppercase()} - ${order.address?.address ?: order.deliveryNote}",
+                    color = Color(0xFFFFEBEE)
+                )
+            }
         }
     }
 }
