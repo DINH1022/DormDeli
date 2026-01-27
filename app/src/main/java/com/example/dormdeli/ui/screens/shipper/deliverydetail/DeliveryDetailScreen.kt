@@ -440,10 +440,12 @@ fun OrderInfoCard(order: Order) {
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f) // chiếm hết không gian bên trái
+            ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = OrangePrimary.copy(alpha = 0.1f),
@@ -457,7 +459,7 @@ fun OrderInfoCard(order: Order) {
                     Text(text = "Customer ID: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
                 }
             }
-            StatusBadge(order.status)
+            StatusBadge(order.status) // sẽ nằm sát phải
         }
     }
 }

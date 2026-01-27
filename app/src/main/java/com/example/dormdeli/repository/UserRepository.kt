@@ -5,6 +5,7 @@ import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.model.MessageToken
 import com.example.dormdeli.model.User
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
 
 class UserRepository {
@@ -31,8 +32,9 @@ class UserRepository {
         onSuccess: (User?) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
+        // Sử dụng Source.DEFAULT hoặc Source.SERVER để đảm bảo dữ liệu mới nhất
         userCol.document(userId)
-            .get()
+            .get(Source.DEFAULT) 
             .addOnSuccessListener { doc ->
                 onSuccess(doc.toObject(User::class.java))
             }
@@ -41,10 +43,7 @@ class UserRepository {
 
     suspend fun updateFcmToken(userId: String, token: String) {
         try {
-            // 1. Cập nhật fcmToken trong collection users (để dự phòng)
             userCol.document(userId).update("fcmToken", token).await()
-            
-            // 2. Cập nhật/Thêm vào collection messageToken (để Admin dùng)
             val userDoc = userCol.document(userId).get().await()
             val role = userDoc.getString("role") ?: "customer"
             
@@ -52,9 +51,7 @@ class UserRepository {
                 MessageToken(userId = userId, fcmToken = token, role = role)
             ).await()
             
-        } catch (e: Exception) {
-            // Log error
-        }
+        } catch (e: Exception) { }
     }
 
     fun getUserByPhone(
@@ -77,7 +74,7 @@ class UserRepository {
 
     fun getUserByEmail(
         email: String,
-        onSuccess: (User?, String?) -> Unit, // Trả về User object và Document ID (UID)
+        onSuccess: (User?, String?) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         userCol.whereEqualTo("email", email)
