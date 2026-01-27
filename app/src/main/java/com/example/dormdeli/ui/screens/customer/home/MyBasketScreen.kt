@@ -67,8 +67,7 @@ fun MyBasketScreen(
     }
     val distinctStoresCount = remember(cartItems) { cartItems.map { it.food.storeId }.distinct().size }
     val deliveryFee = (distinctStoresCount * 4000.0)
-    val discount = 0.0
-    val total = subtotal + deliveryFee - discount
+    val total = subtotal + deliveryFee
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
@@ -100,11 +99,10 @@ fun MyBasketScreen(
                         }
                         orderViewModel.placeOrder(
                             cartItems = cartItems,
-                            total = subtotal,
+                            subtotal = subtotal, // Truyền subtotal để Repository tính lại total + phí ship
                             deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
                             deliveryAddress = selectedAddress!!,
                             paymentMethod = "Cash",
-                            //storeId = cartItems.firstOrNull()?.food?.storeId ?: "", // Đảm bảo truyền storeId nếu cần
                             onSuccess = {
                                 Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
                                 cartViewModel.clearCart()
@@ -167,11 +165,9 @@ fun MyBasketScreen(
                 InfoSectionCard(
                     icon = Icons.Default.LocationOn,
                     title = "Deliver to",
-                    // Hiển thị tên (VD: Home) hoặc cảnh báo nếu chưa chọn
                     subtitle = selectedAddress?.label ?: "Select Address",
-                    // Hiển thị địa chỉ chi tiết hoặc hướng dẫn bấm vào
                     detail = selectedAddress?.address ?: "Tap here to choose a delivery location",
-                    onClick = onLocationClick // Bấm vào để đổi địa chỉ
+                    onClick = onLocationClick
                 )
             }
             item {
@@ -180,12 +176,12 @@ fun MyBasketScreen(
                     title = "Payment method",
                     subtitle = "Cash",
                     detail = null,
-                    onClick = {} // Payment chưa có chức năng đổi
+                    onClick = {}
                 )
             }
 
             item {
-                PriceBreakdownCard(subtotal, deliveryFee, distinctStoresCount, discount)
+                PriceBreakdownCard(subtotal, deliveryFee, distinctStoresCount)
             }
         }
     }
@@ -309,9 +305,8 @@ fun InfoSectionCard(
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically // Căn giữa icon và mũi tên theo chiều dọc
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Icon bên trái (Giữ nguyên)
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -323,26 +318,19 @@ fun InfoSectionCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 2. Nội dung Text (SỬA ĐOẠN NÀY)
             Column(modifier = Modifier.weight(1f)) {
-
-                // Dùng AnnotatedString để gộp "Deliver to ->" và "Tên địa chỉ" thành 1 khối text thống nhất
                 val text = buildAnnotatedString {
-                    // Phần 1: Title màu xám (VD: Deliver to -> )
                     withStyle(style = SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
                         append(title)
                         append(" -> ")
                     }
-                    // Phần 2: Subtitle in đậm màu đen (VD: Home\nKTX Khu A)
                     withStyle(style = SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)) {
                         append(subtitle)
                     }
                 }
 
-                // Hiển thị text đã gộp (Tự động xuống dòng chuẩn đẹp)
                 Text(text = text)
 
-                // Phần 3: Địa chỉ chi tiết (nếu có)
                 if (detail != null) {
                     Text(
                         text = detail,
@@ -354,14 +342,13 @@ fun InfoSectionCard(
                 }
             }
 
-            // 3. Icon mũi tên bên phải (Giữ nguyên)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Gray)
         }
     }
 }
 
 @Composable
-fun PriceBreakdownCard(subtotal: Double, delivery: Double, storeCount: Int, discount: Double) {
+fun PriceBreakdownCard(subtotal: Double, delivery: Double, storeCount: Int) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -370,22 +357,20 @@ fun PriceBreakdownCard(subtotal: Double, delivery: Double, storeCount: Int, disc
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             PriceRow("Subtotal", subtotal)
-            // HIỂN THỊ RÕ 4000 x n
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Delivery Fee (4000 x $storeCount)", color = Color.Gray, fontSize = 14.sp)
+                Text("Delivery Fee (4000 x $storeCount quán)", color = Color.Gray, fontSize = 14.sp)
                 Text("${String.format("%.0f", delivery)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
-            if (discount > 0) PriceRow("Discount", -discount)
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Total", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("${String.format("%.0f", subtotal + delivery - discount)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("${String.format("%.0f", subtotal + delivery)} VNĐ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
         }
     }

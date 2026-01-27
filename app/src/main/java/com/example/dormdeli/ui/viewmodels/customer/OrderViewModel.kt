@@ -34,7 +34,7 @@ class OrderViewModel : ViewModel() {
 
     fun placeOrder(
         cartItems: List<CartItem>,
-        total: Double,
+        subtotal: Double, // Đổi tên từ total -> subtotal để đồng bộ
         deliveryNote: String = "",
         deliveryAddress: UserAddress,
         paymentMethod: String = "Cash",
@@ -43,7 +43,8 @@ class OrderViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            val success = repository.placeOrder(cartItems, total, deliveryNote, deliveryAddress, paymentMethod)
+            // Truyền subtotal xuống repository để tính shipping fee
+            val success = repository.placeOrder(cartItems, subtotal, deliveryNote, deliveryAddress, paymentMethod)
             _isLoading.value = false
             if (success) {
                 loadMyOrders()

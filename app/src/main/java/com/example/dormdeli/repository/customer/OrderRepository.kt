@@ -18,17 +18,21 @@ class OrderRepository {
     // Hàm đặt hàng
     suspend fun placeOrder(
         cartItems: List<CartItem>,
-        totalAmount: Double,
+        subtotal: Double, // Tổng tiền sản phẩm
         deliveryNote: String = "",
         deliveryAddress: UserAddress,
         paymentMethod: String = "Cash"
     ): Boolean {
         val userId = auth.currentUser?.uid ?: return false
-        if (cartItems.isEmpty()) return false // Thêm kiểm tra giỏ hàng rỗng
+        if (cartItems.isEmpty()) return false
 
         try {
-            val storeId = cartItems.first().food.storeId
-            // 1. Chuyển đổi CartItem -> OrderItem (Khớp với model mới)
+            // 1. Tính toán phí ship dựa trên số lượng quán
+            val distinctStores = cartItems.map { it.food.storeId }.distinct()
+            val shippingFee = (distinctStores.size * 4000).toLong()
+            val totalPrice = (subtotal + shippingFee).toLong()
+
+            // 2. Chuyển đổi CartItem -> OrderItem
             val orderItems = cartItems.map { item ->
                 OrderItem(
                     foodId = item.food.id,
@@ -43,15 +47,20 @@ class OrderRepository {
                 )
             }
 
-            // 2. Tạo Order (Khớp với model mới)
+            // 3. Tạo Order
+            // Lưu ý: Nếu đơn hàng có nhiều quán, storeId có thể lưu là "multiple" hoặc storeId của quán đầu tiên
+            // Ở đây tôi giữ storeId của quán đầu tiên để tương thích ngược, hoặc bạn có thể đổi logic nếu cần quản lý theo từng quán
+            val firstStoreId = cartItems.first().food.storeId
+
             val newOrder = Order(
-                storeId = storeId, // Gán storeId cho cả đơn hàng
+                storeId = firstStoreId,
                 userId = userId,
-                // shipperId để mặc định rỗng trong Model
                 status = "pending",
                 deliveryType = "room",
                 deliveryNote = deliveryNote,
-                totalPrice = totalAmount.toLong(), // Ép kiểu Double -> Long
+                address = deliveryAddress,
+                totalPrice = totalPrice,
+                shippingFee = shippingFee,
                 paymentMethod = paymentMethod,
                 createdAt = System.currentTimeMillis(),
                 items = orderItems
@@ -77,7 +86,7 @@ class OrderRepository {
         return try {
             val snapshot = db.collection(collectionName)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING) // Sắp xếp theo ngày tạo
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
