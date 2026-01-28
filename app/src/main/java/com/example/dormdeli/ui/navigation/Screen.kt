@@ -51,6 +51,8 @@ sealed class Screen(val route: String) {
         fun createRoute(foodId: String, orderId: String) = "write_review/$orderId/$foodId"
     }
 
+    object CustomerMap : Screen("customer_map")
+
     // Shipper Screens
     object ShipperHome : Screen("shipper_home")
     object DeliveryDetail : Screen("delivery_detail/{orderId}") {

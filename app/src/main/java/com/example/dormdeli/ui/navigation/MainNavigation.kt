@@ -50,6 +50,7 @@ import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 import com.example.dormdeli.ui.screens.customer.home.SeeAllScreen
+import com.example.dormdeli.ui.screens.customer.map.CustomerMapScreen
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -329,6 +330,7 @@ fun MainNavigation(
                     onSeeAllFoods = {
                         navController.navigate(Screen.SeeAll.createRoute("foods"))
                     },
+                    onMapClick = { navController.navigate(Screen.CustomerMap.route) }
                 )
             }
         }
@@ -370,6 +372,16 @@ fun MainNavigation(
                 },
                 onDeleteLocation = { id ->
                     locationViewModel.deleteAddress(id)
+                }
+            )
+        }
+
+        composable(Screen.CustomerMap.route) {
+            CustomerMapScreen(
+                onBack = { navController.popBackStack() },
+                onStoreClick = { storeId ->
+                    // Chuyển sang chi tiết quán khi bấm vào Card trên Map
+                    navController.navigate(Screen.StoreDetail.createRoute(storeId))
                 }
             )
         }

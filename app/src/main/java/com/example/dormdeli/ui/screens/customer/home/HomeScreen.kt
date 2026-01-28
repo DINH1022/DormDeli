@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -38,6 +40,7 @@ fun HomeScreen(
     onLocationClick: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
     onOrdersClick: () -> Unit = {},
+    onMapClick: () -> Unit,
     onAddToCart: (Food) -> Unit,
     onSeeAllStores: () -> Unit,
     onSeeAllFoods: () -> Unit,
@@ -129,6 +132,16 @@ fun HomeScreen(
                     label = { Text("Profile") },
                     colors = NavigationBarItemDefaults.colors(selectedIconColor = OrangePrimary, selectedTextColor = OrangePrimary, indicatorColor = OrangePrimary.copy(alpha = 0.1f))
                 )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onMapClick,
+                containerColor = OrangePrimary,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Map, contentDescription = "View Map")
             }
         }
     ) { paddingValues ->
