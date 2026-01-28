@@ -1,5 +1,6 @@
 package com.example.dormdeli.ui.screens.customer.home
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel // Cần import thư viện này
 import com.example.dormdeli.model.Food
@@ -25,6 +27,7 @@ import com.example.dormdeli.ui.components.customer.HomeHeader
 import com.example.dormdeli.ui.components.customer.HomeSearchBar
 import com.example.dormdeli.ui.components.customer.RestaurantCard
 import com.example.dormdeli.ui.components.customer.SectionTitle
+import com.example.dormdeli.ui.screens.customer.store.isStoreOpen
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel // Import ViewModel của bạn
@@ -52,6 +55,7 @@ fun HomeScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val categories = listOf("All", "noodle", "fast_food", "drink", "Sandwich", "Dessert")
 
+    val context = LocalContext.current
     val storesList = storeViewModel.stores.value
     val isLoading = storeViewModel.isLoading.value
 
@@ -210,10 +214,20 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 4.dp) // Thêm chút padding để không bị cắt bóng đổ
                 ) {
                     items(filteredFoods) { food ->
+                        val ownerStore = storesList.find { it.id == food.storeId }
+                        val isOpen = ownerStore?.let {
+                            isStoreOpen(it.openTime, it.closeTime)
+                        } ?: true
                         FoodItem(
                             food = food,
                             onImageClick = { onFoodClick(food.id) },
-                            onAddToCart = onAddToCart
+                            onAddToCart = { food ->
+                                if (isOpen) {
+                                    onAddToCart(food)
+                                } else {
+                                    Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
                     }
                 }

@@ -16,8 +16,10 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,8 @@ import com.example.dormdeli.ui.viewmodels.customer.OrderViewModel
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import com.example.dormdeli.ui.screens.customer.store.isStoreOpen
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +56,7 @@ fun MyBasketScreen(
     onLocationClick: () -> Unit,
     orderViewModel: OrderViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
+    storeViewModel: StoreViewModel = viewModel(),
     locationalViewModel: LocationViewModel,
     onOrderSuccess: () -> Unit = {}
 ) {
@@ -60,6 +65,8 @@ fun MyBasketScreen(
 
     var selectedPaymentMethod by remember { mutableStateOf("Cash") }
     var showPaymentDialog by remember { mutableStateOf(false) }
+
+    val stores by storeViewModel.stores
 
     val isLoading by orderViewModel.isLoading.collectAsState()
     val context = LocalContext.current
@@ -73,6 +80,10 @@ fun MyBasketScreen(
     val distinctStoresCount = remember(cartItems) { cartItems.map { it.food.storeId }.distinct().size }
     val deliveryFee = (distinctStoresCount * 4000.0)
     val total = subtotal + deliveryFee
+
+    LaunchedEffect(Unit) {
+        storeViewModel.loadAllStores()
+    }
 
     if (showPaymentDialog) {
         AlertDialog(
@@ -135,6 +146,37 @@ fun MyBasketScreen(
                             // Ở đây bạn có thể return hoặc tiếp tục xử lý mockup
                             // return@BottomCheckoutBar
                         }
+
+                        val unavailableItems = cartItems.filter { item ->
+                            val store = stores.find { it.id == item.food.storeId }
+
+                            if (store == null) {
+                                true
+                            } else {
+                                // Nếu tìm thấy quán -> Check giờ
+                                !isStoreOpen(store.openTime, store.closeTime)
+                            }
+                        }
+
+                        if (unavailableItems.isNotEmpty()) {
+                            // Lấy tên món lỗi đầu tiên để báo
+                            val firstItem = unavailableItems.first()
+                            val store = stores.find { it.id == firstItem.food.storeId }
+
+                            val msg = if (store == null) {
+                                "Đang tải dữ liệu cửa hàng, vui lòng thử lại sau giây lát."
+                            } else {
+                                "Món '${firstItem.food.name}' thuộc quán đang đóng cửa. Vui lòng xóa để tiếp tục."
+                            }
+
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+
+                            // Nếu store null (do chưa tải xong), thử tải lại
+                            if (stores.isEmpty()) storeViewModel.loadAllStores()
+
+                            return@BottomCheckoutBar
+                        }
+
                         orderViewModel.placeOrder(
                             cartItems = cartItems,
                             subtotal = subtotal, // Truyền subtotal để Repository tính lại total + phí ship
@@ -190,8 +232,11 @@ fun MyBasketScreen(
                 }
             } else {
                 items(cartItems) { item ->
+                    val store = stores.find { it.id == item.food.storeId }
+                    val isStoreOpen = store?.let { isStoreOpen(it.openTime, it.closeTime) } ?: true
                     CartItemCardDesign(
                         item = item,
+                        isStoreOpen = isStoreOpen,
                         onIncrease = { cartViewModel.updateQuantity(item, item.quantity + 1) },
                         onDecrease = { cartViewModel.updateQuantity(item, item.quantity - 1) },
                         onRemove = { cartViewModel.removeFromCart(item) }
@@ -234,6 +279,7 @@ fun MyBasketScreen(
 @Composable
 fun CartItemCardDesign(
     item: CartItem,
+    isStoreOpen: Boolean,
     onIncrease: () -> Unit,
     onDecrease: () -> Unit,
     onRemove: () -> Unit
@@ -245,6 +291,17 @@ fun CartItemCardDesign(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
+            if (!isStoreOpen) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Store Closed - Please remove", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
             Row(modifier = Modifier.fillMaxWidth()) {
                 AsyncImage(
                     model = item.food.thumbnail,

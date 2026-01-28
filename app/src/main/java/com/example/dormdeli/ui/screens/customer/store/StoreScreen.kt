@@ -34,6 +34,10 @@ import com.example.dormdeli.ui.components.customer.StoreNavBar
 import com.example.dormdeli.ui.theme.*
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun StoreScreen(
@@ -54,6 +58,10 @@ fun StoreScreen(
     val context = LocalContext.current
 
     var localIsFavorite by remember { mutableStateOf(isFavorite) }
+
+    val isOpen = remember(store) {
+        store?.let { isStoreOpen(it.openTime, it.closeTime) } ?: true
+    }
 
     LaunchedEffect(storeId) {
         if (store == null && storeId.isNotBlank()) {
@@ -135,17 +143,33 @@ fun StoreScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // [SỬA] Hiển thị Giờ mở cửa & Trạng thái hoạt động
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AccessTime, "Open", tint = Green, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = storeData.openTime)
-                        }
+                        // Icon đồng hồ
+                        Icon(Icons.Default.AccessTime, "Time", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Hiển thị giờ (VD: 07:00 - 22:00)
+                        Text(
+                            text = "${storeData.openTime} - ${storeData.closeTime}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black
+                        )
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Schedule, "Close", tint = Red, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = storeData.closeTime)
+
+                        // [THÊM] Badge hiển thị trạng thái Open/Closed
+                        Surface(
+                            color = if (isOpen) Color(0xFFE8F5E9) else Color(0xFFFFEBEE), // Xanh nhạt / Đỏ nhạt
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = if (isOpen) "Open" else "Closed",
+                                color = if (isOpen) Color(0xFF4CAF50) else Color.Red, // Chữ Xanh / Đỏ
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
                     }
 
@@ -187,7 +211,14 @@ fun StoreScreen(
                     FoodItem(
                         food = food,
                         onImageClick = { onFoodClick(food.id) },
-                        onAddToCart = { food -> onAddToCart(food) }
+                        onAddToCart = { selectedFood ->
+                            if (isOpen) {
+                                onAddToCart(selectedFood)
+                            } else {
+                                // Thông báo cho người dùng
+                                Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
             }
@@ -200,5 +231,32 @@ fun StoreScreen(
                 Text("Store ID: $storeId", style = MaterialTheme.typography.bodySmall)
             }
         }
+    }
+}
+
+fun isStoreOpen(openTime: String, closeTime: String): Boolean {
+    if (openTime.isBlank() || closeTime.isBlank()) return true // Mặc định mở nếu chưa set giờ
+
+    return try {
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val now = Calendar.getInstance().time
+        val currentTimeStr = sdf.format(now)
+        val currentTime = sdf.parse(currentTimeStr)
+        val open = sdf.parse(openTime)
+        val close = sdf.parse(closeTime)
+
+        if (currentTime != null && open != null && close != null) {
+            if (close.before(open)) {
+                // Trường hợp mở qua đêm (VD: 18:00 - 02:00 sáng hôm sau)
+                currentTime.after(open) || currentTime.before(close)
+            } else {
+                // Trường hợp trong ngày (VD: 08:00 - 22:00)
+                currentTime.after(open) && currentTime.before(close)
+            }
+        } else {
+            true
+        }
+    } catch (e: Exception) {
+        true // Mặc định mở nếu lỗi format
     }
 }

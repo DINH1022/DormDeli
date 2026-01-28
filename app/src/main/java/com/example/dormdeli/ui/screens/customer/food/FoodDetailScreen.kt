@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -35,8 +36,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dormdeli.model.Food
+import com.example.dormdeli.ui.screens.customer.store.isStoreOpen
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
-import com.example.dormdeli.R // Đảm bảo import đúng R của project bạn
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 val OrangePrimary = Color(0xFFFF6347)
 
@@ -44,19 +46,32 @@ val OrangePrimary = Color(0xFFFF6347)
 fun FoodDetailScreen(
     foodId: String,
     viewModel: FoodViewModel = viewModel(),
+    storeViewModel: StoreViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    // Cập nhật: Hàm này nhận thêm danh sách options
     onAddToCart: (Food, Int, List<Pair<String, Double>>) -> Unit,
     onSeeReviewsClick: () -> Unit = {},
     isFavorite: Boolean,
     onToggleFavorite: (String) -> Unit
 ) {
     val food = viewModel.food.value
+    val store by storeViewModel.store
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(foodId) {
         viewModel.getFood(foodId)
         isLoading = false
+    }
+
+    LaunchedEffect(food) {
+        food?.let {
+            if (it.storeId.isNotBlank()) {
+                storeViewModel.loadStore(it.storeId)
+            }
+        }
+    }
+
+    val isOpen = remember(store) {
+        store?.let { isStoreOpen(it.openTime, it.closeTime) } ?: true
     }
 
     if (isLoading) {
@@ -67,6 +82,7 @@ fun FoodDetailScreen(
         food?.let { currentFood ->
             FoodDetailContent(
                 food = currentFood,
+                isOpen = isOpen,
                 onBackClick = onBackClick,
                 onAddToCart = onAddToCart,
                 onSeeReviewsClick = onSeeReviewsClick,
@@ -85,6 +101,7 @@ fun FoodDetailScreen(
 @Composable
 fun FoodDetailContent(
     food: Food,
+    isOpen: Boolean,
     onBackClick: () -> Unit,
     onAddToCart: (Food, Int, List<Pair<String, Double>>) -> Unit,
     onSeeReviewsClick: () -> Unit,
@@ -128,8 +145,12 @@ fun FoodDetailContent(
                 onQuantityChange = { newQuantity -> if (newQuantity >= 1) quantity = newQuantity },
                 // Truyền selectedOptions vào hàm onAddToCart
                 onAddToCart = {
-                    onAddToCart(food, quantity, selectedOptions.toList())
-                    Toast.makeText(context, "Added to basket", Toast.LENGTH_SHORT).show()
+                    if (isOpen) {
+                        onAddToCart(food, quantity, selectedOptions.toList())
+                        Toast.makeText(context, "Added to basket", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Store is currently closed", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
         }
@@ -186,7 +207,28 @@ fun FoodDetailContent(
             // --- BODY CONTENT ---
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = food.name, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
+                if (!isOpen) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Store is closed right now. You cannot order.",
+                                color = Color.Red,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.Bottom) {
