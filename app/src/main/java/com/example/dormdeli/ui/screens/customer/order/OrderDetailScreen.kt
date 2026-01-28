@@ -36,7 +36,7 @@ import java.util.Locale
 fun OrderDetailScreen(
     orderId: String,
     onBackClick: () -> Unit,
-    onReviewClick: (String) -> Unit, // Callback để chuyển sang trang review món ăn
+    onReviewClick: (String, String) -> Unit, // Callback để chuyển sang trang review món ăn
     viewModel: OrderViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -46,6 +46,14 @@ fun OrderDetailScreen(
     // Lưu ý: Đảm bảo MainNavigation đã gọi loadMyOrders trước đó hoặc gọi lại ở đây
     val orders by viewModel.orders.collectAsState()
     val order = orders.find { it.id == orderId }
+
+    val reviewedItems by viewModel.reviewedItems.collectAsState()
+
+    LaunchedEffect(order) {
+        if (order != null) {
+            viewModel.checkReviewStatus(orderId, order.items)
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (orders.isEmpty()) viewModel.loadMyOrders()
@@ -108,10 +116,12 @@ fun OrderDetailScreen(
                 }
 
                 items(order.items) { item ->
+                    val reviewStatus = reviewedItems[item.foodId]
                     OrderItemDetailCard(
                         item = item,
                         isCompleted = order.status.equals("completed", ignoreCase = true),
-                        onReviewClick = { onReviewClick(item.foodId) }
+                        reviewStatus = reviewStatus,
+                        onReviewClick = { onReviewClick(item.foodId, order.id) }
                     )
                 }
 
@@ -198,6 +208,7 @@ fun OrderInfoCard(order: Order) {
 fun OrderItemDetailCard(
     item: OrderItem,
     isCompleted: Boolean,
+    reviewStatus: Boolean?,
     onReviewClick: () -> Unit
 ) {
     Card(
@@ -232,13 +243,31 @@ fun OrderItemDetailCard(
                 // [LOGIC REVIEW] Chỉ hiện nút review khi đơn đã hoàn thành
                 if (isCompleted) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = onReviewClick,
-                        modifier = Modifier.height(32.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        border = BorderStroke(1.dp, OrangePrimary)
-                    ) {
-                        Text("Review", fontSize = 12.sp, color = OrangePrimary)
+
+                    when (reviewStatus) {
+                        null -> {
+                            // Đang kiểm tra -> Hiện khoảng trắng hoặc Loading nhỏ xíu
+                        }
+                        true -> {
+                            // Đã review -> Hiện chữ Reviewed
+                            Text(
+                                text = "Reviewed",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        false -> {
+                            // Chưa review -> Hiện nút Review
+                            OutlinedButton(
+                                onClick = onReviewClick,
+                                modifier = Modifier.height(32.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                border = BorderStroke(1.dp, OrangePrimary)
+                            ) {
+                                Text("Review", fontSize = 12.sp, color = OrangePrimary)
+                            }
+                        }
                     }
                 }
             }

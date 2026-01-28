@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Order
+import com.example.dormdeli.model.OrderItem
 import com.example.dormdeli.model.UserAddress
 import com.example.dormdeli.repository.customer.OrderRepository
+import com.example.dormdeli.repository.customer.ReviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,11 +16,16 @@ import kotlinx.coroutines.launch
 class OrderViewModel : ViewModel() {
     private val repository = OrderRepository()
 
+    private val reviewRepository = ReviewRepository()
+
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _reviewedItems = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val reviewedItems = _reviewedItems.asStateFlow()
 
     init {
         loadMyOrders()
@@ -29,6 +36,19 @@ class OrderViewModel : ViewModel() {
             _isLoading.value = true
             _orders.value = repository.getMyOrders()
             _isLoading.value = false
+        }
+    }
+
+    fun checkReviewStatus(orderId: String, items: List<OrderItem>) {
+        viewModelScope.launch {
+            val statusMap = mutableMapOf<String, Boolean>()
+
+            // Chạy vòng lặp kiểm tra từng món (Có thể tối ưu bằng async nếu muốn nhanh hơn)
+            items.forEach { item ->
+                val isReviewed = reviewRepository.hasReviewed(orderId, item.foodId)
+                statusMap[item.foodId] = isReviewed
+            }
+            _reviewedItems.value = statusMap
         }
     }
 

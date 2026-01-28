@@ -47,8 +47,8 @@ sealed class Screen(val route: String) {
         fun createRoute(foodId: String) = "reviews/$foodId"
     }
 
-    object WriteReview: Screen("write_review/{foodId}"){
-        fun createRoute(foodId: String) = "write_review/$foodId"
+    object WriteReview: Screen("write_review/{orderId}/{foodId}"){
+        fun createRoute(foodId: String, orderId: String) = "write_review/$orderId/$foodId"
     }
 
     // Shipper Screens

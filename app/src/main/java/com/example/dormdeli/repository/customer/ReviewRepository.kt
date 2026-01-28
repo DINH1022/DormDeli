@@ -15,7 +15,22 @@ class ReviewRepository {
     private val reviewCollection = db.collection("reviews")
     private val foodCollection = db.collection("foods")
 
+    suspend fun hasReviewed(orderId: String, foodId: String): Boolean {
+        return try {
+            val snapshot = reviewCollection
+                .whereEqualTo("orderId", orderId)
+                .whereEqualTo("foodId", foodId)
+                .limit(1) // Chỉ cần tìm thấy 1 cái là đủ
+                .get()
+                .await()
+            !snapshot.isEmpty
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun submitReview(
+        orderId: String,
         foodId: String,
         rating: Int,
         comment: String
@@ -24,6 +39,8 @@ class ReviewRepository {
         val reviewId = UUID.randomUUID().toString()
 
         return try {
+            if (hasReviewed(orderId, foodId)) return false
+
             db.runTransaction { transaction ->
                 val foodRef = foodCollection.document(foodId)
                 val foodSnapshot = transaction.get(foodRef)
@@ -35,6 +52,7 @@ class ReviewRepository {
                 val dbAvatarUrl = userSnapshot.getString("avatarUrl")
 
                 val reviewData = hashMapOf(
+                    "orderId" to orderId,
                     "userId" to currentUser.uid,
                     "userName" to (currentUser.displayName ?: "Anonymous"),
                     "userAvatarUrl" to (dbAvatarUrl?: ""),

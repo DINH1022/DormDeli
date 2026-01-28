@@ -28,6 +28,7 @@ import com.example.dormdeli.ui.viewmodels.customer.WriteReviewViewModel
 @Composable
 fun WriteReviewScreen(
     foodId: String,
+    orderId: String,
     onBackClick: () -> Unit,
     onReviewSubmitted: () -> Unit,
     viewModel: WriteReviewViewModel = viewModel()
@@ -56,6 +57,7 @@ fun WriteReviewScreen(
                     focusManager.clearFocus()
                     viewModel.submitReview(
                         foodId = foodId,
+                        orderId = orderId,
                         onSuccess = {
                             Toast.makeText(context, "Review Submitted!", Toast.LENGTH_SHORT).show()
                             onReviewSubmitted()

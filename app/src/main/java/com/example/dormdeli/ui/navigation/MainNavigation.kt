@@ -468,19 +468,24 @@ fun MainNavigation(
                 orderId = orderId,
                 onBackClick = { navController.popBackStack() },
                 viewModel = orderViewModel,
-                onReviewClick = { foodId ->
-                    navController.navigate(Screen.WriteReview.createRoute(foodId))
+                onReviewClick = { foodId, orderId ->
+                    navController.navigate(Screen.WriteReview.createRoute(foodId, orderId))
                 }
             )
         }
 
         composable(
             route = Screen.WriteReview.route,
-            arguments = listOf(navArgument("foodId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("foodId") { type = NavType.StringType },
+                navArgument("orderId") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val foodId = backStackEntry.arguments?.getString("foodId") ?: return@composable
+            val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
             WriteReviewScreen(
                 foodId = foodId,
+                orderId = orderId,
                 onBackClick = { navController.popBackStack() },
                 onReviewSubmitted = { navController.popBackStack() }
             )
