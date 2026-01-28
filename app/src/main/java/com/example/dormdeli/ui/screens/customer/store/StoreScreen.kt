@@ -34,6 +34,7 @@ import com.example.dormdeli.ui.components.customer.StoreNavBar
 import com.example.dormdeli.ui.theme.*
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
+import com.example.dormdeli.utils.TimeUtils
 
 @Composable
 fun StoreScreen(
@@ -71,6 +72,8 @@ fun StoreScreen(
         }
     } else if (store != null) {
         val storeData = store!!
+        val isOpen = TimeUtils.isStoreOpen(storeData.openTime, storeData.closeTime)
+
         Column(modifier = Modifier.fillMaxSize()) {
             StoreNavBar(onBack = onBack, onMenuClick = onMenuClick)
 
@@ -147,6 +150,23 @@ fun StoreScreen(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(text = storeData.closeTime)
                         }
+                        
+                        // CLOSED Label
+                        if (!isOpen) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.Red, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "CLOSED",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -187,7 +207,8 @@ fun StoreScreen(
                     FoodItem(
                         food = food,
                         onImageClick = { onFoodClick(food.id) },
-                        onAddToCart = { food -> onAddToCart(food) }
+                        onAddToCart = { food -> onAddToCart(food) },
+                        isStoreOpen = isOpen
                     )
                 }
             }

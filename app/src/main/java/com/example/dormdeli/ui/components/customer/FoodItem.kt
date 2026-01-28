@@ -38,13 +38,13 @@ import com.example.dormdeli.ui.theme.OrangePrimary
 
 
 @Composable
-fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> Unit) {
+fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> Unit, isStoreOpen: Boolean = true) {
     Card(
         modifier = Modifier
             .width(180.dp)
             .padding(4.dp)
             .fillMaxWidth()
-            .clickable {
+            .clickable(enabled = isStoreOpen) {
                 onImageClick(food.id)
             },
         shape = MaterialTheme.shapes.medium,
@@ -108,14 +108,15 @@ fun FoodItem(food: Food, onImageClick: (String) -> Unit, onAddToCart: (Food) -> 
                 )
 
                 Button(
-                    onClick = { onAddToCart(food) },
+                    onClick = { if (isStoreOpen) onAddToCart(food) },
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = OrangePrimary,
+                        containerColor = if (isStoreOpen) OrangePrimary else Color.Gray,
                         contentColor = Color.White
                     ),
                     contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(36.dp),
+                    enabled = isStoreOpen
                 ) {
                     Text(text = "+", style = MaterialTheme.typography.titleMedium)
                 }
