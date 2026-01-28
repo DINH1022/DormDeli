@@ -48,7 +48,8 @@ class SellerRepository {
         name: String, 
         description: String, 
         location: String, 
-        openingHours: String,
+        openTime: String,
+        closeTime: String,
         latitude: Double,
         longitude: Double
     ): Result<Unit> = try {
@@ -58,7 +59,8 @@ class SellerRepository {
             name = name,
             description = description,
             location = location,
-            openTime = openingHours, 
+            openTime = openTime,
+            closeTime = closeTime,
             latitude = latitude,
             longitude = longitude,
             approved = true, // Auto-approve as requested

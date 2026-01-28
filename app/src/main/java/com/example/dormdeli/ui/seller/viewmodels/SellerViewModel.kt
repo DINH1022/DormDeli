@@ -236,11 +236,11 @@ class SellerViewModel : ViewModel() {
         return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }
 
-    fun createStore(name: String, description: String, location: String, openingHours: String, latitude: Double, longitude: Double) {
+    fun createStore(name: String, description: String, location: String, openTime: String, closeTime: String, latitude: Double, longitude: Double) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            val result = repository.createStore(name, description, location, openingHours, latitude, longitude)
+            val result = repository.createStore(name, description, location, openTime, closeTime, latitude, longitude)
             if (result.isFailure) {
                 _error.value = result.exceptionOrNull()?.message ?: "An unknown error occurred."
             }
@@ -248,7 +248,7 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun updateStoreProfile(name: String, description: String, location: String, openingHours: String, latitude: Double, longitude: Double, imageUri: Uri?) {
+    fun updateStoreProfile(name: String, description: String, location: String, openTime: String, closeTime: String, latitude: Double, longitude: Double, imageUri: Uri?) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -265,7 +265,8 @@ class SellerViewModel : ViewModel() {
                 name = name,
                 description = description,
                 location = location,
-                openTime = openingHours,
+                openTime = openTime,
+                closeTime = closeTime,
                 imageUrl = imageUrl,
                 latitude = latitude,
                 longitude = longitude

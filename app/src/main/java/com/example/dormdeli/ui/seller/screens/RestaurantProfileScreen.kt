@@ -36,6 +36,7 @@ import com.example.dormdeli.ui.screens.profile.LogoutRow
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 import com.example.dormdeli.ui.seller.components.CustomTextField
+import com.example.dormdeli.ui.seller.components.TimePickerDialog
 import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
@@ -80,12 +81,38 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectL
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var locationName by remember { mutableStateOf("") }
-    var openingHours by remember { mutableStateOf("") }
+    var openTime by remember { mutableStateOf("08:00") }
+    var closeTime by remember { mutableStateOf("22:00") }
+    
+    var showOpenTimePicker by remember { mutableStateOf(false) }
+    var showCloseTimePicker by remember { mutableStateOf(false) }
     
     // Lấy tọa độ từ ViewModel (sau khi chọn từ màn hình Map)
     val pickedLocation by viewModel.pickedLocation.collectAsState()
     
     val isLoading by viewModel.isLoading.collectAsState()
+
+    if (showOpenTimePicker) {
+        TimePickerDialog(
+            title = "Chọn giờ mở cửa",
+            onCancel = { showOpenTimePicker = false },
+            onConfirm = { hour, minute ->
+                openTime = String.format("%02d:%02d", hour, minute)
+                showOpenTimePicker = false
+            }
+        )
+    }
+
+    if (showCloseTimePicker) {
+        TimePickerDialog(
+            title = "Chọn giờ đóng cửa",
+            onCancel = { showCloseTimePicker = false },
+            onConfirm = { hour, minute ->
+                closeTime = String.format("%02d:%02d", hour, minute)
+                showCloseTimePicker = false
+            }
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -128,14 +155,37 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectL
                     }
                 }
                 
-                CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.weight(1f).clickable { showOpenTimePicker = true }) {
+                        CustomTextField(
+                            value = openTime, 
+                            onValueChange = {}, 
+                            label = "Giờ mở cửa", 
+                            readOnly = true,
+                            enabled = false // Disable direct editing, use picker
+                        )
+                        // Overlay invisible clickable box to intercept clicks if enabled=false blocks clicks
+                        Box(modifier = Modifier.matchParentSize().clickable { showOpenTimePicker = true })
+                    }
+                    
+                    Box(modifier = Modifier.weight(1f).clickable { showCloseTimePicker = true }) {
+                        CustomTextField(
+                            value = closeTime, 
+                            onValueChange = {}, 
+                            label = "Giờ đóng cửa", 
+                            readOnly = true,
+                            enabled = false
+                        )
+                        Box(modifier = Modifier.matchParentSize().clickable { showCloseTimePicker = true })
+                    }
+                }
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = { 
                 viewModel.createStore(
-                    name, description, locationName, openingHours, 
+                    name, description, locationName, openTime, closeTime,
                     pickedLocation?.latitude ?: 0.0, 
                     pickedLocation?.longitude ?: 0.0
                 ) 
@@ -194,7 +244,11 @@ fun ApprovedRestaurantProfile(
     var name by remember(store) { mutableStateOf(store.name) }
     var description by remember(store) { mutableStateOf(store.description) }
     var locationName by remember(store) { mutableStateOf(store.location) }
-    var openingHours by remember(store) { mutableStateOf(store.openTime) }
+    var openTime by remember(store) { mutableStateOf(store.openTime) }
+    var closeTime by remember(store) { mutableStateOf(store.closeTime.ifEmpty { "22:00" }) } // Fallback if old data
+    
+    var showOpenTimePicker by remember { mutableStateOf(false) }
+    var showCloseTimePicker by remember { mutableStateOf(false) }
     
     // Tọa độ ưu tiên từ màn hình Map chọn mới, nếu chưa có thì lấy từ Store hiện tại
     val pickedLocation by viewModel.pickedLocation.collectAsState()
@@ -209,6 +263,28 @@ fun ApprovedRestaurantProfile(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? -> imageUri = uri }
     )
+    
+    if (showOpenTimePicker) {
+        TimePickerDialog(
+            title = "Chọn giờ mở cửa",
+            onCancel = { showOpenTimePicker = false },
+            onConfirm = { hour, minute ->
+                openTime = String.format("%02d:%02d", hour, minute)
+                showOpenTimePicker = false
+            }
+        )
+    }
+
+    if (showCloseTimePicker) {
+        TimePickerDialog(
+            title = "Chọn giờ đóng cửa",
+            onCancel = { showCloseTimePicker = false },
+            onConfirm = { hour, minute ->
+                closeTime = String.format("%02d:%02d", hour, minute)
+                showCloseTimePicker = false
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -287,7 +363,29 @@ fun ApprovedRestaurantProfile(
                     }
                 }
                 
-                CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.weight(1f).clickable { showOpenTimePicker = true }) {
+                        CustomTextField(
+                            value = openTime, 
+                            onValueChange = {}, 
+                            label = "Giờ mở cửa", 
+                            readOnly = true,
+                            enabled = false
+                        )
+                        Box(modifier = Modifier.matchParentSize().clickable { showOpenTimePicker = true })
+                    }
+                    
+                    Box(modifier = Modifier.weight(1f).clickable { showCloseTimePicker = true }) {
+                        CustomTextField(
+                            value = closeTime, 
+                            onValueChange = {}, 
+                            label = "Giờ đóng cửa", 
+                            readOnly = true,
+                            enabled = false
+                        )
+                        Box(modifier = Modifier.matchParentSize().clickable { showCloseTimePicker = true })
+                    }
+                }
             }
         }
 
@@ -296,7 +394,7 @@ fun ApprovedRestaurantProfile(
         Button(
             onClick = { 
                 viewModel.updateStoreProfile(
-                    name, description, locationName, openingHours, 
+                    name, description, locationName, openTime, closeTime, 
                     displayLat, displayLng, imageUri
                 ) 
             },

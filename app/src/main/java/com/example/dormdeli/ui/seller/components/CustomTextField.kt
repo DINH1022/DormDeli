@@ -21,6 +21,8 @@ fun CustomTextField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     maxLines: Int = 1,
+    readOnly: Boolean = false,
+    enabled: Boolean = true,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
@@ -35,10 +37,16 @@ fun CustomTextField(
             focusedLabelColor = OrangePrimary,
             cursorColor = OrangePrimary,
             focusedContainerColor = Color(0xFFFAFAFA),
-            unfocusedContainerColor = Color(0xFFFAFAFA)
+            unfocusedContainerColor = Color(0xFFFAFAFA),
+            disabledContainerColor = Color(0xFFF0F0F0),
+            disabledBorderColor = Color.LightGray,
+            disabledTextColor = Color.DarkGray,
+            disabledLabelColor = Color.DarkGray
         ),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         maxLines = maxLines,
+        readOnly = readOnly,
+        enabled = enabled,
         trailingIcon = trailingIcon
     )
 }
