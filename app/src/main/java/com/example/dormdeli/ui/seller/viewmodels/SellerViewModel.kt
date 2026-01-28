@@ -11,6 +11,7 @@ import com.example.dormdeli.model.Store
 import com.example.dormdeli.repository.OrderRepository
 import com.example.dormdeli.ui.seller.model.RestaurantStatus
 import com.example.dormdeli.ui.seller.repository.SellerRepository
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -48,18 +49,13 @@ class SellerViewModel : ViewModel() {
     private val _autofilledDescription = MutableStateFlow<String?>(null)
     val autofilledDescription: StateFlow<String?> = _autofilledDescription.asStateFlow()
 
+    // Quản lý vị trí được chọn từ bản đồ
+    private val _pickedLocation = MutableStateFlow<LatLng?>(null)
+    val pickedLocation: StateFlow<LatLng?> = _pickedLocation.asStateFlow()
+
     val store: StateFlow<Store?> = repository.getStoreFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // Mapping Store approved/active status to a status enum or similar if needed
-    // For now, let's keep logic compatible with UI if possible, or expose plain info
-    // UI likely uses RestaurantStatus. Let's try to map it to allow minimal UI breakage,
-    // or we might need to update UI to check store.approved directly.
-    // Given the request to "switch back to Store", using Store properties is better.
-    // However, for compilation safety if I don't change all UI at once, I might expose a mapped status.
-    // But I will assume I can update UI too.
-    
-    // Retaining restaurantStatus for UI compatibility but mapped from Store
     val restaurantStatus: StateFlow<RestaurantStatus> = store.map { s ->
         if (s == null) RestaurantStatus.NONE
         else if (s.approved) RestaurantStatus.APPROVED
@@ -73,7 +69,6 @@ class SellerViewModel : ViewModel() {
     private val _editingFood = MutableStateFlow<Food?>(null)
     val editingFood = _editingFood.asStateFlow()
 
-    // === DỮ LIỆU ĐƠN HÀNG (ĐÃ NÂNG CẤP) ===
     val orders: StateFlow<List<Order>> = store.flatMapLatest { s ->
         s?.id?.let { orderRepository.getOrdersStreamForStore(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -90,17 +85,18 @@ class SellerViewModel : ViewModel() {
     val cancelledOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "cancelled" } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- Dữ liệu cho Dashboard ---
     val totalOrderCount: StateFlow<Int> = orders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val deliveredCount: StateFlow<Int> = completedOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val cancelledCount: StateFlow<Int> = cancelledOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalRevenue: StateFlow<Long> = completedOrders.map { it.sumOf { order -> order.totalPrice } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
-    // === CÁC HÀM XỬ LÝ ĐƠN HÀNG ===
+    fun setPickedLocation(location: LatLng) {
+        _pickedLocation.value = location
+    }
+
     fun acceptOrder(orderId: String) {
         viewModelScope.launch {
-            // THEO YÊU CẦU TEST: Chuyển thẳng sang "completed"
             orderRepository.updateOrderStatus(orderId, "completed")
         }
     }
@@ -225,11 +221,11 @@ class SellerViewModel : ViewModel() {
         return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }
 
-    fun createStore(name: String, description: String, location: String, openingHours: String) {
+    fun createStore(name: String, description: String, location: String, openingHours: String, latitude: Double, longitude: Double) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            val result = repository.createStore(name, description, location, openingHours)
+            val result = repository.createStore(name, description, location, openingHours, latitude, longitude)
             if (result.isFailure) {
                 _error.value = result.exceptionOrNull()?.message ?: "An unknown error occurred."
             }
@@ -237,7 +233,7 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun updateStoreProfile(name: String, description: String, location: String, openingHours: String, imageUri: Uri?) {
+    fun updateStoreProfile(name: String, description: String, location: String, openingHours: String, latitude: Double, longitude: Double, imageUri: Uri?) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -254,8 +250,10 @@ class SellerViewModel : ViewModel() {
                 name = name,
                 description = description,
                 location = location,
-                openTime = openingHours, // Mapping manually
-                imageUrl = imageUrl
+                openTime = openingHours,
+                imageUrl = imageUrl,
+                latitude = latitude,
+                longitude = longitude
             )
 
             val result = repository.updateStore(updatedStore)
@@ -285,7 +283,6 @@ class SellerViewModel : ViewModel() {
 
             val imageUrl = imageUri?.let { repository.uploadImage(it).getOrNull() } ?: editingFood.value?.imageUrl ?: ""
 
-            // Food uses Long for price
             val priceLong = price.toLong()
 
             val foodToSave = editingFood.value?.copy(
@@ -303,7 +300,7 @@ class SellerViewModel : ViewModel() {
                 price = priceLong,
                 available = isAvailable,
                 imageUrl = imageUrl,
-                category = "Main Course" // Default category? Or needed arg?
+                category = "Main Course"
             )
 
             val result = if (editingFood.value == null) {

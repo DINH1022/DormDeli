@@ -39,12 +39,26 @@ fun OrderShipperItem(
     var customerInfo by remember { mutableStateOf<User?>(null) }
     val userRepository = remember { UserRepository() }
 
-    // Fetch customer info if not pending/accepted
+    // Tính toán số lượng quán duy nhất trong đơn hàng
+    val uniqueStores = remember(order.items) {
+        order.items.map { it.storeId }.distinct()
+    }
+    val pickupValue = if (uniqueStores.size > 1) {
+        "Multiple Stores (${uniqueStores.size})"
+    } else {
+        order.items.firstOrNull()?.storeName ?: "Store Location"
+    }
+
+    // Chỉ hiển thị thông tin liên hệ khi đã lấy hàng (picked_up trở đi)
+    val canShowContact = order.status in listOf("picked_up", "delivering", "completed")
+
     LaunchedEffect(order.status) {
-        if (order.status in listOf("picked_up", "delivering")) {
+        if (canShowContact) {
             userRepository.getUserById(order.userId, { user ->
                 customerInfo = user
             }, {})
+        } else {
+            customerInfo = null
         }
     }
 
@@ -80,8 +94,7 @@ fun OrderShipperItem(
                 }
             }
             
-            // Customer Info Row (New)
-            if (customerInfo != null) {
+            if (canShowContact && customerInfo != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(12.dp))
@@ -111,9 +124,17 @@ fun OrderShipperItem(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = "Store Location", color = Color(0xFFE3F2FD))
+            // Sử dụng pickupValue đã tính toán linh hoạt
+            InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = pickupValue, color = Color(0xFFE3F2FD))
             Spacer(modifier = Modifier.height(8.dp))
-            InfoRow(icon = Icons.Default.Room, label = "DELIVER TO", value = "${order.address?.label ?: order.deliveryType} - ${order.address?.address ?: order.deliveryNote}", color = Color(0xFFFFEBEE))
+            
+            InfoRow(
+                icon = Icons.Default.Room, 
+                label = "DELIVER TO", 
+                value = "${order.address?.label ?: order.deliveryType} - ${order.address?.address ?: order.deliveryNote}", 
+                color = Color(0xFFFFEBEE)
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

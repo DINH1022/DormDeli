@@ -60,6 +60,7 @@ sealed class Screen(val route: String) {
 
     // Seller Screens
     object SellerMain : Screen("seller_main")
+    object SellerMapPicker : Screen("seller_map_picker")
 
     // Admin Screens
     object AdminMain : Screen("admin_main")

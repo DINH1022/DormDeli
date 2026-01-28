@@ -33,8 +33,9 @@ object SellerDestinations {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SellerMainScreen(
-    sellerViewModel: SellerViewModel = viewModel(),
-    onLogout: () -> Unit
+    viewModel: SellerViewModel = viewModel(),
+    onLogout: () -> Unit,
+    onSelectLocation: () -> Unit
 ) {
     val navController = rememberNavController()
     val bottomNavItems = listOf(
@@ -43,7 +44,7 @@ fun SellerMainScreen(
         BottomNavItem.Orders,
         BottomNavItem.Profile
     )
-    val restaurantStatus by sellerViewModel.restaurantStatus.collectAsState()
+    val restaurantStatus by viewModel.restaurantStatus.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -77,27 +78,31 @@ fun SellerMainScreen(
         ) {
             composable(BottomNavItem.Dashboard.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> StatisticsScreen(sellerViewModel)
+                    RestaurantStatus.APPROVED -> StatisticsScreen(viewModel)
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Menu.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> MenuManagementScreen(sellerViewModel) { navController.navigate(SellerDestinations.ADD_EDIT_FOOD_ROUTE) }
+                    RestaurantStatus.APPROVED -> MenuManagementScreen(viewModel) { navController.navigate(SellerDestinations.ADD_EDIT_FOOD_ROUTE) }
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Orders.route) {
                 when (restaurantStatus) {
-                    RestaurantStatus.APPROVED -> OrderManagementScreen(sellerViewModel)
+                    RestaurantStatus.APPROVED -> OrderManagementScreen(viewModel)
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Profile.route) {
-                RestaurantProfileScreen(sellerViewModel, onLogout)
+                RestaurantProfileScreen(
+                    viewModel = viewModel, 
+                    onLogout = onLogout,
+                    onSelectLocation = onSelectLocation
+                )
             }
             composable(SellerDestinations.ADD_EDIT_FOOD_ROUTE) {
-                AddEditFoodScreen(viewModel = sellerViewModel) { navController.popBackStack() }
+                AddEditFoodScreen(viewModel = viewModel) { navController.popBackStack() }
             }
         }
     }

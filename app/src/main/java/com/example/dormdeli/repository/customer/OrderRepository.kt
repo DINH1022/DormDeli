@@ -4,8 +4,10 @@ import android.util.Log
 import com.example.dormdeli.model.CartItem
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
+import com.example.dormdeli.model.Store
 import com.example.dormdeli.model.UserAddress
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
@@ -28,12 +30,17 @@ class OrderRepository {
 
         try {
             // 1. Tính toán phí ship dựa trên số lượng quán
-            val distinctStores = cartItems.map { it.food.storeId }.distinct()
-            val shippingFee = (distinctStores.size * 4000).toLong()
+            val storeIds = cartItems.map { it.food.storeId }.distinct()
+            val shippingFee = (storeIds.size * 4000).toLong()
             val totalPrice = (subtotal + shippingFee).toLong()
 
-            // 2. Chuyển đổi CartItem -> OrderItem
+            // 2. Lấy thông tin chi tiết của tất cả các quán liên quan
+            val storesInfo = getStoresByIds(storeIds)
+            val storeMap = storesInfo.associateBy { it.id }
+
+            // 3. Chuyển đổi CartItem -> OrderItem kèm thông tin quán
             val orderItems = cartItems.map { item ->
+                val store = storeMap[item.food.storeId]
                 OrderItem(
                     foodId = item.food.id,
                     foodName = item.food.name,
@@ -43,17 +50,21 @@ class OrderRepository {
                     options = item.selectedOptions.map {
                         mapOf("name" to it.first, "price" to it.second)
                     },
-                    note = ""
+                    note = "",
+                    // Gán thông tin quán vào Item
+                    storeId = item.food.storeId,
+                    storeName = store?.name ?: "Unknown Store",
+                    storeAddress = store?.location ?: "",
+                    storeLatitude = store?.latitude ?: 0.0,
+                    storeLongitude = store?.longitude ?: 0.0
                 )
             }
 
-            // 3. Tạo Order
-            // Lưu ý: Nếu đơn hàng có nhiều quán, storeId có thể lưu là "multiple" hoặc storeId của quán đầu tiên
-            // Ở đây tôi giữ storeId của quán đầu tiên để tương thích ngược, hoặc bạn có thể đổi logic nếu cần quản lý theo từng quán
+            // 4. Tạo Order
             val firstStoreId = cartItems.first().food.storeId
 
             val newOrder = Order(
-                storeId = firstStoreId,
+                storeId = if (storeIds.size > 1) "multiple" else firstStoreId,
                 userId = userId,
                 status = "pending",
                 deliveryType = "room",
@@ -66,16 +77,31 @@ class OrderRepository {
                 items = orderItems
             )
 
-            // 4. Lưu lên Firestore
+            // 5. Lưu lên Firestore
             db.collection(collectionName).add(newOrder).await()
 
-            // 5. Xóa giỏ hàng
+            // 6. Xóa giỏ hàng
             db.collection("carts").document(userId).delete().await()
 
             return true
         } catch (e: Exception) {
             Log.e("OrderRepo", "Lỗi đặt hàng: ${e.message}")
             return false
+        }
+    }
+
+    // Helper: Lấy thông tin nhiều quán cùng lúc
+    private suspend fun getStoresByIds(storeIds: List<String>): List<Store> {
+        if (storeIds.isEmpty()) return emptyList()
+        return try {
+            val snapshot = db.collection("stores")
+                .whereIn(FieldPath.documentId(), storeIds)
+                .get()
+                .await()
+            snapshot.documents.mapNotNull { it.toObject(Store::class.java)?.copy(id = it.id) }
+        } catch (e: Exception) {
+            Log.e("OrderRepo", "Lỗi lấy thông tin quán: ${e.message}")
+            emptyList()
         }
     }
 

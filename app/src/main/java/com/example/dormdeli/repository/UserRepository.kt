@@ -32,13 +32,20 @@ class UserRepository {
         onSuccess: (User?) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        // Sử dụng Source.DEFAULT hoặc Source.SERVER để đảm bảo dữ liệu mới nhất
+        // Sử dụng Source.SERVER để luôn lấy dữ liệu mới nhất khi cần kiểm tra Role/Login
         userCol.document(userId)
-            .get(Source.DEFAULT) 
+            .get(Source.SERVER)
             .addOnSuccessListener { doc ->
                 onSuccess(doc.toObject(User::class.java))
             }
-            .addOnFailureListener { onFailure(it) }
+            .addOnFailureListener {
+                // Nếu lỗi Server (không mạng), thử lấy từ Cache
+                userCol.document(userId).get(Source.CACHE).addOnSuccessListener { cacheDoc ->
+                    onSuccess(cacheDoc.toObject(User::class.java))
+                }.addOnFailureListener { _ ->
+                    onFailure(it)
+                }
+            }
     }
 
     suspend fun updateFcmToken(userId: String, token: String) {

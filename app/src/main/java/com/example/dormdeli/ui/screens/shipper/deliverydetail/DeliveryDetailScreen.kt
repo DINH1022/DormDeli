@@ -47,6 +47,7 @@ fun DeliveryDetailScreen(
     viewModel: ShipperOrdersViewModel,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val availableOrders by viewModel.availableOrders.collectAsState()
     val myDeliveries by viewModel.myDeliveries.collectAsState()
     val historyOrders by viewModel.historyOrders.collectAsState()
@@ -59,12 +60,15 @@ fun DeliveryDetailScreen(
     var customerInfo by remember { mutableStateOf<User?>(null) }
     val userRepository = remember { UserRepository() }
 
-    // Fetch customer info if status is picked_up or later
+    val canShowContactInfo = order?.status in listOf("picked_up", "delivering", "completed")
+
     LaunchedEffect(order?.status) {
-        if (order != null && order.status in listOf("picked_up", "delivering", "completed")) {
+        if (order != null && canShowContactInfo) {
             userRepository.getUserById(order.userId, { user ->
                 customerInfo = user
             }, {})
+        } else {
+            customerInfo = null
         }
     }
 
@@ -93,6 +97,19 @@ fun DeliveryDetailScreen(
             }
         } else {
             val currentOrder = order
+            
+            val storesToVisit = remember(currentOrder.items) {
+                currentOrder.items.map { 
+                    StorePoint(
+                        id = it.storeId, 
+                        name = it.storeName, 
+                        address = it.storeAddress,
+                        lat = it.storeLatitude,
+                        lng = it.storeLongitude
+                    ) 
+                }.distinctBy { it.id }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,19 +121,20 @@ fun DeliveryDetailScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { OrderInfoCard(currentOrder) }
+                    item { OrderInfoCard(currentOrder, canShowContactInfo) }
 
-                    // Customer Contact Card - Only shown when picked up or later
-                    if (customerInfo != null) {
+                    if (customerInfo != null && canShowContactInfo) {
                         item { CustomerContactCard(customerInfo!!) }
                     }
 
                     item {
-                        AddressSection(
+                        AddressSectionV2(
                             order = currentOrder,
-                            onDeliverToClick = { showMapSheet = true }
+                            pickupStores = storesToVisit,
+                            onShowMap = { showMapSheet = true }
                         )
                     }
+                    
                     item {
                         Text(
                             "Order Items (${currentOrder.items.size})",
@@ -126,6 +144,7 @@ fun DeliveryDetailScreen(
                         )
                     }
                     items(currentOrder.items) { item -> OrderItemRow(item) }
+                    
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         val subtotal = currentOrder.totalPrice - currentOrder.shippingFee
@@ -136,105 +155,362 @@ fun DeliveryDetailScreen(
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp,
-                    color = Color.White
-                ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
-                        val canAction = currentOrder.status !in listOf("completed", "cancelled")
-
-                        if (canAction) {
-                            if (currentOrder.status == "accepted") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.cancelAcceptedOrder(currentOrder.id) { onBackClick() } },
-                                        enabled = !isActionLoading,
-                                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
-                                    ) {
-                                        Text("RETURN", fontWeight = FontWeight.Bold)
-                                    }
-
-                                    Button(
-                                        onClick = { viewModel.updateStatus(currentOrder.id, "picked_up") },
-                                        enabled = !isActionLoading,
-                                        modifier = Modifier.weight(1.5f).fillMaxHeight(),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                                        shape = RoundedCornerShape(16.dp)
-                                    ) {
-                                        if (isActionLoading) {
-                                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                        } else {
-                                            Text("PICKED UP", fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        when (currentOrder.status) {
-                                            "pending" -> viewModel.acceptOrder(currentOrder.id) { onBackClick() }
-                                            "picked_up" -> viewModel.updateStatus(currentOrder.id, "delivering")
-                                            "delivering" -> viewModel.updateStatus(currentOrder.id, "completed") { onBackClick() }
-                                        }
-                                    },
-                                    enabled = !isActionLoading,
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (currentOrder.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
-                                    ),
-                                    shape = RoundedCornerShape(16.dp)
-                                ) {
-                                    if (isActionLoading) {
-                                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                    } else {
-                                        Text(
-                                            text = when (currentOrder.status) {
-                                                "pending" -> "ACCEPT ORDER"
-                                                "picked_up" -> "START DELIVERING"
-                                                "delivering" -> "MARK AS COMPLETED"
-                                                else -> "BACK"
-                                            },
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = onBackClick,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
-                            ) {
-                                Text("BACK", color = OrangePrimary, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
+                BottomActionBar(currentOrder, isActionLoading, viewModel, onBackClick)
             }
         }
     }
 
-    if (showMapSheet && order?.address != null) {
+    if (showMapSheet && order != null) {
+        val storesToVisit = order.items.map { 
+            StorePoint(it.storeId, it.storeName, it.storeAddress, it.storeLatitude, it.storeLongitude) 
+        }.distinctBy { it.id }
+
         ModalBottomSheet(
             onDismissRequest = { showMapSheet = false },
             sheetState = sheetState,
             containerColor = Color.White,
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
-            CustomerLocationMap(
-                latitude = order.address.latitude,
-                longitude = order.address.longitude,
-                addressLabel = order.address.label,
-                addressDetail = order.address.address
+            MultiPointMap(
+                destination = LatLng(order.address?.latitude ?: 0.0, order.address?.longitude ?: 0.0),
+                destLabel = order.address?.label ?: "Customer",
+                stores = storesToVisit
             )
+        }
+    }
+}
+
+data class StorePoint(
+    val id: String,
+    val name: String,
+    val address: String,
+    val lat: Double,
+    val lng: Double
+)
+
+@Composable
+fun AddressSectionV2(
+    order: Order,
+    pickupStores: List<StorePoint>,
+    onShowMap: () -> Unit
+) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("PICK UP POINTS", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            pickupStores.forEachIndexed { index, store ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Clickable area for info/overview
+                    Row(
+                        modifier = Modifier.weight(1f).clickable {
+                            // Show overview or details
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE3F2FD),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Text(
+                                text = (index + 1).toString(), 
+                                modifier = Modifier.wrapContentSize(),
+                                color = Color(0xFF2196F3),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(store.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(store.address.ifEmpty { "Store Location" }, fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                    
+                    // Unified Navigation Button
+                    IconButton(
+                        onClick = {
+                            val uri = Uri.parse("google.navigation:q=${store.lat},${store.lng}")
+                            context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") })
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Default.Navigation, contentDescription = "Navigate", tint = Color(0xFF4285F4))
+                    }
+                }
+                if (index < pickupStores.size - 1) {
+                    Box(modifier = Modifier.padding(start = 17.dp).height(12.dp).width(2.dp).background(Color.LightGray))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("DELIVER TO", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f).clickable { onShowMap() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFEBEE),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Room, 
+                            contentDescription = null, 
+                            tint = Color.Red,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(order.address?.label ?: order.deliveryType.uppercase(), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(
+                            order.address?.address ?: order.deliveryNote,
+                            fontSize = 12.sp, 
+                            color = Color.Gray
+                        )
+                    }
+                }
+                
+                IconButton(
+                    onClick = {
+                        order.address?.let {
+                            val uri = Uri.parse("google.navigation:q=${it.latitude},${it.longitude}")
+                            context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") })
+                        } ?: Toast.makeText(context, "Coordinates not available", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.Navigation, contentDescription = "Navigate", tint = Color(0xFF4285F4))
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+@Composable
+fun MultiPointMap(
+    destination: LatLng,
+    destLabel: String,
+    stores: List<StorePoint>
+) {
+    val context = LocalContext.current
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(destination, 15f)
+    }
+
+    var shipperLocation by remember { mutableStateOf<LatLng?>(null) }
+    val hasLocationPermission = remember {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                loc?.let { shipperLocation = LatLng(it.latitude, it.longitude) }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.85f)) {
+        Box(modifier = Modifier.weight(1f)) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
+                uiSettings = MapUiSettings(zoomControlsEnabled = true, myLocationButtonEnabled = true)
+            ) {
+                Marker(
+                    state = MarkerState(position = destination),
+                    title = "Customer: $destLabel",
+                    icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_RED)
+                )
+
+                stores.forEach { store ->
+                    Marker(
+                        state = MarkerState(position = LatLng(store.lat, store.lng)),
+                        title = "Store: ${store.name}",
+                        icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE)
+                    )
+                }
+            }
+
+            SmallFloatingActionButton(
+                onClick = {
+                    val builder = LatLngBounds.Builder()
+                    builder.include(destination)
+                    stores.forEach { builder.include(LatLng(it.lat, it.lng)) }
+                    shipperLocation?.let { builder.include(it) }
+                    
+                    try {
+                        val bounds = builder.build()
+                        cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, 150))
+                    } catch (e: Exception) {}
+                },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 80.dp, end = 16.dp),
+                containerColor = Color.White
+            ) {
+                Icon(Icons.Default.FilterCenterFocus, contentDescription = "View All")
+            }
+        }
+        
+        LazyColumn(modifier = Modifier.fillMaxWidth().height(150.dp).padding(16.dp)) {
+            item { Text("Stops in this trip:", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+            items(stores) { store ->
+                Row(modifier = Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Store, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(store.name, fontSize = 14.sp)
+                }
+            }
+            item {
+                Row(modifier = Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(destLabel, fontSize = 14.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BottomActionBar(
+    order: Order,
+    isLoading: Boolean,
+    viewModel: ShipperOrdersViewModel,
+    onBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 8.dp,
+        color = Color.White
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            val canAction = order.status !in listOf("completed", "cancelled")
+            if (canAction) {
+                if (order.status == "accepted") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.cancelAcceptedOrder(order.id) { onBack() } },
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
+                        ) {
+                            Text("RETURN", fontWeight = FontWeight.Bold)
+                        }
+                        
+                        Button(
+                            onClick = { viewModel.updateStatus(order.id, "picked_up") },
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1.5f).fillMaxHeight(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            else Text("PICKED UP", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            when (order.status) {
+                                "pending" -> viewModel.acceptOrder(order.id) { onBack() }
+                                "picked_up" -> viewModel.updateStatus(order.id, "delivering")
+                                "delivering" -> viewModel.updateStatus(order.id, "completed") { onBack() }
+                            }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (order.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text(
+                                text = when (order.status) {
+                                    "pending" -> "ACCEPT ORDER"
+                                    "picked_up" -> "START DELIVERING"
+                                    "delivering" -> "MARK AS COMPLETED"
+                                    else -> "BACK"
+                                },
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
+                ) {
+                    Text("BACK", color = OrangePrimary, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderInfoCard(order: Order, showUserId: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = OrangePrimary.copy(alpha = 0.1f),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(Icons.Default.Inventory, contentDescription = null, tint = OrangePrimary, modifier = Modifier.padding(12.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(text = "Order #${order.id.takeLast(5).uppercase()}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    if (showUserId) {
+                        Text(text = "Customer ID: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+            }
+            StatusBadge(order.status)
         }
     }
 }
@@ -266,7 +542,7 @@ fun CustomerContactCard(user: User) {
                     Text(text = user.phone, color = Color.Gray, fontSize = 14.sp)
                 }
             }
-
+            
             Row {
                 IconButton(
                     onClick = {
@@ -292,209 +568,6 @@ fun CustomerContactCard(user: User) {
     }
 }
 
-@SuppressLint("MissingPermission")
-@Composable
-fun CustomerLocationMap(
-    latitude: Double,
-    longitude: Double,
-    addressLabel: String,
-    addressDetail: String
-) {
-    val context = LocalContext.current
-    val destination = LatLng(latitude, longitude)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(destination, 15f)
-    }
-
-    var shipperLocation by remember { mutableStateOf<LatLng?>(null) }
-
-    val hasLocationPermission = remember {
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    LaunchedEffect(hasLocationPermission) {
-        if (hasLocationPermission) {
-            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000)
-                .setMinUpdateIntervalMillis(1000)
-                .build()
-
-            val locationCallback = object : LocationCallback() {
-                override fun onLocationResult(result: LocationResult) {
-                    result.lastLocation?.let {
-                        shipperLocation = LatLng(it.latitude, it.longitude)
-                    }
-                }
-            }
-
-            fusedLocationClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
-            )
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.85f)
-    ) {
-        Box(modifier = Modifier.weight(1f)) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    isMyLocationEnabled = hasLocationPermission
-                ),
-                uiSettings = MapUiSettings(
-                    zoomControlsEnabled = true,
-                    myLocationButtonEnabled = true
-                )
-            ) {
-                Marker(
-                    state = MarkerState(position = destination),
-                    title = "Customer: $addressLabel",
-                    snippet = addressDetail
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 80.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        val uri = Uri.parse("google.navigation:q=$latitude,$longitude&mode=d")
-                        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
-                        mapIntent.setPackage("com.google.android.apps.maps")
-
-                        if (mapIntent.resolveActivity(context.packageManager) != null) {
-                            context.startActivity(mapIntent)
-                        } else {
-                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude"))
-                            context.startActivity(browserIntent)
-                        }
-                    },
-                    containerColor = Color(0xFF4285F4),
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Default.Directions, contentDescription = "Navigate")
-                }
-
-                SmallFloatingActionButton(
-                    onClick = {
-                        val builder = LatLngBounds.Builder()
-                        builder.include(destination)
-                        shipperLocation?.let { builder.include(it) }
-
-                        val bounds = builder.build()
-                        cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, 150))
-                    },
-                    containerColor = Color.White
-                ) {
-                    Icon(Icons.Default.CompareArrows, contentDescription = "Show both")
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = OrangePrimary)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = addressLabel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(text = addressDetail, color = Color.Gray, fontSize = 14.sp)
-                }
-                IconButton(onClick = {
-                    val uri = Uri.parse("google.navigation:q=$latitude,$longitude")
-                    val mapIntent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
-                    context.startActivity(mapIntent)
-                }) {
-                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color(0xFF4285F4))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-fun OrderInfoCard(order: Order) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f) // chiếm hết không gian bên trái
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = OrangePrimary.copy(alpha = 0.1f),
-                    modifier = Modifier.size(50.dp)
-                ) {
-                    Icon(Icons.Default.Inventory, contentDescription = null, tint = OrangePrimary, modifier = Modifier.padding(12.dp))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = "Order #${order.id.takeLast(5).uppercase()}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text(text = "Customer ID: ${order.userId.takeLast(5)}", color = Color.Gray, fontSize = 14.sp)
-                }
-            }
-            StatusBadge(order.status) // sẽ nằm sát phải
-        }
-    }
-}
-
-@Composable
-fun AddressSection(order: Order, onDeliverToClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow(
-                icon = Icons.Default.LocationOn,
-                label = "PICK UP",
-                value = "Store Location",
-                color = Color(0xFFE3F2FD)
-            )
-            Box(modifier = Modifier.padding(start = 22.dp).height(30.dp).width(2.dp).background(Color.LightGray))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onDeliverToClick() }
-            ) {
-                InfoRow(
-                    icon = Icons.Default.Room,
-                    label = "DELIVER TO (Tap to see map)",
-                    value = "${order.address?.label ?: order.deliveryType.uppercase()} - ${order.address?.address ?: order.deliveryNote}",
-                    color = Color(0xFFFFEBEE)
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun OrderItemRow(item: OrderItem) {
     Row(
@@ -504,7 +577,10 @@ fun OrderItemRow(item: OrderItem) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "${item.quantity}x", fontWeight = FontWeight.Bold, color = OrangePrimary, modifier = Modifier.width(30.dp))
-            Text(text = item.foodName, fontWeight = FontWeight.Medium)
+            Column {
+                Text(text = item.foodName, fontWeight = FontWeight.Medium)
+                Text(text = "from ${item.storeName}", fontSize = 11.sp, color = Color.Gray)
+            }
         }
         Text(text = "${item.price * item.quantity}đ", color = Color.Gray)
     }

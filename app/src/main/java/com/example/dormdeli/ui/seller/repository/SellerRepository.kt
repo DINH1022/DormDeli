@@ -21,10 +21,14 @@ class SellerRepository {
     private val storesCollection = db.collection("stores")
     private val foodsCollection = db.collection("foods")
 
-    private fun getCurrentUserId(): String = "TEST_SELLER_ID" // Hardcoded for testing, should use auth.currentUser?.uid in prod
+    private fun getCurrentUserId(): String? = auth.currentUser?.uid
 
     fun getStoreFlow(): Flow<Store?> = callbackFlow {
         val userId = getCurrentUserId()
+        if (userId == null) {
+            trySend(null)
+            return@callbackFlow
+        }
         val registration = storesCollection.whereEqualTo("ownerId", userId)
             .limit(1)
             .addSnapshotListener { snapshot, error ->
@@ -32,21 +36,31 @@ class SellerRepository {
                     close(error)
                     return@addSnapshotListener
                 }
-                val store = snapshot?.documents?.firstOrNull()?.toObject(Store::class.java)?.copy(id = snapshot.documents.first().id)
+                val doc = snapshot?.documents?.firstOrNull()
+                val store = doc?.toObject(Store::class.java)?.copy(id = doc.id)
                 trySend(store)
             }
 
         awaitClose { registration.remove() }
     }
 
-    suspend fun createStore(name: String, description: String, location: String, openingHours: String): Result<Unit> = try {
-        val userId = getCurrentUserId()
+    suspend fun createStore(
+        name: String, 
+        description: String, 
+        location: String, 
+        openingHours: String,
+        latitude: Double,
+        longitude: Double
+    ): Result<Unit> = try {
+        val userId = getCurrentUserId() ?: throw Exception("User not logged in")
         val store = Store(
             ownerId = userId,
             name = name,
             description = description,
             location = location,
             openTime = openingHours, 
+            latitude = latitude,
+            longitude = longitude,
             approved = true, // Auto-approve as requested
             active = true
         )
@@ -106,7 +120,6 @@ class SellerRepository {
 
     suspend fun addFood(storeId: String, food: Food): Result<Unit> = try {
         val foodWithStoreId = food.copy(storeId = storeId) // Ensure storeId is set
-        // Use document(food.id).set() to allow generated IDs if provided or update if exists
         val docRef = if (food.id.isNotEmpty()) foodsCollection.document(food.id) else foodsCollection.document()
         val finalFood = foodWithStoreId.copy(id = docRef.id)
         

@@ -35,6 +35,7 @@ import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
+import com.example.dormdeli.ui.seller.screens.SellerMapPickerScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
 import com.example.dormdeli.ui.screens.shipper.deliverydetail.DeliveryDetailScreen
 import com.example.dormdeli.ui.screens.admin.AdminScreen
@@ -47,6 +48,7 @@ import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 import com.example.dormdeli.ui.viewmodels.customer.ProfileViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperViewModel
 import com.example.dormdeli.ui.viewmodels.shipper.ShipperOrdersViewModel
+import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 import com.example.dormdeli.ui.screens.customer.home.SeeAllScreen
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -69,11 +71,11 @@ fun MainNavigation(
 
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
+    val sellerViewModel: SellerViewModel = viewModel()
     val favFoodIds by favoriteViewModel.favoriteFoodIds.collectAsState()
     val favStoreIds by favoriteViewModel.favoriteStoreIds.collectAsState()
 
     val navigateAfterLogin: () -> Unit = {
-        // Lấy giá trị thực tế nhất từ ViewModel
         val role = authViewModel.currentUserRole.value ?: authViewModel.selectedRole.value.value
         val isVerified = authViewModel.isVerifiedStudent.value 
 
@@ -96,14 +98,11 @@ fun MainNavigation(
                 }
             }
             else -> {
-                // Kiểm tra kỹ điều kiện student
                 if ((role == "student" || role == "customer") && !isVerified) {
-                    Log.d("Navigation", "User not verified, redirecting to Verification")
                     navController.navigate(Screen.StudentVerification.route) {
                         popUpTo(0) { inclusive = true }
                     }
                 } else {
-                    Log.d("Navigation", "User verified or other role, redirecting to Home")
                     navController.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -176,11 +175,15 @@ fun MainNavigation(
         composable(Screen.SellerMain.route) {
             if (currentUserRole == "seller") {
                 SellerMainScreen(
+                    viewModel = sellerViewModel,
                     onLogout = {
                         authViewModel.signOut()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
+                    },
+                    onSelectLocation = {
+                        navController.navigate(Screen.SellerMapPicker.route)
                     }
                 )
             } else if (currentUserRole != null) {
@@ -190,6 +193,13 @@ fun MainNavigation(
                     }
                 }
             }
+        }
+
+        composable(Screen.SellerMapPicker.route) {
+            SellerMapPickerScreen(
+                viewModel = sellerViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Login.route) {
@@ -251,7 +261,6 @@ fun MainNavigation(
         }
 
         composable(Screen.StudentVerification.route) {
-            // Tự động điều hướng nếu dữ liệu báo đã xác thực
             LaunchedEffect(isVerifiedStudent, isDataLoaded) {
                 if (isDataLoaded && isVerifiedStudent) {
                     navController.navigate(Screen.Home.route) {

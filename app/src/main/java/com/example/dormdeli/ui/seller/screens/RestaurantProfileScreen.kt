@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +40,11 @@ import com.example.dormdeli.ui.theme.OrangeLight
 import com.example.dormdeli.ui.theme.OrangePrimary
 
 @Composable
-fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
+fun RestaurantProfileScreen(
+    viewModel: SellerViewModel, 
+    onLogout: () -> Unit,
+    onSelectLocation: () -> Unit
+) {
     val status by viewModel.restaurantStatus.collectAsState()
     val store by viewModel.store.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -49,16 +55,15 @@ fun RestaurantProfileScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     Scaffold(containerColor = Color(0xFFF8F9FA)) {
         Column(modifier = Modifier.fillMaxSize().padding(it)) {
             when (status) {
-                RestaurantStatus.NONE -> RegistrationForm(viewModel, onLogout)
+                RestaurantStatus.NONE -> RegistrationForm(viewModel, onLogout, onSelectLocation)
                 RestaurantStatus.PENDING -> PendingScreen(onLogout)
-                RestaurantStatus.APPROVED -> store?.let { r -> ApprovedRestaurantProfile(r, viewModel, onLogout) }
+                RestaurantStatus.APPROVED -> store?.let { r -> ApprovedRestaurantProfile(r, viewModel, onLogout, onSelectLocation) }
                 RestaurantStatus.REJECTED -> RejectedScreen(viewModel, onLogout)
             }
         }
     }
 }
 
-// Helper Composable cho Title
 @Composable
 fun ScreenTitle(title: String) {
     Text(
@@ -69,12 +74,17 @@ fun ScreenTitle(title: String) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
+fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectLocation: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var locationName by remember { mutableStateOf("") }
     var openingHours by remember { mutableStateOf("") }
+    
+    // Lấy tọa độ từ ViewModel (sau khi chọn từ màn hình Map)
+    val pickedLocation by viewModel.pickedLocation.collectAsState()
+    
     val isLoading by viewModel.isLoading.collectAsState()
 
     Column(
@@ -90,17 +100,50 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CustomTextField(value = name, onValueChange = { name = it }, label = "Tên quán ăn")
                 CustomTextField(value = description, onValueChange = { description = it }, label = "Mô tả")
-                CustomTextField(value = location, onValueChange = { location = it }, label = "Địa chỉ")
+                CustomTextField(value = locationName, onValueChange = { locationName = it }, label = "Địa chỉ (VD: KTX Khu B)")
+                
+                OutlinedCard(
+                    onClick = onSelectLocation,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, if (pickedLocation != null) OrangePrimary else Color.LightGray)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = OrangePrimary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Vị trí GPS của quán", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                if (pickedLocation == null) "Chưa chọn tọa độ" 
+                                else "Đã ghim: ${String.format("%.4f", pickedLocation!!.latitude)}, ${String.format("%.4f", pickedLocation!!.longitude)}",
+                                fontSize = 12.sp,
+                                color = if (pickedLocation == null) Color.Gray else OrangePrimary
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text("CHỌN", color = OrangePrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+                
                 CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = { viewModel.createStore(name, description, location, openingHours) },
+            onClick = { 
+                viewModel.createStore(
+                    name, description, locationName, openingHours, 
+                    pickedLocation?.latitude ?: 0.0, 
+                    pickedLocation?.longitude ?: 0.0
+                ) 
+            },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
             shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading
+            enabled = !isLoading && pickedLocation != null && name.isNotBlank()
         ) {
             Text("Gửi đăng ký", fontSize = 16.sp)
         }
@@ -140,12 +183,24 @@ fun RejectedScreen(viewModel: SellerViewModel, onLogout: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout: () -> Unit) {
+fun ApprovedRestaurantProfile(
+    store: Store, 
+    viewModel: SellerViewModel, 
+    onLogout: () -> Unit,
+    onSelectLocation: () -> Unit
+) {
     var name by remember(store) { mutableStateOf(store.name) }
     var description by remember(store) { mutableStateOf(store.description) }
-    var location by remember(store) { mutableStateOf(store.location) }
-    var openingHours by remember { mutableStateOf(store.openTime) } // Using openTime
+    var locationName by remember(store) { mutableStateOf(store.location) }
+    var openingHours by remember(store) { mutableStateOf(store.openTime) }
+    
+    // Tọa độ ưu tiên từ màn hình Map chọn mới, nếu chưa có thì lấy từ Store hiện tại
+    val pickedLocation by viewModel.pickedLocation.collectAsState()
+    val displayLat = pickedLocation?.latitude ?: store.latitude
+    val displayLng = pickedLocation?.longitude ?: store.longitude
+    
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -163,7 +218,6 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
     ) {
         ScreenTitle("Thông tin quán")
 
-        // Profile Image Section
         Box(modifier = Modifier.size(140.dp)) {
             Box(
                 modifier = Modifier
@@ -196,7 +250,6 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Info Form
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -205,16 +258,47 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CustomTextField(value = name, onValueChange = { name = it }, label = "Tên quán")
                 CustomTextField(value = description, onValueChange = { description = it }, label = "Mô tả")
-                CustomTextField(value = location, onValueChange = { location = it }, label = "Địa chỉ")
+                CustomTextField(value = locationName, onValueChange = { locationName = it }, label = "Địa chỉ")
+                
+                OutlinedCard(
+                    onClick = onSelectLocation,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color.LightGray)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = OrangePrimary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Vị trí GPS của quán", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                if (displayLat == 0.0) "Chưa có tọa độ" 
+                                else "Đã ghim: ${String.format("%.4f", displayLat)}, ${String.format("%.4f", displayLng)}",
+                                fontSize = 12.sp,
+                                color = if (pickedLocation != null) OrangePrimary else Color.Gray
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.Map, contentDescription = null, tint = OrangePrimary)
+                    }
+                }
+                
                 CustomTextField(value = openingHours, onValueChange = { openingHours = it }, label = "Giờ mở cửa")
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Save Button
         Button(
-            onClick = { viewModel.updateStoreProfile(name, description, location, openingHours, imageUri) },
+            onClick = { 
+                viewModel.updateStoreProfile(
+                    name, description, locationName, openingHours, 
+                    displayLat, displayLng, imageUri
+                ) 
+            },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             contentPadding = PaddingValues(),
@@ -234,7 +318,6 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Delete Button
         OutlinedButton(
             onClick = { viewModel.deleteCurrentStore() },
             modifier = Modifier.fillMaxWidth(),
@@ -246,9 +329,7 @@ fun ApprovedRestaurantProfile(store: Store, viewModel: SellerViewModel, onLogout
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        
         LogoutRow(onLogout = onLogout)
-        
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
