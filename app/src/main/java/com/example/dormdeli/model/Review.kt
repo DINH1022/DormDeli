@@ -10,6 +10,7 @@ data class Review(
     val userAvatarUrl: String = "",
     val storeId: String = "",
     val foodId: String = "",
+    val orderId: String = "",
     val rating: Int = 0,
     val comment: String = "",
     val createdAt: Long = System.currentTimeMillis()
