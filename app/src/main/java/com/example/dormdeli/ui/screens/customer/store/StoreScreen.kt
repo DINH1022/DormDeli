@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,146 +81,147 @@ fun StoreScreen(
     } else if (store != null) {
         val storeData = store!!
         Column(modifier = Modifier.fillMaxSize()) {
+            // NavBar giữ cố định ở trên cùng để người dùng luôn có thể quay lại
             StoreNavBar(onBack = onBack, onMenuClick = onMenuClick)
 
-            // Store Image
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .background(Color(0xFFFFE5D0))
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(storeData.imageUrl),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            // --- THÔNG TIN STORE & NÚT TIM ---
-            Card(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                border = BorderStroke(width = 1.dp, color = CardBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-
-                    // Hàng chứa Tên quán và Nút Tim
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = storeData.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f) // Để tên quán không đè lên tim
-                        )
-
-                        // Nút Tim Store
-                        IconButton(
-                            onClick = {
-                                localIsFavorite = !localIsFavorite
-                                onToggleFavorite(storeId)
-                                val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(Color.White.copy(alpha = 0.5f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = if (localIsFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite Store",
-                                tint = if (localIsFavorite) Color.Red else Color.Gray
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // [SỬA] Hiển thị Giờ mở cửa & Trạng thái hoạt động
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Icon đồng hồ
-                        Icon(Icons.Default.AccessTime, "Time", tint = Color.Gray, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        // Hiển thị giờ (VD: 07:00 - 22:00)
-                        Text(
-                            text = "${storeData.openTime} - ${storeData.closeTime}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Black
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // [THÊM] Badge hiển thị trạng thái Open/Closed
-                        Surface(
-                            color = if (isOpen) Color(0xFFE8F5E9) else Color(0xFFFFEBEE), // Xanh nhạt / Đỏ nhạt
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = if (isOpen) "Open" else "Closed",
-                                color = if (isOpen) Color(0xFF4CAF50) else Color.Red, // Chữ Xanh / Đỏ
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = storeData.description,
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Danh mục
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
-                items(categories.size) { index ->
-                    CategoryChip(
-                        text = categories[index],
-                        isSelected = categories[index] == selectedCategory,
-                        onClick = { viewModel.selectCategory(categories[index]) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Danh sách món ăn
+            // Sử dụng LazyVerticalGrid để cuộn toàn bộ nội dung (bao gồm cả header)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                // Thêm spacing cho đẹp
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
-                items(foods.size) { index ->
-                    val food = foods[index]
-                    FoodItem(
-                        food = food,
-                        onImageClick = { onFoodClick(food.id) },
-                        onAddToCart = { selectedFood ->
-                            if (isOpen) {
-                                onAddToCart(selectedFood)
-                            } else {
-                                // Thông báo cho người dùng
-                                Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
+                // 1. Ảnh Store (Chiếm toàn bộ chiều ngang)
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .background(Color(0xFFFFE5D0))
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(storeData.imageUrl),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                // 2. Card Thông tin Store
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        border = BorderStroke(width = 1.dp, color = CardBorder)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = storeData.name,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        localIsFavorite = !localIsFavorite
+                                        onToggleFavorite(storeId)
+                                        val message = if (localIsFavorite) "Added to favorites" else "Removed from favorites"
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(Color.White.copy(alpha = 0.5f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = if (localIsFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "Favorite Store",
+                                        tint = if (localIsFavorite) Color.Red else Color.Gray
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AccessTime, "Time", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${storeData.openTime} - ${storeData.closeTime}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Surface(
+                                    color = if (isOpen) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = if (isOpen) "Open" else "Closed",
+                                        color = if (isOpen) Color(0xFF4CAF50) else Color.Red,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = storeData.description,
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                // 3. Danh mục Categories
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column {
+                        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
+                            items(categories.size) { index ->
+                                CategoryChip(
+                                    text = categories[index],
+                                    isSelected = categories[index] == selectedCategory,
+                                    onClick = { viewModel.selectCategory(categories[index]) }
+                                )
                             }
                         }
-                    )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                // 4. Danh sách món ăn (Grid 2 cột)
+                items(foods.size) { index ->
+                    val food = foods[index]
+                    val isLeft = index % 2 == 0
+                    Box(modifier = Modifier.padding(
+                        start = if (isLeft) 16.dp else 8.dp,
+                        end = if (isLeft) 8.dp else 16.dp,
+                        bottom = 16.dp
+                    )) {
+                        FoodItem(
+                            food = food,
+                            onImageClick = { onFoodClick(food.id) },
+                            onAddToCart = { selectedFood ->
+                                if (isOpen) {
+                                    onAddToCart(selectedFood)
+                                } else {
+                                    Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

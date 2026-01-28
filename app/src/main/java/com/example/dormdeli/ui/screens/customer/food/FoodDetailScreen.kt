@@ -189,7 +189,7 @@ fun FoodDetailContent(
                     onClick = {
                         localIsFavorite = !localIsFavorite
                         onToggleFavorite(food.id)
-                        val message = if (!isFavorite) "Added to favorites" else "Removed from favorites"
+                        val message = if (localIsFavorite) "Added to favorites" else "Removed from favorites"
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show() },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -232,12 +232,12 @@ fun FoodDetailContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "${(food.price * 1.5)}", // Giả lập giá gốc
-                        style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.LineThrough),
-                        color = Color.Gray,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
+//                    Text(
+//                        text = "${(food.price * 1.5)}", // Giả lập giá gốc
+//                        style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.LineThrough),
+//                        color = Color.Gray,
+//                        modifier = Modifier.padding(end = 8.dp)
+//                    )
                     Text(
                         text = "${food.price} VNĐ",
                         fontSize = 20.sp,
@@ -265,7 +265,11 @@ fun FoodDetailContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Description
-                Column(modifier = Modifier.animateContentSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth() // Thêm fillMaxWidth để align(Alignment.End) hoạt động đúng
+                        .animateContentSize()
+                ) {
                     Text(
                         text = food.description,
                         color = Color.Gray,
