@@ -20,7 +20,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +58,9 @@ fun MyBasketScreen(
     val cartItems by cartViewModel.cartItems.collectAsState()
     val selectedAddress by locationalViewModel.selectedAddress.collectAsState()
 
+    var selectedPaymentMethod by remember { mutableStateOf("Cash") }
+    var showPaymentDialog by remember { mutableStateOf(false) }
+
     val isLoading by orderViewModel.isLoading.collectAsState()
     val context = LocalContext.current
 
@@ -68,6 +73,34 @@ fun MyBasketScreen(
     val distinctStoresCount = remember(cartItems) { cartItems.map { it.food.storeId }.distinct().size }
     val deliveryFee = (distinctStoresCount * 4000.0)
     val total = subtotal + deliveryFee
+
+    if (showPaymentDialog) {
+        AlertDialog(
+            onDismissRequest = { showPaymentDialog = false },
+            title = { Text("Select Payment Method", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    PaymentOptionRow(
+                        label = "Cash on Delivery",
+                        isSelected = selectedPaymentMethod == "Cash",
+                        onSelect = { selectedPaymentMethod = "Cash" }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PaymentOptionRow(
+                        label = "Online Payment (E-Wallet/Bank)",
+                        isSelected = selectedPaymentMethod == "Online Payment",
+                        onSelect = { selectedPaymentMethod = "Online Payment" }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPaymentDialog = false }) {
+                    Text("Confirm", color = OrangePrimary, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = Color.White
+        )
+    }
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
@@ -97,12 +130,17 @@ fun MyBasketScreen(
                             Toast.makeText(context, "Please select a delivery address", Toast.LENGTH_SHORT).show()
                             return@BottomCheckoutBar
                         }
+                        if (selectedPaymentMethod == "Online Payment") {
+                            Toast.makeText(context, "Redirecting to Online Payment Gateway...", Toast.LENGTH_SHORT).show()
+                            // Ở đây bạn có thể return hoặc tiếp tục xử lý mockup
+                            // return@BottomCheckoutBar
+                        }
                         orderViewModel.placeOrder(
                             cartItems = cartItems,
                             subtotal = subtotal, // Truyền subtotal để Repository tính lại total + phí ship
                             deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
                             deliveryAddress = selectedAddress!!,
-                            paymentMethod = "Cash",
+                            paymentMethod = selectedPaymentMethod,
                             onSuccess = {
                                 Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
                                 cartViewModel.clearCart()
@@ -174,9 +212,15 @@ fun MyBasketScreen(
                 InfoSectionCard(
                     icon = Icons.Default.Payment,
                     title = "Payment method",
-                    subtitle = "Cash",
-                    detail = null,
-                    onClick = {}
+
+                    // Hiển thị phương thức đang chọn
+                    subtitle = selectedPaymentMethod,
+
+                    // Thêm chú thích nhỏ nếu cần
+                    detail = if (selectedPaymentMethod == "Cash") "Pay when you receive" else "Pay via Gateway",
+
+                    // Bấm vào để mở Dialog
+                    onClick = { showPaymentDialog = true }
                 )
             }
 
@@ -286,6 +330,35 @@ fun CartItemCardDesign(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun PaymentOptionRow(
+    label: String,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onSelect() }
+            .background(if (isSelected) OrangePrimary.copy(alpha = 0.1f) else Color.Transparent)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onSelect,
+            colors = RadioButtonDefaults.colors(selectedColor = OrangePrimary)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = label,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            fontSize = 16.sp
+        )
     }
 }
 

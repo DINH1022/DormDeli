@@ -77,12 +77,12 @@ fun HomeScreen(
 
     val filteredFoods by remember(searchText, selectedCat, foodsList) { // Thêm foodsList vào key
         derivedStateOf {
-            val categoryFiltered = if (selectedCat == "All") foodsList.take(5)
+            val categoryFiltered = if (selectedCat == "All") foodsList
             else foodsList.filter { it.category.equals(selectedCat, ignoreCase = true)}.take(5)
 
-            if (searchText.isBlank()) categoryFiltered
+            if (searchText.isBlank()) categoryFiltered.take(5)
             else categoryFiltered.filter {
-                it.name.contains(searchText, ignoreCase = true) || it.description.contains(searchText, ignoreCase = true)
+                it.name.contains(searchText, ignoreCase = true)
             }
         }
     }
