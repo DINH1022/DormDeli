@@ -3,6 +3,7 @@ package com.example.dormdeli.ui.viewmodels.shipper
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.repository.shipper.ShipperOrderRepository
 import com.example.dormdeli.repository.shipper.ShipperNotificationRepository
@@ -44,7 +45,7 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     val historyOrders: StateFlow<List<Order>> = _rawHistoryOrders.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _errorMessage = MutableSharedFlow<String>()
     val errorMessage = _errorMessage.asSharedFlow()
@@ -93,8 +94,24 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
     fun acceptOrder(orderId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
+            
+            // Tìm đơn hàng hiện tại để biết status
+            val currentOrder = (availableOrders.value + myDeliveries.value).find { it.id == orderId }
+            if (currentOrder == null) {
+                _isLoading.value = false
+                return@launch
+            }
+
+            val targetStatus = if (currentOrder.status == OrderStatus.STORE_ACCEPTED.value) {
+                OrderStatus.CONFIRMED.value
+            } else {
+                OrderStatus.SHIPPER_ACCEPTED.value
+            }
+
             val currentShipperId = orderRepository.getUserId()
-            val success = orderRepository.acceptOrder(orderId)
+            
+            // Cập nhật với transaction để đảm bảo không bị tranh chấp
+            val success = orderRepository.acceptOrderV2(orderId, targetStatus)
             _isLoading.value = false
             
             if (success) {

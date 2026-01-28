@@ -29,7 +29,7 @@ class OrderRepository {
         if (cartItems.isEmpty()) return false
 
         try {
-            // 1. Tính toán phí ship dựa trên số lượng quán
+            // 1. Tính toán phí ship và lấy danh sách quán duy nhất
             val storeIds = cartItems.map { it.food.storeId }.distinct()
             val shippingFee = (storeIds.size * 4000).toLong()
             val totalPrice = (subtotal + shippingFee).toLong()
@@ -51,7 +51,6 @@ class OrderRepository {
                         mapOf("name" to it.first, "price" to it.second)
                     },
                     note = "",
-                    // Gán thông tin quán vào Item
                     storeId = item.food.storeId,
                     storeName = store?.name ?: "Unknown Store",
                     storeAddress = store?.location ?: "",
@@ -65,6 +64,7 @@ class OrderRepository {
 
             val newOrder = Order(
                 storeId = if (storeIds.size > 1) "multiple" else firstStoreId,
+                involvedStoreIds = storeIds, // QUAN TRỌNG: Gán danh sách quán tham gia ở đây
                 userId = userId,
                 status = "pending",
                 deliveryType = "room",
@@ -128,8 +128,9 @@ class OrderRepository {
 
     suspend fun updateOrderStatus(orderId: String, newStatus: String): Boolean {
         return try {
+            val updateData = mutableMapOf<String, Any>("status" to newStatus)
             db.collection(collectionName).document(orderId)
-                .update("status", newStatus)
+                .update(updateData)
                 .await()
             true
         } catch (e: Exception) {

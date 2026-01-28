@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.Store
@@ -49,7 +50,6 @@ class SellerViewModel : ViewModel() {
     private val _autofilledDescription = MutableStateFlow<String?>(null)
     val autofilledDescription: StateFlow<String?> = _autofilledDescription.asStateFlow()
 
-    // Quản lý vị trí được chọn từ bản đồ
     private val _pickedLocation = MutableStateFlow<LatLng?>(null)
     val pickedLocation: StateFlow<LatLng?> = _pickedLocation.asStateFlow()
 
@@ -73,16 +73,30 @@ class SellerViewModel : ViewModel() {
         s?.id?.let { orderRepository.getOrdersStreamForStore(it) } ?: MutableStateFlow(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val pendingOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "pending" } }
+    // Lọc đơn hàng ĐANG CHỜ: Status là PENDING/SHIPPER_ACCEPTED VÀ quán này CHƯA nhấn accept
+    val pendingOrders: StateFlow<List<Order>> = orders.combine(store) { orderList, currentStore ->
+        val storeId = currentStore?.id ?: ""
+        orderList.filter { o -> 
+            val status = OrderStatus.from(o.status)
+            val notAcceptedByMe = !o.acceptedStoreIds.contains(storeId)
+            (status == OrderStatus.PENDING || status == OrderStatus.SHIPPER_ACCEPTED) && notAcceptedByMe
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Lọc đơn hàng ĐANG THỰC HIỆN: Quán này ĐÃ nhấn accept VÀ đơn chưa hoàn thành/hủy
+    val acceptedOrders: StateFlow<List<Order>> = orders.combine(store) { orderList, currentStore ->
+        val storeId = currentStore?.id ?: ""
+        orderList.filter { o -> 
+            val status = OrderStatus.from(o.status)
+            val acceptedByMe = o.acceptedStoreIds.contains(storeId)
+            acceptedByMe && status != OrderStatus.COMPLETED && status != OrderStatus.CANCELLED
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val completedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == OrderStatus.COMPLETED.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val acceptedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "accepted" } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val completedOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "completed" } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val cancelledOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == "cancelled" } }
+    val cancelledOrders: StateFlow<List<Order>> = orders.map { it.filter { o -> o.status == OrderStatus.CANCELLED.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val totalOrderCount: StateFlow<Int> = orders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -97,19 +111,20 @@ class SellerViewModel : ViewModel() {
 
     fun acceptOrder(orderId: String) {
         viewModelScope.launch {
-            orderRepository.updateOrderStatus(orderId, "completed")
+            val storeId = store.value?.id ?: return@launch
+            orderRepository.acceptOrderByStore(orderId, storeId)
         }
     }
 
     fun declineOrder(orderId: String) {
         viewModelScope.launch {
-            orderRepository.updateOrderStatus(orderId, "cancelled")
+            orderRepository.updateOrderStatus(orderId, OrderStatus.CANCELLED.value)
         }
     }
 
     fun completeOrder(orderId: String) {
         viewModelScope.launch {
-            orderRepository.updateOrderStatus(orderId, "completed")
+            orderRepository.updateOrderStatus(orderId, OrderStatus.COMPLETED.value)
         }
     }
     

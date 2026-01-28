@@ -2,8 +2,9 @@ package com.example.dormdeli.enums
 
 enum class OrderStatus(val value: String) {
     PENDING("pending"),
-    CONFIRMED("confirmed"),
-    ACCEPTED("accepted"),
+    SHIPPER_ACCEPTED("shipper_accepted"), // Shipper đã nhận
+    STORE_ACCEPTED("store_accepted"),     // Seller đã nhận
+    CONFIRMED("confirmed"),               // Cả 2 đã nhận, chuẩn bị lấy hàng
     PICKED_UP("picked_up"),
     DELIVERING("delivering"),
     COMPLETED("completed"),

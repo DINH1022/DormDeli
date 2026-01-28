@@ -1,6 +1,7 @@
 package com.example.dormdeli.repository
 
 import android.util.Log
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.google.firebase.firestore.FirebaseFirestore
@@ -22,7 +23,7 @@ class OrderRepository {
         }
 
         val listener = ordersCollection
-            .whereEqualTo("storeId", storeId)
+            .whereArrayContains("involvedStoreIds", storeId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("OrderRepository", "Listen failed: ${error.message}")
@@ -31,22 +32,58 @@ class OrderRepository {
                 }
 
                 if (snapshot != null) {
-                    val orders = mutableListOf<Order>()
-                    for (doc in snapshot.documents) {
+                    val orders = snapshot.documents.mapNotNull { doc ->
                         try {
-                            val order = doc.toObject(Order::class.java)
-                            if (order != null) {
-                                orders.add(order)
-                            }
+                            doc.toObject(Order::class.java)?.copy(id = doc.id)
                         } catch (e: Exception) {
-                            Log.e("OrderRepository", "Error mapping order ${doc.id}: ${e.message}")
-                            // Tiếp tục với các document khác thay vì crash
+                            Log.e("OrderRepository", "Mapping error: ${e.message}")
+                            null
                         }
                     }
                     trySend(orders)
                 }
             }
         awaitClose { listener.remove() }
+    }
+
+    // HÀM MỚI: Xử lý chấp nhận đơn hàng từ phía một quán (Hỗ trợ đa quán)
+    suspend fun acceptOrderByStore(orderId: String, storeId: String): Result<Unit> {
+        val orderRef = ordersCollection.document(orderId)
+        
+        return try {
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(orderRef)
+                val involved = snapshot.get("involvedStoreIds") as? List<String> ?: emptyList()
+                val currentAccepted = snapshot.get("acceptedStoreIds") as? List<String> ?: emptyList()
+                val currentStatus = snapshot.getString("status") ?: ""
+                
+                // 1. Nếu quán này đã accept rồi thì bỏ qua
+                if (currentAccepted.contains(storeId)) return@runTransaction Unit
+                
+                // 2. Thêm quán mới vào danh sách đã accept
+                val updatedAccepted = currentAccepted.toMutableList().apply { add(storeId) }
+                transaction.update(orderRef, "acceptedStoreIds", updatedAccepted)
+                
+                // 3. Kiểm tra xem tất cả các quán đã accept chưa
+                val isAllStoresAccepted = updatedAccepted.size >= involved.size
+                
+                if (isAllStoresAccepted) {
+                    // Nếu tất cả quán đã xong, tính toán status tiếp theo
+                    val nextStatus = if (currentStatus == OrderStatus.SHIPPER_ACCEPTED.value) {
+                        OrderStatus.CONFIRMED.value // Shipper đã chờ sẵn
+                    } else {
+                        OrderStatus.STORE_ACCEPTED.value // Đợi shipper
+                    }
+                    transaction.update(orderRef, "status", nextStatus)
+                }
+                
+                Unit
+            }.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("OrderRepository", "Error acceptOrderByStore: ${e.message}")
+            Result.failure(e)
+        }
     }
 
     suspend fun updateOrderStatus(orderId: String, newStatus: String): Result<Unit> = try {
@@ -62,24 +99,13 @@ class OrderRepository {
             Order(
                 id = "sample_order_1",
                 storeId = storeId,
+                involvedStoreIds = listOf(storeId),
                 userId = "user_A",
                 totalPrice = 55000,
                 paymentMethod = "cash",
                 status = "pending",
                 items = listOf(
-                    OrderItem(foodId = "food_1", foodName = "Cơm tấm sườn", price = 55000, quantity = 1)
-                )
-            ),
-            Order(
-                id = "sample_order_2",
-                storeId = storeId,
-                userId = "user_B",
-                totalPrice = 70000,
-                paymentMethod = "momo",
-                status = "pending",
-                items = listOf(
-                    OrderItem(foodId = "food_2", foodName = "Bún bò Huế", price = 45000, quantity = 1),
-                    OrderItem(foodId = "food_3", foodName = "Coca-Cola", price = 15000, quantity = 1)
+                    OrderItem(foodId = "food_1", foodName = "Cơm tấm sườn", price = 55000, quantity = 1, storeId = storeId)
                 )
             )
         )

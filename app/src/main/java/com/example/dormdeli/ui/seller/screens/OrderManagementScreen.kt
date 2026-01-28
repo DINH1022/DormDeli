@@ -29,8 +29,8 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
 
     val pendingOrders by viewModel.pendingOrders.collectAsState()
     val acceptedOrders by viewModel.acceptedOrders.collectAsState()
+    val currentStore by viewModel.store.collectAsState()
 
-    // Gộp danh sách lịch sử: Hoàn thành + Đã hủy
     val orderHistory by remember(viewModel.completedOrders, viewModel.cancelledOrders) {
         derivedStateOf {
             (viewModel.completedOrders.value + viewModel.cancelledOrders.value)
@@ -42,15 +42,13 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
         containerColor = Color(0xFFF8F9FA)
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Header
             Text(
                 text = "Quản lý đơn hàng",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp),
+                modifier = Modifier.padding(16.dp),
                 color = Color(0xFF1F1F1F)
             )
 
-            // Tabs
             TabRow(
                 selectedTabIndex = tabIndex,
                 containerColor = Color.Transparent,
@@ -63,9 +61,7 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
                         )
                     }
                 },
-                divider = {
-                    Divider(color = Color.LightGray.copy(alpha = 0.4f))
-                }
+                divider = { Divider(color = Color.LightGray.copy(alpha = 0.4f)) }
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -84,28 +80,21 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Nút tạo đơn mẫu (Optional)
-            TextButton(
-                onClick = { viewModel.addSampleOrdersForCurrentStore() },
-                modifier = Modifier.align(Alignment.End).padding(end = 8.dp)
-            ) {
-                Text("Tạo đơn mẫu (+)", color = OrangePrimary)
-            }
-
-            // Danh sách đơn hàng theo Tab
             when (tabIndex) {
                 0 -> OrderList(
                     orders = pendingOrders,
+                    currentStoreId = currentStore?.id ?: "",
                     onAccept = { id -> viewModel.acceptOrder(id) },
                     onDecline = { id -> viewModel.declineOrder(id) }
                 )
                 1 -> OrderList(
                     orders = acceptedOrders,
+                    currentStoreId = currentStore?.id ?: "",
                     onComplete = { id -> viewModel.completeOrder(id) }
                 )
                 2 -> OrderList(
-                    orders = orderHistory
-                    // Tab Lịch sử không truyền hàm action, để nó rơi vào case hiển thị trạng thái
+                    orders = orderHistory,
+                    currentStoreId = currentStore?.id ?: ""
                 )
             }
         }
@@ -115,6 +104,7 @@ fun OrderManagementScreen(viewModel: SellerViewModel) {
 @Composable
 fun OrderList(
     orders: List<Order>,
+    currentStoreId: String,
     onAccept: ((String) -> Unit)? = null,
     onDecline: ((String) -> Unit)? = null,
     onComplete: ((String) -> Unit)? = null
@@ -131,6 +121,7 @@ fun OrderList(
             items(orders) { order ->
                 OrderCard(
                     order = order,
+                    currentStoreId = currentStoreId,
                     onAccept = if (onAccept != null) { { onAccept(order.id) } } else null,
                     onDecline = if (onDecline != null) { { onDecline(order.id) } } else null,
                     onComplete = if (onComplete != null) { { onComplete(order.id) } } else null
@@ -143,10 +134,21 @@ fun OrderList(
 @Composable
 fun OrderCard(
     order: Order,
+    currentStoreId: String,
     onAccept: (() -> Unit)? = null,
     onDecline: (() -> Unit)? = null,
     onComplete: (() -> Unit)? = null
 ) {
+    // QUAN TRỌNG: Lọc danh sách món ăn chỉ dành cho quán hiện tại
+    val myItems = remember(order.items, currentStoreId) {
+        order.items.filter { it.storeId == currentStoreId }
+    }
+    
+    // Tính lại giá trị đơn hàng cho riêng quán này (nếu cần)
+    val mySubtotal = remember(myItems) {
+        myItems.sumOf { it.price * it.quantity }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -154,13 +156,13 @@ fun OrderCard(
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Header Card: Mã đơn + Giá tiền
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 val displayId = if (order.id.length >= 6) order.id.take(6).uppercase() else order.id.uppercase()
-
                 Text("#$displayId", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)
+                
+                // Hiển thị số tiền quán này thu về (không bao gồm món của quán khác)
                 Text(
-                    NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(order.totalPrice),
+                    NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(mySubtotal),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = OrangePrimary
@@ -169,8 +171,8 @@ fun OrderCard(
 
             Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF0F0F0))
 
-            // Danh sách món ăn
-            order.items.forEach {
+            // Chỉ hiển thị danh sách món đã lọc
+            myItems.forEach {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -185,9 +187,7 @@ fun OrderCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // === KHU VỰC NÚT BẤM HOẶC TRẠNG THÁI ===
             if (onAccept != null && onDecline != null) {
-                // Tab Chờ xác nhận: Hiện 2 nút Chấp nhận / Từ chối
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = onAccept,
@@ -208,17 +208,21 @@ fun OrderCard(
                     }
                 }
             } else if (onComplete != null) {
-                // Tab Đang thực hiện: Hiện nút Hoàn thành
+                // Kiểm tra xem quán hiện tại đã accept chưa để disable nút nếu cần
+                val hasAccepted = order.acceptedStoreIds.contains(currentStoreId)
+                
                 Button(
-                    onClick = onComplete,
+                    onClick = if (!hasAccepted) onComplete else ({}),
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34A853)),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (hasAccepted) Color.Gray else Color(0xFF34A853)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !hasAccepted
                 ) {
-                    Text("Hoàn thành đơn hàng")
+                    Text(if (hasAccepted) "Đã xác nhận xong" else "Xác nhận đã xong món")
                 }
             } else {
-                // Tab Lịch sử: Hiển thị Badge trạng thái
                 val statusLower = order.status.lowercase().trim()
                 val (statusText, textColor, bgColor) = when {
                     statusLower == "completed" || statusLower == "delivered" ->
@@ -226,7 +230,7 @@ fun OrderCard(
                     statusLower == "cancelled" || statusLower == "canceled" || statusLower == "rejected" ->
                         Triple("Đã bị hủy", Color(0xFFEA4335), Color(0xFFFCE8E6))
                     else ->
-                        Triple(order.status, Color.Gray, Color.LightGray)
+                        Triple(order.status.uppercase(), Color.Gray, Color.LightGray)
                 }
 
                 Box(

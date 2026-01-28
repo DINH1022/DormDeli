@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.example.dormdeli.model.User
@@ -60,7 +63,7 @@ fun DeliveryDetailScreen(
     var customerInfo by remember { mutableStateOf<User?>(null) }
     val userRepository = remember { UserRepository() }
 
-    val canShowContactInfo = order?.status in listOf("picked_up", "delivering", "completed")
+    val canShowContactInfo = order?.status in listOf(OrderStatus.PICKED_UP.value, OrderStatus.DELIVERING.value, OrderStatus.COMPLETED.value)
 
     LaunchedEffect(order?.status) {
         if (order != null && canShowContactInfo) {
@@ -81,7 +84,7 @@ fun DeliveryDetailScreen(
                 title = { Text("Delivery Details", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -155,7 +158,7 @@ fun DeliveryDetailScreen(
                     }
                 }
 
-                BottomActionBar(currentOrder, isActionLoading, viewModel, onBackClick)
+                BottomActionBarV2(currentOrder, isActionLoading, viewModel, onBackClick)
             }
         }
     }
@@ -176,6 +179,115 @@ fun DeliveryDetailScreen(
                 destLabel = order.address?.label ?: "Customer",
                 stores = storesToVisit
             )
+        }
+    }
+}
+
+@Composable
+fun BottomActionBarV2(
+    order: Order,
+    isLoading: Boolean,
+    viewModel: ShipperOrdersViewModel,
+    onBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 8.dp,
+        color = Color.White
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            val status = OrderStatus.from(order.status)
+            
+            when (status) {
+                OrderStatus.PENDING, OrderStatus.STORE_ACCEPTED -> {
+                    // Nút Nhận đơn (Cho cả đơn mới hoàn toàn hoặc đơn quán đã nhận)
+                    Button(
+                        onClick = { viewModel.acceptOrder(order.id) { onBack() } },
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        else Text("ACCEPT ORDER", fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                OrderStatus.SHIPPER_ACCEPTED, OrderStatus.CONFIRMED -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.cancelAcceptedOrder(order.id) { onBack() } },
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
+                        ) {
+                            Text("RETURN", fontWeight = FontWeight.Bold)
+                        }
+                        
+                        val isReady = status == OrderStatus.CONFIRMED
+                        
+                        Button(
+                            onClick = { if (isReady) viewModel.updateStatus(order.id, OrderStatus.PICKED_UP.value) },
+                            enabled = !isLoading && isReady,
+                            modifier = Modifier.weight(1.5f).fillMaxHeight(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isReady) Color(0xFF2196F3) else Color.Gray
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("PICKED UP", fontWeight = FontWeight.Bold)
+                                    if (!isReady) Text("Waiting for Store...", fontSize = 9.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                OrderStatus.PICKED_UP -> {
+                    Button(
+                        onClick = { viewModel.updateStatus(order.id, OrderStatus.DELIVERING.value) },
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        else Text("START DELIVERING", fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                OrderStatus.DELIVERING -> {
+                    Button(
+                        onClick = { viewModel.updateStatus(order.id, OrderStatus.COMPLETED.value) { onBack() } },
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        else Text("MARK AS COMPLETED", fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                else -> {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
+                    ) {
+                        Text("BACK", color = OrangePrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }
@@ -209,10 +321,8 @@ fun AddressSectionV2(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Clickable area for info/overview
                     Row(
                         modifier = Modifier.weight(1f).clickable {
-                            // Show overview or details
                         },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -236,7 +346,6 @@ fun AddressSectionV2(
                         }
                     }
                     
-                    // Unified Navigation Button
                     IconButton(
                         onClick = {
                             val uri = Uri.parse("google.navigation:q=${store.lat},${store.lng}")
@@ -369,7 +478,7 @@ fun MultiPointMap(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 80.dp, end = 16.dp),
                 containerColor = Color.White
             ) {
-                Icon(Icons.Default.FilterCenterFocus, contentDescription = "View All")
+                Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = "View All")
             }
         }
         
@@ -387,93 +496,6 @@ fun MultiPointMap(
                     Icon(Icons.Default.Person, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(destLabel, fontSize = 14.sp)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomActionBar(
-    order: Order,
-    isLoading: Boolean,
-    viewModel: ShipperOrdersViewModel,
-    onBack: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 8.dp,
-        color = Color.White
-    ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            val canAction = order.status !in listOf("completed", "cancelled")
-            if (canAction) {
-                if (order.status == "accepted") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { viewModel.cancelAcceptedOrder(order.id) { onBack() } },
-                            enabled = !isLoading,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
-                        ) {
-                            Text("RETURN", fontWeight = FontWeight.Bold)
-                        }
-                        
-                        Button(
-                            onClick = { viewModel.updateStatus(order.id, "picked_up") },
-                            enabled = !isLoading,
-                            modifier = Modifier.weight(1.5f).fillMaxHeight(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            else Text("PICKED UP", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            when (order.status) {
-                                "pending" -> viewModel.acceptOrder(order.id) { onBack() }
-                                "picked_up" -> viewModel.updateStatus(order.id, "delivering")
-                                "delivering" -> viewModel.updateStatus(order.id, "completed") { onBack() }
-                            }
-                        },
-                        enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (order.status == "delivering") Color(0xFF4CAF50) else OrangePrimary
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text(
-                                text = when (order.status) {
-                                    "pending" -> "ACCEPT ORDER"
-                                    "picked_up" -> "START DELIVERING"
-                                    "delivering" -> "MARK AS COMPLETED"
-                                    else -> "BACK"
-                                },
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
-                ) {
-                    Text("BACK", color = OrangePrimary, fontWeight = FontWeight.Bold)
                 }
             }
         }
