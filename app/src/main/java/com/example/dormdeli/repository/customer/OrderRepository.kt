@@ -90,6 +90,82 @@ class OrderRepository {
         }
     }
 
+    /**
+     * Tạo order với orderId và status tùy chỉnh (cho online payment)
+     * Trả về orderId nếu thành công, null nếu thất bại
+     */
+    suspend fun placeOrderWithId(
+        orderId: String,
+        cartItems: List<CartItem>,
+        subtotal: Double,
+        deliveryNote: String = "",
+        deliveryAddress: UserAddress,
+        paymentMethod: String,
+        initialStatus: String = "pending"
+    ): String? {
+        val userId = auth.currentUser?.uid ?: return null
+        if (cartItems.isEmpty()) return null
+
+        try {
+            // 1. Tính toán phí ship và lấy danh sách quán duy nhất
+            val storeIds = cartItems.map { it.food.storeId }.distinct()
+            val shippingFee = (storeIds.size * 4000).toLong()
+            val totalPrice = (subtotal + shippingFee).toLong()
+
+            // 2. Lấy thông tin chi tiết của tất cả các quán liên quan
+            val storesInfo = getStoresByIds(storeIds)
+            val storeMap = storesInfo.associateBy { it.id }
+
+            // 3. Chuyển đổi CartItem -> OrderItem kèm thông tin quán
+            val orderItems = cartItems.map { item ->
+                val store = storeMap[item.food.storeId]
+                OrderItem(
+                    foodId = item.food.id,
+                    foodName = item.food.name,
+                    foodImage = item.food.imageUrl,
+                    price = item.food.price.toLong(),
+                    quantity = item.quantity,
+                    options = item.selectedOptions.map {
+                        mapOf("name" to it.first, "price" to it.second)
+                    },
+                    note = "",
+                    storeId = item.food.storeId,
+                    storeName = store?.name ?: "Unknown Store",
+                    storeAddress = store?.location ?: "",
+                    storeLatitude = store?.latitude ?: 0.0,
+                    storeLongitude = store?.longitude ?: 0.0
+                )
+            }
+
+            // 4. Tạo Order với custom orderId
+            val firstStoreId = cartItems.first().food.storeId
+
+            val newOrder = Order(
+                storeId = if (storeIds.size > 1) "multiple" else firstStoreId,
+                involvedStoreIds = storeIds,
+                userId = userId,
+                status = initialStatus, // Status tùy chỉnh
+                deliveryType = "room",
+                deliveryNote = deliveryNote,
+                address = deliveryAddress,
+                totalPrice = totalPrice,
+                shippingFee = shippingFee,
+                paymentMethod = paymentMethod,
+                createdAt = System.currentTimeMillis(),
+                items = orderItems
+            )
+
+            // 5. Lưu lên Firestore với orderId chỉ định
+            db.collection(collectionName).document(orderId).set(newOrder).await()
+
+            Log.d("OrderRepo", "Order created with ID: $orderId, status: $initialStatus")
+            return orderId
+        } catch (e: Exception) {
+            Log.e("OrderRepo", "Lỗi tạo order với ID: ${e.message}")
+            return null
+        }
+    }
+
     // Helper: Lấy thông tin nhiều quán cùng lúc
     private suspend fun getStoresByIds(storeIds: List<String>): List<Store> {
         if (storeIds.isEmpty()) return emptyList()

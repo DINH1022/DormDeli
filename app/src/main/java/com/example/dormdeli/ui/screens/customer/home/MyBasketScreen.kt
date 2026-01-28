@@ -54,6 +54,8 @@ import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 fun MyBasketScreen(
     onBackClick: () -> Unit,
     onLocationClick: () -> Unit,
+    onSePayPayment: (amount: Double, orderInfo: String) -> Unit = { _, _ -> },
+    onVNPayPayment: (amount: Double, orderInfo: String) -> Unit = { _, _ -> },
     orderViewModel: OrderViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
     storeViewModel: StoreViewModel = viewModel(),
@@ -98,9 +100,15 @@ fun MyBasketScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentOptionRow(
-                        label = "Online Payment (E-Wallet/Bank)",
-                        isSelected = selectedPaymentMethod == "Online Payment",
-                        onSelect = { selectedPaymentMethod = "Online Payment" }
+                        label = "SePay (QR Code)",
+                        isSelected = selectedPaymentMethod == "SePay",
+                        onSelect = { selectedPaymentMethod = "SePay" }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PaymentOptionRow(
+                        label = "VNPay (Online Banking)",
+                        isSelected = selectedPaymentMethod == "VNPay",
+                        onSelect = { selectedPaymentMethod = "VNPay" }
                     )
                 }
             },
@@ -141,10 +149,27 @@ fun MyBasketScreen(
                             Toast.makeText(context, "Please select a delivery address", Toast.LENGTH_SHORT).show()
                             return@BottomCheckoutBar
                         }
-                        if (selectedPaymentMethod == "Online Payment") {
-                            Toast.makeText(context, "Redirecting to Online Payment Gateway...", Toast.LENGTH_SHORT).show()
-                            // Ở đây bạn có thể return hoặc tiếp tục xử lý mockup
-                            // return@BottomCheckoutBar
+                        
+                        // Xử lý thanh toán online - Lưu data và navigate đến payment
+                        if (selectedPaymentMethod == "SePay" || selectedPaymentMethod == "VNPay") {
+                            // Lưu pending order data
+                            orderViewModel.savePendingOrderData(
+                                cartItems = cartItems,
+                                subtotal = subtotal,
+                                deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
+                                deliveryAddress = selectedAddress!!,
+                                paymentMethod = selectedPaymentMethod
+                            )
+                            
+                            val orderInfo = "Payment for order - ${cartItems.size} items"
+                            
+                            // Navigate đến payment screen
+                            if (selectedPaymentMethod == "SePay") {
+                                onSePayPayment(total, orderInfo)
+                            } else {
+                                onVNPayPayment(total, orderInfo)
+                            }
+                            return@BottomCheckoutBar
                         }
 
                         val unavailableItems = cartItems.filter { item ->
@@ -262,7 +287,12 @@ fun MyBasketScreen(
                     subtitle = selectedPaymentMethod,
 
                     // Thêm chú thích nhỏ nếu cần
-                    detail = if (selectedPaymentMethod == "Cash") "Pay when you receive" else "Pay via Gateway",
+                    detail = when (selectedPaymentMethod) {
+                        "Cash" -> "Pay when you receive"
+                        "SePay" -> "Pay via QR Code"
+                        "VNPay" -> "Pay via Online Banking"
+                        else -> "Select payment method"
+                    },
 
                     // Bấm vào để mở Dialog
                     onClick = { showPaymentDialog = true }

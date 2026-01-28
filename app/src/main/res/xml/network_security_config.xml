@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext traffic for development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- For emulator -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- For localhost -->
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- For local IP -->
+        <domain includeSubdomains="true">192.168.1.1</domain>
+        <domain includeSubdomains="true">192.168.0.1</domain>
+    </domain-config>
+</network-security-config>

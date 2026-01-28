@@ -34,6 +34,8 @@ import com.example.dormdeli.ui.screens.customer.home.MyBasketScreen
 import com.example.dormdeli.ui.screens.customer.order.MyOrdersScreen
 import com.example.dormdeli.ui.screens.customer.order.OrderDetailScreen
 import com.example.dormdeli.ui.screens.customer.review.WriteReviewScreen
+import com.example.dormdeli.ui.screens.payment.SePayPaymentScreen
+import com.example.dormdeli.ui.screens.payment.VNPayPaymentScreen
 import com.example.dormdeli.ui.seller.screens.SellerMainScreen
 import com.example.dormdeli.ui.seller.screens.SellerMapPickerScreen
 import com.example.dormdeli.ui.screens.shipper.order.ShipperHomeScreen
@@ -73,6 +75,7 @@ fun MainNavigation(
     val locationViewModel: LocationViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
     val sellerViewModel: SellerViewModel = viewModel()
+    val orderViewModel: OrderViewModel = viewModel() // Shared instance
     val favFoodIds by favoriteViewModel.favoriteFoodIds.collectAsState()
     val favStoreIds by favoriteViewModel.favoriteStoreIds.collectAsState()
 
@@ -440,10 +443,17 @@ fun MainNavigation(
         composable(Screen.Cart.route) {
             MyBasketScreen(
                 cartViewModel = cartViewModel,
+                orderViewModel = orderViewModel, // Pass shared instance
                 locationalViewModel = locationViewModel,
                 onBackClick = { navController.popBackStack() },
                 onLocationClick = {
                     navController.navigate(Screen.Location.route)
+                },
+                onSePayPayment = { amount, orderId ->
+                    navController.navigate("sepay_payment/$amount/$orderId")
+                },
+                onVNPayPayment = { amount, orderId ->
+                    navController.navigate("vnpay_payment/$amount/$orderId")
                 },
                 onOrderSuccess = {
                     navController.navigate(Screen.Orders.route) {
@@ -610,6 +620,89 @@ fun MainNavigation(
                 orderId = orderId,
                 viewModel = shipperOrdersViewModel,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        // Payment Routes
+        composable(
+            route = "sepay_payment/{amount}/{orderInfo}",
+            arguments = listOf(
+                navArgument("amount") { type = NavType.StringType },
+                navArgument("orderInfo") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val amount = backStackEntry.arguments?.getString("amount")?.toDoubleOrNull() ?: 0.0
+            val orderInfo = backStackEntry.arguments?.getString("orderInfo") ?: ""
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            // Use shared orderViewModel instead of creating new instance
+            
+            SePayPaymentScreen(
+                navController = navController,
+                amount = amount,
+                orderInfo = orderInfo,
+                userId = userId,
+                onPaymentSuccess = {
+                    // Tạo order từ pending data sau khi thanh toán thành công
+                    orderViewModel.createOrderFromPendingData(
+                        onSuccess = {
+                            cartViewModel.clearCart()
+                            Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
+                            navController.navigate(Screen.Orders.route) {
+                                popUpTo(Screen.Home.route)
+                            }
+                        },
+                        onFail = {
+                            Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
+                            navController.popBackStack()
+                        }
+                    )
+                },
+                onCancel = {
+                    // Clear pending data khi cancel
+                    orderViewModel.clearPendingOrderData()
+                }
+            )
+        }
+        
+        composable(
+            route = "vnpay_payment/{amount}/{orderInfo}",
+            arguments = listOf(
+                navArgument("amount") { type = NavType.StringType },
+                navArgument("orderInfo") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val amount = backStackEntry.arguments?.getString("amount")?.toDoubleOrNull() ?: 0.0
+            val orderInfo = backStackEntry.arguments?.getString("orderInfo") ?: ""
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            // Use shared orderViewModel instead of creating new instance
+            
+            VNPayPaymentScreen(
+                navController = navController,
+                amount = amount,
+                orderInfo = orderInfo,
+                userId = userId,
+                onPaymentSuccess = {
+                    // Tạo order từ pending data sau khi thanh toán thành công
+                    orderViewModel.createOrderFromPendingData(
+                        onSuccess = {
+                            cartViewModel.clearCart()
+                            Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
+                            navController.navigate(Screen.Orders.route) {
+                                popUpTo(Screen.Home.route)
+                            }
+                        },
+                        onFail = {
+                            Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
+                            navController.popBackStack()
+                        }
+                    )
+                },
+                onPaymentFailed = {
+                    // Clear pending data khi payment failed
+                    orderViewModel.clearPendingOrderData()
+                    Toast.makeText(context, "Payment failed or cancelled", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                }
             )
         }
     }
