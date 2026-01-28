@@ -202,6 +202,7 @@ fun ApprovedRestaurantProfile(
     val displayLng = pickedLocation?.longitude ?: store.longitude
     
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val isLoading by viewModel.isLoading.collectAsState()
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -319,13 +320,37 @@ fun ApprovedRestaurantProfile(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
-            onClick = { viewModel.deleteCurrentStore() },
+            onClick = { showDeleteDialog = true },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEA4335)),
             border = BorderStroke(1.dp, Color(0xFFEA4335).copy(alpha = 0.5f)),
             shape = RoundedCornerShape(12.dp),
         ) {
             Text("Xoá quán")
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Xác nhận xóa") },
+                text = { Text("Bạn có chắc chắn muốn xóa quán này không? Hành động này không thể hoàn tác.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteCurrentStore()
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEA4335))
+                    ) {
+                        Text("Xóa")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Hủy")
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
