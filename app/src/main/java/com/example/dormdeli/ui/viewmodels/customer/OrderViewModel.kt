@@ -123,7 +123,7 @@ class OrderViewModel : ViewModel() {
     }
 
     /**
-     * Cập nhật order status sau khi thanh toán thành công
+     * Cập nhật order status sau khi thanh toán thành công (từ confirmed -> paid hoặc delivering)
      */
     fun updateOrderStatusAfterPayment(
         orderId: String,
@@ -131,7 +131,8 @@ class OrderViewModel : ViewModel() {
         onFail: () -> Unit = {}
     ) {
         viewModelScope.launch {
-            val success = repository.updateOrderStatus(orderId, "pending")
+            // Update status sang "paid" hoặc có thể để "delivering" tùy logic
+            val success = repository.updateOrderStatus(orderId, "paid")
             if (success) {
                 loadMyOrders()
                 onSuccess()
@@ -237,6 +238,20 @@ class OrderViewModel : ViewModel() {
             if (success) {
                 loadMyOrders()
                 onSuccess()
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun updatePaymentMethod(orderId: String, paymentMethod: String, onSuccess: () -> Unit, onFail: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val success = repository.updatePaymentMethod(orderId, paymentMethod)
+            if (success) {
+                loadMyOrders()
+                onSuccess()
+            } else {
+                onFail()
             }
             _isLoading.value = false
         }

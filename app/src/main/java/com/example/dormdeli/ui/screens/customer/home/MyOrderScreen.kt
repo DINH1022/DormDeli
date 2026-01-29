@@ -91,6 +91,10 @@ fun OrderCard(order: Order) {
     val statusColor = when(order.status.lowercase()) {
         "completed" -> Color(0xFF4CAF50)
         "cancelled" -> Color(0xFFF44336)
+        "pending" -> Color(0xFFFF9800)
+        "confirmed" -> Color(0xFFFF9800)
+        "paid" -> Color(0xFF2196F3)
+        "delivering" -> Color(0xFF2196F3)
         else -> Color(0xFFFF9800)
     }
 

@@ -214,4 +214,16 @@ class OrderRepository {
             false
         }
     }
+
+    suspend fun updatePaymentMethod(orderId: String, paymentMethod: String): Boolean {
+        return try {
+            db.collection(collectionName).document(orderId)
+                .update("paymentMethod", paymentMethod)
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e("OrderRepo", "Lỗi update payment method: ${e.message}")
+            false
+        }
+    }
 }

@@ -452,12 +452,6 @@ fun MainNavigation(
                 onLocationClick = {
                     navController.navigate(Screen.Location.route)
                 },
-                onSePayPayment = { amount, orderId ->
-                    navController.navigate("sepay_payment/$amount/$orderId")
-                },
-                onVNPayPayment = { amount, orderId ->
-                    navController.navigate("vnpay_payment/$amount/$orderId")
-                },
                 onOrderSuccess = {
                     navController.navigate(Screen.Orders.route) {
                         popUpTo(Screen.Home.route)
@@ -504,6 +498,12 @@ fun MainNavigation(
                 viewModel = orderViewModel,
                 onReviewClick = { foodId, orderId ->
                     navController.navigate(Screen.WriteReview.createRoute(foodId, orderId))
+                },
+                onSePayPayment = { amount, orderInfo, orderId ->
+                    navController.navigate("sepay_payment/$amount/$orderInfo/$orderId")
+                },
+                onVNPayPayment = { amount, orderInfo, orderId ->
+                    navController.navigate("vnpay_payment/$amount/$orderInfo/$orderId")
                 }
             )
         }
@@ -628,14 +628,19 @@ fun MainNavigation(
         
         // Payment Routes
         composable(
-            route = "sepay_payment/{amount}/{orderInfo}",
+            route = "sepay_payment/{amount}/{orderInfo}/{orderId}",
             arguments = listOf(
                 navArgument("amount") { type = NavType.StringType },
-                navArgument("orderInfo") { type = NavType.StringType }
+                navArgument("orderInfo") { type = NavType.StringType },
+                navArgument("orderId") { 
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
             )
         ) { backStackEntry ->
             val amount = backStackEntry.arguments?.getString("amount")?.toDoubleOrNull() ?: 0.0
             val orderInfo = backStackEntry.arguments?.getString("orderInfo") ?: ""
+            val orderIdParam = backStackEntry.arguments?.getString("orderId") ?: ""
             val userId = FirebaseAuth.getInstance().currentUser?.uid
             // Use shared orderViewModel instead of creating new instance
             
@@ -645,37 +650,61 @@ fun MainNavigation(
                 orderInfo = orderInfo,
                 userId = userId,
                 onPaymentSuccess = {
-                    // Tạo order từ pending data sau khi thanh toán thành công
-                    orderViewModel.createOrderFromPendingData(
-                        onSuccess = {
-                            cartViewModel.clearCart()
-                            Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
-                            navController.navigate(Screen.Orders.route) {
-                                popUpTo(Screen.Home.route)
+                    if (orderIdParam.isNotBlank()) {
+                        // Trường hợp thanh toán từ order detail -> update status
+                        orderViewModel.updateOrderStatusAfterPayment(
+                            orderId = orderIdParam,
+                            onSuccess = {
+                                Toast.makeText(context, "Payment successful!", Toast.LENGTH_SHORT).show()
+                                navController.navigate(Screen.Orders.route) {
+                                    popUpTo(Screen.Home.route)
+                                }
+                            },
+                            onFail = {
+                                Toast.makeText(context, "Payment successful but failed to update order. Please contact support.", Toast.LENGTH_LONG).show()
+                                navController.popBackStack()
                             }
-                        },
-                        onFail = {
-                            Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
-                            navController.popBackStack()
-                        }
-                    )
+                        )
+                    } else {
+                        // Trường hợp cũ (từ cart) - Tạo order từ pending data sau khi thanh toán thành công
+                        orderViewModel.createOrderFromPendingData(
+                            onSuccess = {
+                                cartViewModel.clearCart()
+                                Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
+                                navController.navigate(Screen.Orders.route) {
+                                    popUpTo(Screen.Home.route)
+                                }
+                            },
+                            onFail = {
+                                Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 },
                 onCancel = {
                     // Clear pending data khi cancel
-                    orderViewModel.clearPendingOrderData()
+                    if (orderIdParam.isBlank()) {
+                        orderViewModel.clearPendingOrderData()
+                    }
                 }
             )
         }
         
         composable(
-            route = "vnpay_payment/{amount}/{orderInfo}",
+            route = "vnpay_payment/{amount}/{orderInfo}/{orderId}",
             arguments = listOf(
                 navArgument("amount") { type = NavType.StringType },
-                navArgument("orderInfo") { type = NavType.StringType }
+                navArgument("orderInfo") { type = NavType.StringType },
+                navArgument("orderId") { 
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
             )
         ) { backStackEntry ->
             val amount = backStackEntry.arguments?.getString("amount")?.toDoubleOrNull() ?: 0.0
             val orderInfo = backStackEntry.arguments?.getString("orderInfo") ?: ""
+            val orderIdParam = backStackEntry.arguments?.getString("orderId") ?: ""
             val userId = FirebaseAuth.getInstance().currentUser?.uid
             // Use shared orderViewModel instead of creating new instance
             
@@ -685,24 +714,43 @@ fun MainNavigation(
                 orderInfo = orderInfo,
                 userId = userId,
                 onPaymentSuccess = {
-                    // Tạo order từ pending data sau khi thanh toán thành công
-                    orderViewModel.createOrderFromPendingData(
-                        onSuccess = {
-                            cartViewModel.clearCart()
-                            Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
-                            navController.navigate(Screen.Orders.route) {
-                                popUpTo(Screen.Home.route)
+                    if (orderIdParam.isNotBlank()) {
+                        // Trường hợp thanh toán từ order detail -> update status
+                        orderViewModel.updateOrderStatusAfterPayment(
+                            orderId = orderIdParam,
+                            onSuccess = {
+                                Toast.makeText(context, "Payment successful!", Toast.LENGTH_SHORT).show()
+                                navController.navigate(Screen.Orders.route) {
+                                    popUpTo(Screen.Home.route)
+                                }
+                            },
+                            onFail = {
+                                Toast.makeText(context, "Payment successful but failed to update order. Please contact support.", Toast.LENGTH_LONG).show()
+                                navController.popBackStack()
                             }
-                        },
-                        onFail = {
-                            Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
-                            navController.popBackStack()
-                        }
-                    )
+                        )
+                    } else {
+                        // Trường hợp cũ (từ cart) - Tạo order từ pending data sau khi thanh toán thành công
+                        orderViewModel.createOrderFromPendingData(
+                            onSuccess = {
+                                cartViewModel.clearCart()
+                                Toast.makeText(context, "Payment successful! Order created.", Toast.LENGTH_SHORT).show()
+                                navController.navigate(Screen.Orders.route) {
+                                    popUpTo(Screen.Home.route)
+                                }
+                            },
+                            onFail = {
+                                Toast.makeText(context, "Payment successful but failed to create order. Please contact support.", Toast.LENGTH_LONG).show()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 },
                 onPaymentFailed = {
                     // Clear pending data khi payment failed
-                    orderViewModel.clearPendingOrderData()
+                    if (orderIdParam.isBlank()) {
+                        orderViewModel.clearPendingOrderData()
+                    }
                     Toast.makeText(context, "Payment failed or cancelled", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 }

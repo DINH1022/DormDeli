@@ -3,12 +3,14 @@ package com.example.dormdeli.ui.screens.customer.order
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +39,8 @@ fun OrderDetailScreen(
     orderId: String,
     onBackClick: () -> Unit,
     onReviewClick: (String, String) -> Unit, // Callback để chuyển sang trang review món ăn
+    onSePayPayment: (amount: Double, orderInfo: String, orderId: String) -> Unit = { _, _, _ -> },
+    onVNPayPayment: (amount: Double, orderInfo: String, orderId: String) -> Unit = { _, _, _ -> },
     viewModel: OrderViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -74,7 +78,7 @@ fun OrderDetailScreen(
         bottomBar = {
             if (order != null) {
                 OrderActionsBar(
-                    status = order.status,
+                    order = order,
                     onCancel = {
                         viewModel.cancelOrder(order.id) {
                             Toast.makeText(context, "Order Cancelled", Toast.LENGTH_SHORT).show()
@@ -83,6 +87,14 @@ fun OrderDetailScreen(
                     onConfirmReceived = {
                         viewModel.completeOrder(order.id) {
                             Toast.makeText(context, "Order Completed!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onPayment = { paymentMethod ->
+                        val orderInfo = "Payment for order ${order.id.takeLast(8)}"
+                        if (paymentMethod == "SePay") {
+                            onSePayPayment(order.totalPrice.toDouble(), orderInfo, order.id)
+                        } else {
+                            onVNPayPayment(order.totalPrice.toDouble(), orderInfo, order.id)
                         }
                     }
                 )
@@ -127,7 +139,13 @@ fun OrderDetailScreen(
 
                 // 3. Payment Summary
                 item {
-                    PaymentSummaryCard(order)
+                    PaymentSummaryCard(
+                        order = order,
+                        onPaymentMethodClick = {
+                            // Show dialog to change payment method
+                        },
+                        viewModel = viewModel
+                    )
                 }
             }
         }
@@ -135,11 +153,16 @@ fun OrderDetailScreen(
 }
 
 @Composable
-fun OrderActionsBar(status: String, onCancel: () -> Unit, onConfirmReceived: () -> Unit) {
-    val statusLower = status.lowercase()
+fun OrderActionsBar(
+    order: Order,
+    onCancel: () -> Unit,
+    onConfirmReceived: () -> Unit,
+    onPayment: (String) -> Unit
+) {
+    val statusLower = order.status.lowercase()
 
     // Chỉ hiển thị BottomBar nếu có hành động khả thi
-    if (statusLower == "pending" || statusLower == "delivering") {
+    if (statusLower == "pending" || statusLower == "confirmed" || statusLower == "delivering") {
         Surface(shadowElevation = 8.dp, color = Color.White) {
             Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
                 if (statusLower == "pending") {
@@ -148,6 +171,27 @@ fun OrderActionsBar(status: String, onCancel: () -> Unit, onConfirmReceived: () 
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel Order", fontWeight = FontWeight.Bold)
+                    }
+                } else if (statusLower == "confirmed") {
+                    // Hiển thị cả nút thanh toán và cancel khi order được confirmed
+                    // Dùng payment method đã chọn trước đó
+                    Button(
+                        onClick = { onPayment(order.paymentMethod) },
+                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Pay Now", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color.Red)
                     ) {
                         Text("Cancel Order", fontWeight = FontWeight.Bold)
                     }
@@ -194,9 +238,12 @@ fun OrderInfoCard(order: Order) {
                     fontWeight = FontWeight.Bold,
                     color = when (order.status.lowercase()) {
                         "pending" -> Color(0xFFFF9800)
+                        "confirmed" -> Color(0xFFFF9800)
+                        "paid" -> Color(0xFF2196F3)
+                        "delivering" -> Color(0xFF2196F3)
                         "completed" -> Color(0xFF4CAF50)
                         "cancelled" -> Color.Red
-                        else -> Color.Blue
+                        else -> Color(0xFF2196F3)
                     }
                 )
             }
@@ -276,7 +323,69 @@ fun OrderItemDetailCard(
 }
 
 @Composable
-fun PaymentSummaryCard(order: Order) {
+fun PaymentSummaryCard(
+    order: Order,
+    onPaymentMethodClick: () -> Unit = {},
+    viewModel: OrderViewModel? = null
+) {
+    val context = LocalContext.current
+    var showPaymentDialog by remember { mutableStateOf(false) }
+    val canChangePayment = order.status.lowercase() in listOf("pending", "confirmed")
+
+    // Dialog chọn phương thức thanh toán
+    if (showPaymentDialog) {
+        AlertDialog(
+            onDismissRequest = { showPaymentDialog = false },
+            title = { Text("Select Payment Method", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            showPaymentDialog = false
+                            viewModel?.updatePaymentMethod(
+                                orderId = order.id,
+                                paymentMethod = "SePay",
+                                onSuccess = {
+                                    Toast.makeText(context, "Payment method updated", Toast.LENGTH_SHORT).show()
+                                },
+                                onFail = {
+                                    Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("SePay (QR Code)", color = OrangePrimary)
+                    }
+                    TextButton(
+                        onClick = {
+                            showPaymentDialog = false
+                            viewModel?.updatePaymentMethod(
+                                orderId = order.id,
+                                paymentMethod = "VNPay",
+                                onSuccess = {
+                                    Toast.makeText(context, "Payment method updated", Toast.LENGTH_SHORT).show()
+                                },
+                                onFail = {
+                                    Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("VNPay (Online Banking)", color = OrangePrimary)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPaymentDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            },
+            containerColor = Color.White
+        )
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -286,9 +395,54 @@ fun PaymentSummaryCard(order: Order) {
             Text("Payment Summary", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Payment Method", color = Color.Gray)
-                Text(order.paymentMethod, fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = if (canChangePayment) {
+                        Modifier.clickable { showPaymentDialog = true }
+                    } else Modifier
+                ) {
+                    Text(
+                        order.paymentMethod,
+                        fontWeight = FontWeight.Bold,
+                        color = if (canChangePayment) OrangePrimary else Color.Black
+                    )
+                    if (canChangePayment) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Change",
+                            tint = OrangePrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("Payment Status", color = Color.Gray)
+                Text(
+                    text = when (order.status.lowercase()) {
+                        "pending" -> "Unpaid"
+                        "confirmed" -> "Unpaid"
+                        "paid" -> "Paid"
+                        "delivering" -> "Paid"
+                        "completed" -> "Paid"
+                        "cancelled" -> "Cancelled"
+                        else -> "Unpaid"
+                    },
+                    fontWeight = FontWeight.Bold,
+                    color = when (order.status.lowercase()) {
+                        "paid", "delivering", "completed" -> Color(0xFF4CAF50)
+                        "cancelled" -> Color.Red
+                        else -> Color(0xFFFF9800)
+                    }
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
 

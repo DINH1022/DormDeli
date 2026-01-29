@@ -54,8 +54,6 @@ import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 fun MyBasketScreen(
     onBackClick: () -> Unit,
     onLocationClick: () -> Unit,
-    onSePayPayment: (amount: Double, orderInfo: String) -> Unit = { _, _ -> },
-    onVNPayPayment: (amount: Double, orderInfo: String) -> Unit = { _, _ -> },
     orderViewModel: OrderViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
     storeViewModel: StoreViewModel = viewModel(),
@@ -143,28 +141,6 @@ fun MyBasketScreen(
                             Toast.makeText(context, "Please select a delivery address", Toast.LENGTH_SHORT).show()
                             return@BottomCheckoutBar
                         }
-                        
-                        // Xử lý thanh toán online - Lưu data và navigate đến payment
-                        if (selectedPaymentMethod == "SePay" || selectedPaymentMethod == "VNPay") {
-                            // Lưu pending order data
-                            orderViewModel.savePendingOrderData(
-                                cartItems = cartItems,
-                                subtotal = subtotal,
-                                deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
-                                deliveryAddress = selectedAddress!!,
-                                paymentMethod = selectedPaymentMethod
-                            )
-                            
-                            val orderInfo = "Payment for order - ${cartItems.size} items"
-                            
-                            // Navigate đến payment screen
-                            if (selectedPaymentMethod == "SePay") {
-                                onSePayPayment(total, orderInfo)
-                            } else {
-                                onVNPayPayment(total, orderInfo)
-                            }
-                            return@BottomCheckoutBar
-                        }
 
                         val unavailableItems = cartItems.filter { item ->
                             val store = stores.find { it.id == item.food.storeId }
@@ -196,19 +172,20 @@ fun MyBasketScreen(
                             return@BottomCheckoutBar
                         }
 
+                        // Tạo order với status pending luôn, không thanh toán ngay
                         orderViewModel.placeOrder(
                             cartItems = cartItems,
-                            subtotal = subtotal, // Truyền subtotal để Repository tính lại total + phí ship
+                            subtotal = subtotal,
                             deliveryNote = "${selectedAddress?.label}: ${selectedAddress?.address}",
                             deliveryAddress = selectedAddress!!,
                             paymentMethod = selectedPaymentMethod,
                             onSuccess = {
-                                Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Order Created! Waiting for confirmation", Toast.LENGTH_SHORT).show()
                                 cartViewModel.clearCart()
                                 onOrderSuccess()
                             },
                             onFail = {
-                                Toast.makeText(context, "Failed to place order. Try again.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Failed to create order. Try again.", Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
