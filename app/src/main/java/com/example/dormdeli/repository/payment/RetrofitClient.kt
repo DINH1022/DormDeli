@@ -29,7 +29,7 @@ object RetrofitClient {
      * 
      * Lưu ý: Thay đổi URL này theo môi trường của bạn
      */
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "https://dormdeli-payment.onrender.com"
     
     /**
      * Logging interceptor để debug request/response
