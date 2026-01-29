@@ -547,10 +547,12 @@ fun CustomerContactCard(user: User) {
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Phần thông tin (Trái)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFFE8F5E9),
@@ -565,25 +567,33 @@ fun CustomerContactCard(user: User) {
                 }
             }
             
-            Row {
-                IconButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${user.phone}"))
-                        context.startActivity(intent)
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE8F5E9))
-                ) {
-                    Icon(Icons.Default.Phone, contentDescription = "Call", tint = Color(0xFF4CAF50))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
+            // Spacer chiếm khoảng trống ở giữa để đẩy cụm nút sang phải
+            Spacer(modifier = Modifier.weight(1f))
+            
+            // Cụm nút liên lạc (Phải)
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${user.phone}"))
                         context.startActivity(intent)
                     },
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE3F2FD))
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE3F2FD)),
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(Icons.Default.Sms, contentDescription = "SMS", tint = Color(0xFF2196F3))
+                    Icon(Icons.Default.Message, contentDescription = "SMS", tint = Color(0xFF2196F3), modifier = Modifier.size(20.dp))
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                IconButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${user.phone}"))
+                        context.startActivity(intent)
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFE8F5E9)),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
                 }
             }
         }

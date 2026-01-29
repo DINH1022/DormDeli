@@ -100,9 +100,9 @@ fun OrderShipperItem(
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Phần thông tin (Trái)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -111,14 +111,35 @@ fun OrderShipperItem(
                             Text(text = customerInfo!!.phone, fontSize = 12.sp, color = Color.Gray)
                         }
                     }
-                    IconButton(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${customerInfo!!.phone}"))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                    
+                    // Spacer chiếm khoảng trống ở giữa
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    // Cụm nút liên lạc (Phải)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("smsto:${customerInfo!!.phone}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Message, contentDescription = "Message", tint = OrangePrimary, modifier = Modifier.size(20.dp))
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${customerInfo!!.phone}"))
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
