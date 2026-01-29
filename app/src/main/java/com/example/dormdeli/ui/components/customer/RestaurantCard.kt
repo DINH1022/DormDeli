@@ -48,8 +48,8 @@ fun RestaurantCard(
                 painter = rememberAsyncImagePainter(restaurant.imageUrl),
                 contentDescription = null,
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp)
+                    .width(100.dp)
+                    .height(100.dp)
                     .clip(MaterialTheme.shapes.medium),
                 contentScale = ContentScale.Crop
             )
@@ -70,13 +70,22 @@ fun RestaurantCard(
                     color = Color.Black
                 )
 
-                // Tags
-                Text(
-                    text = restaurant.tags,
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    maxLines = 1
-                )
+                // Giờ mở cửa - Thay thế cho phần Tags
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Mở cửa: ${restaurant.openTime} - ${restaurant.closeTime}",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1
+                    )
+                }
 
                 // Rating and delivery info
                 Row(
@@ -111,22 +120,11 @@ fun RestaurantCard(
                     )
 
                     // Delivery time
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = "Time",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = restaurant.deliveryTime,
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    }
+                    Text(
+                        text = restaurant.deliveryTime,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }

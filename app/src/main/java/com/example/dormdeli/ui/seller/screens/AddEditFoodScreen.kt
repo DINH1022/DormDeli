@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.dormdeli.enums.FoodCategory
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
 import com.example.dormdeli.ui.seller.components.CustomTextField
 import com.example.dormdeli.ui.theme.OrangeLight
@@ -52,9 +54,12 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
     var name by remember(editingFood) { mutableStateOf(editingFood?.name ?: "") }
     var price by remember(editingFood) { mutableStateOf(editingFood?.price?.toString() ?: "") }
     var description by remember(editingFood) { mutableStateOf(editingFood?.description ?: "") }
+    var category by remember(editingFood) { mutableStateOf(editingFood?.category ?: FoodCategory.RICE.value) }
     var keyAvailable by remember(editingFood) { mutableStateOf(editingFood?.available ?: true) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    var expanded by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) { onDispose { viewModel.clearAutofill() } }
     LaunchedEffect(autofilledDescription) { autofilledDescription?.let { description = it } }
@@ -129,6 +134,54 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
 
                         CustomTextField(value = name, onValueChange = { name = it }, label = "Tên món ăn")
                         Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Category Dropdown
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = when(category) {
+                                    "Rice" -> "Cơm"
+                                    "Noodle" -> "Mì/Phở/Bún"
+                                    "Fast_food" -> "Đồ ăn nhanh"
+                                    "Drink" -> "Đồ uống"
+                                    "Dessert" -> "Tráng miệng"
+                                    else -> "Khác"
+                                },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Phân loại") },
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    Icon(Icons.Default.ArrowDropDown, "dropdown", Modifier.clickable { expanded = true })
+                                },
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                FoodCategory.values().forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(when(cat) {
+                                                FoodCategory.RICE -> "Cơm"
+                                                FoodCategory.NOODLE -> "Mì/Phở/Bún"
+                                                FoodCategory.FAST_FOOD -> "Đồ ăn nhanh"
+                                                FoodCategory.DRINK -> "Đồ uống"
+                                                FoodCategory.DESSERT -> "Tráng miệng"
+                                                else -> "Khác"
+                                            })
+                                        },
+                                        onClick = {
+                                            category = cat.value
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
                         CustomTextField(value = price, onValueChange = { price = it }, label = "Giá bán", keyboardType = KeyboardType.Number)
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -183,6 +236,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                             name = name,
                             description = description,
                             price = price.toDoubleOrNull() ?: 0.0,
+                            category = category,
                             isAvailable = keyAvailable,
                             imageUri = imageUri
                         ) { onNavigateBack() }

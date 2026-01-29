@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel // Cần import thư viện này
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.customer.CategoryChips
 import com.example.dormdeli.ui.components.customer.FoodItem
@@ -30,7 +30,7 @@ import com.example.dormdeli.ui.components.customer.SectionTitle
 import com.example.dormdeli.ui.screens.customer.store.isStoreOpen
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
-import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel // Import ViewModel của bạn
+import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,44 +53,40 @@ fun HomeScreen(
     var searchText by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf("All") }
     var selectedTab by remember { mutableStateOf(0) }
-    val categories = listOf("All", "noodle", "fast_food", "drink", "Sandwich", "Dessert")
+    val categories = listOf("All", "Noodle", "Fast_food", "Drink", "Sandwich", "Dessert")
 
     val context = LocalContext.current
     val storesList = storeViewModel.stores.value
-    val isLoading = storeViewModel.isLoading.value
-
-    // (Tạm thời để foods rỗng để không lỗi, sau này bạn làm FoodViewModel tương tự)
+    
     val foodsList = foodViewModel.popularFoods.value
-    val isLoading2 = foodViewModel.isLoading.value
 
     LaunchedEffect(Unit) {
         storeViewModel.loadAllStores()
         foodViewModel.loadPopularFoods()
     }
 
-    // 3. LOGIC LỌC STORE (Đã sửa lại cho đúng chuẩn List)
+    // Logic lọc store: Chỉ tìm kiếm theo tên, loại bỏ phần tagsList không sử dụng
     val filteredRestaurants by remember(searchText, storesList) {
         derivedStateOf {
             if (searchText.isBlank()) {
                 storesList.take(5)
             } else {
                 storesList.filter { store ->
-                    store.name.contains(searchText, ignoreCase = true) ||
-                            store.tags.contains(searchText, ignoreCase = true)
+                    store.name.contains(searchText, ignoreCase = true)
                 }.take(5)
             }
         }
     }
 
-    val filteredFoods by remember(searchText, selectedCat, foodsList) { // Thêm foodsList vào key
+    val filteredFoods by remember(searchText, selectedCat, foodsList) {
         derivedStateOf {
             val categoryFiltered = if (selectedCat == "All") foodsList
-            else foodsList.filter { it.category.equals(selectedCat, ignoreCase = true)}.take(5)
+            else foodsList.filter { it.category.equals(selectedCat, ignoreCase = true) }
 
             if (searchText.isBlank()) categoryFiltered.take(5)
             else categoryFiltered.filter {
                 it.name.contains(searchText, ignoreCase = true)
-            }
+            }.take(5)
         }
     }
 
@@ -124,7 +120,6 @@ fun HomeScreen(
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3; onOrdersClick() },
-                    // Dùng icon List (dạng danh sách đơn hàng)
                     icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Orders") },
                     label = { Text("Orders") },
                     colors = NavigationBarItemDefaults.colors(selectedIconColor = OrangePrimary, selectedTextColor = OrangePrimary, indicatorColor = OrangePrimary.copy(alpha = 0.1f))
@@ -178,6 +173,37 @@ fun HomeScreen(
                 )
             }
 
+            item { SectionTitle(title = "Popular Dishes", onSeeAll = onSeeAllFoods) }
+
+            if (filteredFoods.isEmpty()) {
+                item { Text("Chưa có món ăn nào.", Modifier.padding(16.dp), color = Color.Gray) }
+            }
+
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(filteredFoods) { food ->
+                        val ownerStore = storesList.find { it.id == food.storeId }
+                        val isOpen = ownerStore?.let {
+                            isStoreOpen(it.openTime, it.closeTime)
+                        } ?: true
+                        FoodItem(
+                            food = food,
+                            onImageClick = { onFoodClick(food.id) },
+                            onAddToCart = { food ->
+                                if (isOpen) {
+                                    onAddToCart(food)
+                                } else {
+                                    Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
             item {
                 SectionTitle(
                     title = "Open Restaurants",
@@ -199,37 +225,6 @@ fun HomeScreen(
                         restaurant,
                         onClick = { onStoreClick(restaurant.id) }
                     )
-                }
-            }
-
-            item { SectionTitle(title = "Popular Dishes", onSeeAll = onSeeAllFoods) }
-
-            if (filteredFoods.isEmpty()) {
-                item { Text("Chưa có món ăn nào.", Modifier.padding(16.dp), color = Color.Gray) }
-            }
-
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp) // Thêm chút padding để không bị cắt bóng đổ
-                ) {
-                    items(filteredFoods) { food ->
-                        val ownerStore = storesList.find { it.id == food.storeId }
-                        val isOpen = ownerStore?.let {
-                            isStoreOpen(it.openTime, it.closeTime)
-                        } ?: true
-                        FoodItem(
-                            food = food,
-                            onImageClick = { onFoodClick(food.id) },
-                            onAddToCart = { food ->
-                                if (isOpen) {
-                                    onAddToCart(food)
-                                } else {
-                                    Toast.makeText(context, "Quán đang đóng cửa, vui lòng quay lại sau!", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        )
-                    }
                 }
             }
         }
