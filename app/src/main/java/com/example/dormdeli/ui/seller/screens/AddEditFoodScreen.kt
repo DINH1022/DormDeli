@@ -141,7 +141,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                                 value = when(category) {
                                     "Rice" -> "Cơm"
                                     "Noodle" -> "Mì/Phở/Bún"
-                                    "Fast_food" -> "Đồ ăn nhanh"
+                                    "Fast food" -> "Đồ ăn nhanh"
                                     "Drink" -> "Đồ uống"
                                     "Dessert" -> "Tráng miệng"
                                     else -> "Khác"
