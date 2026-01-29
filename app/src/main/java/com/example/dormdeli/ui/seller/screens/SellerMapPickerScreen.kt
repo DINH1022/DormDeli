@@ -40,20 +40,23 @@ fun SellerMapPickerScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val currentStore by viewModel.store.collectAsState()
+    val pickedLocationInVm = viewModel.pickedLocation.value
     
-    // Khởi tạo vị trí: Ưu tiên vị trí đã ghim > Vị trí HCM mặc định
+    // Khởi tạo vị trí: Ưu tiên vị trí vừa chọn > Vị trí đã ghim trong Store > Vị trí HCM mặc định
     val initialLatLng = remember {
-        if (currentStore != null && currentStore!!.latitude != 0.0) {
+        pickedLocationInVm ?: if (currentStore != null && currentStore!!.latitude != 0.0) {
             LatLng(currentStore!!.latitude, currentStore!!.longitude)
         } else {
             LatLng(10.8231, 106.6297)
         }
     }
 
-    var markerPosition by remember { mutableStateOf(initialLatLng) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialLatLng, 17f)
     }
+
+    // Lấy tọa độ tại tâm bản đồ (nơi có dấu cam)
+    val currentCenter = cameraPositionState.position.target
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -69,23 +72,24 @@ fun SellerMapPickerScreen(
             getCurrentLocation(context) { location ->
                 location?.let {
                     val currentLatLng = LatLng(it.latitude, it.longitude)
-                    markerPosition = currentLatLng
                     cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17f))
                 }
             }
         }
     }
 
-    // Tự động lấy vị trí hiện tại nếu chưa có tọa độ ghim trước đó
+    // Tự động lấy vị trí hiện tại nếu HOÀN TOÀN chưa có tọa độ nào
     LaunchedEffect(Unit) {
-        if (currentStore == null || currentStore!!.latitude == 0.0) {
+        val noPinnedLocation = currentStore == null || currentStore!!.latitude == 0.0
+        val noPickedLocation = pickedLocationInVm == null
+
+        if (noPinnedLocation && noPickedLocation) {
             if (!hasLocationPermission) {
                 launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             } else {
                 getCurrentLocation(context) { location ->
                     location?.let {
                         val currentLatLng = LatLng(it.latitude, it.longitude)
-                        markerPosition = currentLatLng
                         cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17f))
                     }
                 }
@@ -110,22 +114,19 @@ fun SellerMapPickerScreen(
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                onMapClick = { markerPosition = it },
                 properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
                 uiSettings = MapUiSettings(myLocationButtonEnabled = false)
-            ) {
-                Marker(
-                    state = MarkerState(position = markerPosition),
-                    title = "Vị trí quán"
-                )
-            }
+            )
 
-            // Central crosshair for better precision
+            // Dấu cam (crosshair) cố định ở chính giữa màn hình
             Icon(
                 Icons.Default.LocationOn,
                 contentDescription = null,
                 tint = OrangePrimary,
-                modifier = Modifier.size(44.dp).align(Alignment.Center).offset(y = (-22).dp)
+                modifier = Modifier
+                    .size(44.dp)
+                    .align(Alignment.Center)
+                    .offset(y = (-22).dp)
             )
 
             // UI Overlay
@@ -140,7 +141,6 @@ fun SellerMapPickerScreen(
                             getCurrentLocation(context) { location ->
                                 location?.let {
                                     val pos = LatLng(it.latitude, it.longitude)
-                                    markerPosition = pos
                                     scope.launch {
                                         cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(pos, 17f))
                                     }
@@ -163,16 +163,16 @@ fun SellerMapPickerScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Tọa độ hiện tại", fontSize = 12.sp, color = Color.Gray)
+                        Text("Tọa độ hiện tại (tâm bản đồ)", fontSize = 12.sp, color = Color.Gray)
                         Text(
-                            "${String.format("%.6f", markerPosition.latitude)}, ${String.format("%.6f", markerPosition.longitude)}",
+                            "${String.format("%.6f", currentCenter.latitude)}, ${String.format("%.6f", currentCenter.longitude)}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = {
-                                viewModel.setPickedLocation(markerPosition)
+                                viewModel.setPickedLocation(currentCenter)
                                 onBack()
                             },
                             modifier = Modifier.fillMaxWidth().height(50.dp),

@@ -53,6 +53,36 @@ class SellerViewModel : ViewModel() {
     private val _pickedLocation = MutableStateFlow<LatLng?>(null)
     val pickedLocation: StateFlow<LatLng?> = _pickedLocation.asStateFlow()
 
+    // Registration Form State
+    private val _regName = MutableStateFlow("")
+    val regName = _regName.asStateFlow()
+
+    private val _regDescription = MutableStateFlow("")
+    val regDescription = _regDescription.asStateFlow()
+
+    private val _regLocationName = MutableStateFlow("")
+    val regLocationName = _regLocationName.asStateFlow()
+
+    private val _regOpenTime = MutableStateFlow("08:00")
+    val regOpenTime = _regOpenTime.asStateFlow()
+
+    private val _regCloseTime = MutableStateFlow("22:00")
+    val regCloseTime = _regCloseTime.asStateFlow()
+
+    fun updateRegData(
+        name: String? = null,
+        desc: String? = null,
+        loc: String? = null,
+        open: String? = null,
+        close: String? = null
+    ) {
+        name?.let { _regName.value = it }
+        desc?.let { _regDescription.value = it }
+        loc?.let { _regLocationName.value = it }
+        open?.let { _regOpenTime.value = it }
+        close?.let { _regCloseTime.value = it }
+    }
+
     val store: StateFlow<Store?> = repository.getStoreFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 

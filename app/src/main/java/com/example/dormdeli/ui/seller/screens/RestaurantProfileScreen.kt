@@ -78,11 +78,12 @@ fun ScreenTitle(title: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectLocation: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var locationName by remember { mutableStateOf("") }
-    var openTime by remember { mutableStateOf("08:00") }
-    var closeTime by remember { mutableStateOf("22:00") }
+    // Sử dụng State từ ViewModel để không mất dữ liệu khi chuyển màn hình Map
+    val name by viewModel.regName.collectAsState()
+    val description by viewModel.regDescription.collectAsState()
+    val locationName by viewModel.regLocationName.collectAsState()
+    val openTime by viewModel.regOpenTime.collectAsState()
+    val closeTime by viewModel.regCloseTime.collectAsState()
     
     var showOpenTimePicker by remember { mutableStateOf(false) }
     var showCloseTimePicker by remember { mutableStateOf(false) }
@@ -97,7 +98,7 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectL
             title = "Chọn giờ mở cửa",
             onCancel = { showOpenTimePicker = false },
             onConfirm = { hour, minute ->
-                openTime = String.format("%02d:%02d", hour, minute)
+                viewModel.updateRegData(open = String.format("%02d:%02d", hour, minute))
                 showOpenTimePicker = false
             }
         )
@@ -108,7 +109,7 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectL
             title = "Chọn giờ đóng cửa",
             onCancel = { showCloseTimePicker = false },
             onConfirm = { hour, minute ->
-                closeTime = String.format("%02d:%02d", hour, minute)
+                viewModel.updateRegData(close = String.format("%02d:%02d", hour, minute))
                 showCloseTimePicker = false
             }
         )
@@ -125,9 +126,9 @@ fun RegistrationForm(viewModel: SellerViewModel, onLogout: () -> Unit, onSelectL
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                CustomTextField(value = name, onValueChange = { name = it }, label = "Tên quán ăn")
-                CustomTextField(value = description, onValueChange = { description = it }, label = "Mô tả")
-                CustomTextField(value = locationName, onValueChange = { locationName = it }, label = "Địa chỉ (VD: KTX Khu B)")
+                CustomTextField(value = name, onValueChange = { viewModel.updateRegData(name = it) }, label = "Tên quán ăn")
+                CustomTextField(value = description, onValueChange = { viewModel.updateRegData(desc = it) }, label = "Mô tả")
+                CustomTextField(value = locationName, onValueChange = { viewModel.updateRegData(loc = it) }, label = "Địa chỉ (VD: KTX Khu B)")
                 
                 OutlinedCard(
                     onClick = onSelectLocation,
