@@ -7,6 +7,7 @@ enum class FoodCategory(val value: String) {
     NOODLE("Noodle"),
     DRINK("Drink"),
     DESSERT("Dessert"),
+    SANDWICH("Sandwich"),
     OTHER("Other");
 
     companion object {

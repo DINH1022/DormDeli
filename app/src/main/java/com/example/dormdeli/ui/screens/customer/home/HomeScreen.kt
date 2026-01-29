@@ -54,7 +54,7 @@ fun HomeScreen(
     var searchText by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf("All") }
     var selectedTab by remember { mutableStateOf(0) }
-    val categories = listOf("All", "Noodle", "Fast_food", "Drink", "Sandwich", "Dessert")
+    val categories = listOf("All", "Noodle", "Fast food", "Drink", "Sandwich", "Dessert")
 
     val context = LocalContext.current
     val storesList = storeViewModel.stores.value

@@ -176,25 +176,27 @@ class SellerRepository {
     private suspend fun syncStoreTags(storeId: String) {
         try {
             // 1. Lấy tất cả món ăn của store
-            val foodSnapshot = foodsCollection.whereEqualTo("storeId", storeId).get().await()
+            val foodSnapshot = db.collection("foods").whereEqualTo("storeId", storeId).get().await()
             val categories = foodSnapshot.documents.mapNotNull { it.getString("category") }
                 .filter { it.isNotBlank() }
                 .distinct()
 
             // 2. Ánh xạ từ mã category sang tên hiển thị tiếng Việt
             val displayTags = categories.map { cat ->
-                when(cat.lowercase()) {
+                val normalizedCat = cat.lowercase().replace(" ", "_")
+                when(normalizedCat) {
                     "Rice" -> "Cơm"
                     "Noodle" -> "Mì/Phở/Bún"
-                    "Fast_food" -> "Đồ ăn nhanh"
+                    "Fast food", "fastfood" -> "Đồ ăn nhanh"
                     "Drink" -> "Đồ uống"
                     "Dessert" -> "Tráng miệng"
+                    "Sandwich" -> "Bánh mì"
                     else -> "Khác"
                 }
             }.distinct()
 
             // 3. Cập nhật vào Store
-            storesCollection.document(storeId).update("tags", displayTags).await()
+            db.collection("stores").document(storeId).update("tags", displayTags).await()
         } catch (e: Exception) {
             e.printStackTrace()
         }

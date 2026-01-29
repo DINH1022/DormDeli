@@ -144,6 +144,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                                     "Fast food" -> "Đồ ăn nhanh"
                                     "Drink" -> "Đồ uống"
                                     "Dessert" -> "Tráng miệng"
+                                    "Sandwich" -> "Bánh mì"
                                     else -> "Khác"
                                 },
                                 onValueChange = {},
@@ -169,6 +170,7 @@ fun AddEditFoodScreen(viewModel: SellerViewModel, onNavigateBack: () -> Unit) {
                                                 FoodCategory.FAST_FOOD -> "Đồ ăn nhanh"
                                                 FoodCategory.DRINK -> "Đồ uống"
                                                 FoodCategory.DESSERT -> "Tráng miệng"
+                                                FoodCategory.SANDWICH -> "Bánh mì"
                                                 else -> "Khác"
                                             })
                                         },
