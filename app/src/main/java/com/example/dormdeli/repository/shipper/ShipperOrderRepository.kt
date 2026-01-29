@@ -5,16 +5,20 @@ import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Order
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class ShipperOrderRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val collectionName = "orders"
-    private val EXPIRE_TIME_MS = 10800000L // 3 giờ
+    private val EXPIRE_TIME_MS = 3600000L // 1 giờ
+    private val repositoryScope = CoroutineScope(Dispatchers.IO)
 
     private fun getCurrentUserId(): String? = auth.currentUser?.uid
 
@@ -30,7 +34,7 @@ class ShipperOrderRepository {
 
     fun getAvailableOrdersFlow(): Flow<List<Order>> = callbackFlow {
         val listener = db.collection(collectionName)
-            .whereIn("status", listOf(OrderStatus.PENDING.value, OrderStatus.STORE_ACCEPTED.value))
+            .whereEqualTo("status", OrderStatus.STORE_ACCEPTED.value)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("ShipperOrderRepo", "Error listening for available orders: ${error.message}")
@@ -45,11 +49,16 @@ class ShipperOrderRepository {
 
                         val order = doc.toObject(Order::class.java)?.copy(id = doc.id)
                         
-                        if (order != null && (currentTime - order.createdAt) > EXPIRE_TIME_MS) {
-                            null
-                        } else {
-                            order
-                        }
+                        if (order != null) {
+                            if ((currentTime - order.createdAt) > EXPIRE_TIME_MS) {
+                                // Nếu đơn hàng đã quá 1 giờ mà chưa có shipper nhận, 
+                                // cập nhật trạng thái thành CANCELLED trong database
+                                cancelExpiredOrder(doc.id)
+                                null
+                            } else {
+                                order
+                            }
+                        } else null
                     } catch (e: Exception) {
                         null
                     }
@@ -59,6 +68,19 @@ class ShipperOrderRepository {
             }
         
         awaitClose { listener.remove() }
+    }
+
+    private fun cancelExpiredOrder(orderId: String) {
+        repositoryScope.launch {
+            try {
+                db.collection(collectionName).document(orderId)
+                    .update("status", OrderStatus.CANCELLED.value)
+                    .await()
+                Log.d("ShipperOrderRepo", "Order $orderId cancelled due to timeout")
+            } catch (e: Exception) {
+                Log.e("ShipperOrderRepo", "Failed to cancel expired order $orderId: ${e.message}")
+            }
+        }
     }
 
     fun getMyDeliveriesFlow(): Flow<List<Order>> = callbackFlow {
@@ -145,9 +167,8 @@ class ShipperOrderRepository {
                 val status = snapshot.getString("status") ?: ""
 
                 if (currentShipper == shipperId) {
-                    // Nếu Shipper trả đơn, ta phải trả về trạng thái hợp lý
-                    // Nếu quán đã nhận đơn trước đó, trả về STORE_ACCEPTED, nếu chưa thì trả về PENDING
-                    val newStatus = if (status == OrderStatus.CONFIRMED.value) OrderStatus.STORE_ACCEPTED.value else OrderStatus.PENDING.value
+                    // Trả về trạng thái STORE_ACCEPTED vì Shipper chỉ có thể hủy những đơn họ đã nhận từ quán
+                    val newStatus = OrderStatus.STORE_ACCEPTED.value
                     
                     transaction.update(orderRef, "shipperId", "")
                     transaction.update(orderRef, "status", newStatus)
