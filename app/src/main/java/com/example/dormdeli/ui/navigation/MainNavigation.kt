@@ -55,6 +55,8 @@ import com.example.dormdeli.ui.screens.customer.home.SeeAllScreen
 import com.example.dormdeli.ui.screens.customer.map.CustomerMapScreen
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 
 @Composable
 fun MainNavigation(
@@ -419,6 +421,7 @@ fun MainNavigation(
                 onBack = { navController.popBackStack() },
                 onPersonalInfoClick = { navController.navigate(Screen.PersonalInfo.route) },
                 onLocationClick = { navController.navigate(Screen.Location.route) },
+                onOrdersClick = { navController.navigate(Screen.Orders.route) },
                 onSwitchToShipper = {
                     navController.navigate(Screen.ShipperHome.route) {
                         popUpTo(0) { inclusive = true }

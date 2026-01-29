@@ -34,6 +34,7 @@ fun CustomerProfileScreen(
     onBack: () -> Unit,
     onPersonalInfoClick: () -> Unit,
     onLocationClick: () -> Unit,
+    onOrdersClick: () -> Unit,
     onSwitchToShipper: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -149,7 +150,11 @@ fun CustomerProfileScreen(
                     title = "Personal Information",
                     onClick = onPersonalInfoClick
                 )
-                ProfileMenuItem(icon = Icons.Default.History, title = "Order History", onClick = {})
+                ProfileMenuItem(
+                    icon = Icons.Default.History, 
+                    title = "Order History", 
+                    onClick = onOrdersClick
+                )
                 ProfileMenuItem(
                     icon = Icons.Default.LocationOn,
                     title = "Delivery Address",
@@ -200,8 +205,6 @@ fun CustomerProfileScreen(
                         )
                     }
                 }
-
-                ProfileMenuItem(icon = Icons.Default.Settings, title = "App Settings", onClick = {})
                 
                 Spacer(modifier = Modifier.height(16.dp))
 
