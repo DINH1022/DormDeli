@@ -172,25 +172,25 @@ fun OrderShipperItem(
                 }
             } else {
                 when (order.status) {
-                    "accepted" -> {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = onCancelAccept,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                                border = BorderStroke(1.dp, Color.Red)
-                            ) {
-                                Text("Return", fontWeight = FontWeight.Bold)
-                            }
-                            Button(
-                                onClick = { onUpdateStatus("picked_up") },
-                                modifier = Modifier.weight(1.5f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text("Picked Up", fontWeight = FontWeight.Bold)
-                            }
+                    "paid" -> {
+                        Button(
+                            onClick = { onUpdateStatus("picked_up") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Picked Up", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    "accepted", "confirmed" -> {
+                        Button(
+                            onClick = {},
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = false
+                        ) {
+                            Text("Waiting for Payment", fontWeight = FontWeight.Bold)
                         }
                     }
                     "picked_up" -> {

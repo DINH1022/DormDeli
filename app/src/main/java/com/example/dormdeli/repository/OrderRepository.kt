@@ -68,13 +68,7 @@ class OrderRepository {
                 val isAllStoresAccepted = updatedAccepted.size >= involved.size
                 
                 if (isAllStoresAccepted) {
-                    // Nếu tất cả quán đã xong, tính toán status tiếp theo
-                    val nextStatus = if (currentStatus == OrderStatus.SHIPPER_ACCEPTED.value) {
-                        OrderStatus.CONFIRMED.value // Shipper đã chờ sẵn
-                    } else {
-                        OrderStatus.STORE_ACCEPTED.value // Đợi shipper
-                    }
-                    transaction.update(orderRef, "status", nextStatus)
+                    transaction.update(orderRef, "status", OrderStatus.CONFIRMED.value)
                 }
                 
                 Unit

@@ -95,23 +95,9 @@ class ShipperOrdersViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch {
             _isLoading.value = true
             
-            // Tìm đơn hàng hiện tại để biết status
-            val currentOrder = (availableOrders.value + myDeliveries.value).find { it.id == orderId }
-            if (currentOrder == null) {
-                _isLoading.value = false
-                return@launch
-            }
-
-            val targetStatus = if (currentOrder.status == OrderStatus.STORE_ACCEPTED.value) {
-                OrderStatus.CONFIRMED.value
-            } else {
-                OrderStatus.SHIPPER_ACCEPTED.value
-            }
-
             val currentShipperId = orderRepository.getUserId()
             
-            // Cập nhật với transaction để đảm bảo không bị tranh chấp
-            val success = orderRepository.acceptOrderV2(orderId, targetStatus)
+            val success = orderRepository.acceptOrderV2(orderId)
             _isLoading.value = false
             
             if (success) {

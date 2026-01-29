@@ -34,7 +34,7 @@ class ShipperOrderRepository {
 
     fun getAvailableOrdersFlow(): Flow<List<Order>> = callbackFlow {
         val listener = db.collection(collectionName)
-            .whereEqualTo("status", OrderStatus.STORE_ACCEPTED.value)
+            .whereIn("status", listOf(OrderStatus.CONFIRMED.value, OrderStatus.PAID.value))
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("ShipperOrderRepo", "Error listening for available orders: ${error.message}")
@@ -134,7 +134,7 @@ class ShipperOrderRepository {
         awaitClose { listener.remove() }
     }
 
-    suspend fun acceptOrderV2(orderId: String, targetStatus: String): Boolean {
+    suspend fun acceptOrderV2(orderId: String): Boolean {
         val shipperId = getCurrentUserId() ?: return false
         val orderRef = db.collection(collectionName).document(orderId)
 
@@ -143,10 +143,8 @@ class ShipperOrderRepository {
                 val snapshot = transaction.get(orderRef)
                 val currentShipper = snapshot.getString("shipperId") ?: ""
                 
-                // Đảm bảo đơn chưa có shipper khác nhận
                 if (currentShipper.isEmpty() || currentShipper == shipperId) {
                     transaction.update(orderRef, "shipperId", shipperId)
-                    transaction.update(orderRef, "status", targetStatus)
                     return@runTransaction true
                 }
                 false

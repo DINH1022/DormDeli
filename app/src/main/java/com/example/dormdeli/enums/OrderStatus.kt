@@ -4,7 +4,8 @@ enum class OrderStatus(val value: String) {
     PENDING("pending"),
     SHIPPER_ACCEPTED("shipper_accepted"), // Shipper đã nhận
     STORE_ACCEPTED("store_accepted"),     // Seller đã nhận
-    CONFIRMED("confirmed"),               // Cả 2 đã nhận, chuẩn bị lấy hàng
+    CONFIRMED("confirmed"),
+    PAID("paid"),              // Cả 2 đã nhận, chuẩn bị lấy hàng
     PICKED_UP("picked_up"),
     DELIVERING("delivering"),
     COMPLETED("completed"),

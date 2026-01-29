@@ -213,39 +213,23 @@ fun BottomActionBarV2(
                     }
                 }
                 
-                OrderStatus.SHIPPER_ACCEPTED, OrderStatus.CONFIRMED -> {
-                    Row(
+                OrderStatus.SHIPPER_ACCEPTED, OrderStatus.CONFIRMED, OrderStatus.PAID -> {
+                    val isReady = status == OrderStatus.PAID
+                    
+                    Button(
+                        onClick = { if (isReady) viewModel.updateStatus(order.id, OrderStatus.PICKED_UP.value) },
+                        enabled = !isLoading && isReady,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isReady) Color(0xFF2196F3) else Color.Gray
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { viewModel.cancelAcceptedOrder(order.id) { onBack() } },
-                            enabled = !isLoading,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
-                        ) {
-                            Text("RETURN", fontWeight = FontWeight.Bold)
-                        }
-                        
-                        val isReady = status == OrderStatus.CONFIRMED
-                        
-                        Button(
-                            onClick = { if (isReady) viewModel.updateStatus(order.id, OrderStatus.PICKED_UP.value) },
-                            enabled = !isLoading && isReady,
-                            modifier = Modifier.weight(1.5f).fillMaxHeight(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isReady) Color(0xFF2196F3) else Color.Gray
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            else {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("PICKED UP", fontWeight = FontWeight.Bold)
-                                    if (!isReady) Text("Waiting for Store...", fontSize = 9.sp)
-                                }
+                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("PICKED UP", fontWeight = FontWeight.Bold)
+                                if (!isReady) Text("Waiting for Payment...", fontSize = 9.sp)
                             }
                         }
                     }

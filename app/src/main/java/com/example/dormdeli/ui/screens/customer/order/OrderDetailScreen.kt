@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.dormdeli.enums.OrderStatus
 import com.example.dormdeli.model.Order
 import com.example.dormdeli.model.OrderItem
 import com.example.dormdeli.ui.theme.OrangePrimary
@@ -162,10 +163,10 @@ fun OrderActionsBar(
     val statusLower = order.status.lowercase()
 
     // Chỉ hiển thị BottomBar nếu có hành động khả thi
-    if (statusLower == "pending" || statusLower == "confirmed" || statusLower == "delivering") {
+    if (statusLower == OrderStatus.PENDING.value || statusLower == OrderStatus.CONFIRMED.value || statusLower == OrderStatus.DELIVERING.value) {
         Surface(shadowElevation = 8.dp, color = Color.White) {
             Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-                if (statusLower == "pending") {
+                if (statusLower == OrderStatus.PENDING.value) {
                     Button(
                         onClick = onCancel,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
@@ -174,7 +175,7 @@ fun OrderActionsBar(
                     ) {
                         Text("Cancel Order", fontWeight = FontWeight.Bold)
                     }
-                } else if (statusLower == "confirmed") {
+                } else if (statusLower == OrderStatus.CONFIRMED.value) {
                     // Hiển thị cả nút thanh toán và cancel khi order được confirmed
                     // Dùng payment method đã chọn trước đó
                     Button(
@@ -195,7 +196,7 @@ fun OrderActionsBar(
                     ) {
                         Text("Cancel Order", fontWeight = FontWeight.Bold)
                     }
-                } else if (statusLower == "delivering") {
+                } else if (statusLower == OrderStatus.DELIVERING.value) {
                     Button(
                         onClick = onConfirmReceived,
                         colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
@@ -237,12 +238,12 @@ fun OrderInfoCard(order: Order) {
                     order.status.replaceFirstChar { it.uppercase() },
                     fontWeight = FontWeight.Bold,
                     color = when (order.status.lowercase()) {
-                        "pending" -> Color(0xFFFF9800)
-                        "confirmed" -> Color(0xFFFF9800)
-                        "paid" -> Color(0xFF2196F3)
-                        "delivering" -> Color(0xFF2196F3)
-                        "completed" -> Color(0xFF4CAF50)
-                        "cancelled" -> Color.Red
+                        OrderStatus.PENDING.value -> Color(0xFFFF9800)
+                        OrderStatus.CONFIRMED.value -> Color(0xFFFF9800)
+                        OrderStatus.PAID.value -> Color(0xFF2196F3)
+                        OrderStatus.DELIVERING.value -> Color(0xFF2196F3)
+                        OrderStatus.COMPLETED.value -> Color(0xFF4CAF50)
+                        OrderStatus.CANCELLED.value -> Color.Red
                         else -> Color(0xFF2196F3)
                     }
                 )
@@ -330,7 +331,7 @@ fun PaymentSummaryCard(
 ) {
     val context = LocalContext.current
     var showPaymentDialog by remember { mutableStateOf(false) }
-    val canChangePayment = order.status.lowercase() in listOf("pending", "confirmed")
+    val canChangePayment = order.status.lowercase() in listOf(OrderStatus.PENDING.value, OrderStatus.CONFIRMED.value)
 
     // Dialog chọn phương thức thanh toán
     if (showPaymentDialog) {
@@ -428,18 +429,18 @@ fun PaymentSummaryCard(
                 Text("Payment Status", color = Color.Gray)
                 Text(
                     text = when (order.status.lowercase()) {
-                        "pending" -> "Unpaid"
-                        "confirmed" -> "Unpaid"
-                        "paid" -> "Paid"
-                        "delivering" -> "Paid"
-                        "completed" -> "Paid"
-                        "cancelled" -> "Cancelled"
+                        OrderStatus.PENDING.value -> "Unpaid"
+                        OrderStatus.CONFIRMED.value -> "Unpaid"
+                        OrderStatus.PAID.value -> "Paid"
+                        OrderStatus.DELIVERING.value -> "Paid"
+                        OrderStatus.COMPLETED.value -> "Paid"
+                        OrderStatus.CANCELLED.value -> "Cancelled"
                         else -> "Unpaid"
                     },
                     fontWeight = FontWeight.Bold,
                     color = when (order.status.lowercase()) {
-                        "paid", "delivering", "completed" -> Color(0xFF4CAF50)
-                        "cancelled" -> Color.Red
+                        OrderStatus.PAID.value, OrderStatus.DELIVERING.value, OrderStatus.COMPLETED.value -> Color(0xFF4CAF50)
+                        OrderStatus.CANCELLED.value -> Color.Red
                         else -> Color(0xFFFF9800)
                     }
                 )
