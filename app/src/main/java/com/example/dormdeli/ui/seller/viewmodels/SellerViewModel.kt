@@ -185,7 +185,7 @@ class SellerViewModel : ViewModel() {
                     .url(url)
                     .addHeader("Authorization", "Bearer $GROQ_API_KEY")
                     .addHeader("Content-Type", "application/json")
-                    .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+                    .post(jsonBody.toString().toRequestBody("application/json".toRequestBody().contentType()))
                     .build()
 
                 client.newCall(request).execute().use { response ->
@@ -286,7 +286,7 @@ class SellerViewModel : ViewModel() {
         }
     }
 
-    fun saveFood(name: String, description: String, price: Double, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
+    fun saveFood(name: String, description: String, price: Double, category: String, isAvailable: Boolean, imageUri: Uri?, onFinished: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -306,6 +306,7 @@ class SellerViewModel : ViewModel() {
                 name = name,
                 description = description,
                 price = priceLong,
+                category = category,
                 available = isAvailable,
                 imageUrl = imageUrl
             ) ?: Food(
@@ -314,9 +315,9 @@ class SellerViewModel : ViewModel() {
                 name = name,
                 description = description,
                 price = priceLong,
+                category = category,
                 available = isAvailable,
-                imageUrl = imageUrl,
-                category = "Main Course"
+                imageUrl = imageUrl
             )
 
             val result = if (editingFood.value == null) {

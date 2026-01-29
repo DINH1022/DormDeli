@@ -178,29 +178,6 @@ fun HomeScreen(
                 )
             }
 
-            item {
-                SectionTitle(
-                    title = "Open Restaurants",
-                    onSeeAll = onSeeAllStores
-                )
-            }
-
-            if (storesList.isEmpty()) {
-                item {
-                    Text(
-                        "Đang tải cửa hàng...",
-                        modifier = Modifier.padding(16.dp),
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                items(filteredRestaurants) { restaurant ->
-                    RestaurantCard(
-                        restaurant,
-                        onClick = { onStoreClick(restaurant.id) }
-                    )
-                }
-            }
 
             item { SectionTitle(title = "Popular Dishes", onSeeAll = onSeeAllFoods) }
 
@@ -230,6 +207,31 @@ fun HomeScreen(
                             }
                         )
                     }
+                }
+            }
+
+
+            item {
+                SectionTitle(
+                    title = "Open Restaurants",
+                    onSeeAll = onSeeAllStores
+                )
+            }
+
+            if (storesList.isEmpty()) {
+                item {
+                    Text(
+                        "Đang tải cửa hàng...",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                items(filteredRestaurants) { restaurant ->
+                    RestaurantCard(
+                        restaurant,
+                        onClick = { onStoreClick(restaurant.id) }
+                    )
                 }
             }
         }
