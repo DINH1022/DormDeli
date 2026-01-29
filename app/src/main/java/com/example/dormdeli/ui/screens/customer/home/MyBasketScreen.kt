@@ -65,7 +65,7 @@ fun MyBasketScreen(
     val cartItems by cartViewModel.cartItems.collectAsState()
     val selectedAddress by locationalViewModel.selectedAddress.collectAsState()
 
-    var selectedPaymentMethod by remember { mutableStateOf("Cash") }
+    var selectedPaymentMethod by remember { mutableStateOf("SePay") }
     var showPaymentDialog by remember { mutableStateOf(false) }
 
     val stores by storeViewModel.stores
@@ -93,12 +93,6 @@ fun MyBasketScreen(
             title = { Text("Select Payment Method", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    PaymentOptionRow(
-                        label = "Cash on Delivery",
-                        isSelected = selectedPaymentMethod == "Cash",
-                        onSelect = { selectedPaymentMethod = "Cash" }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     PaymentOptionRow(
                         label = "SePay (QR Code)",
                         isSelected = selectedPaymentMethod == "SePay",
