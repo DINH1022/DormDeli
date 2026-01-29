@@ -33,7 +33,7 @@ class SellerViewModel : ViewModel() {
     private val orderRepository = OrderRepository()
 
     private val client = OkHttpClient()
-    private val GROQ_API_KEY = "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"
+    private val GROQ_API_KEY = "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"
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
