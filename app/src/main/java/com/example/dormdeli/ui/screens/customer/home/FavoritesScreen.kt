@@ -18,10 +18,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.ui.components.customer.FoodItem
 import com.example.dormdeli.ui.components.customer.HomeSearchBar
-// Giả định bạn đã có component này từ các bước trước
 import com.example.dormdeli.ui.components.customer.RestaurantCard
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FavoriteViewModel
+import com.example.dormdeli.utils.SearchUtils.fuzzyMatch
 
 // Định nghĩa enum cho các tab
 enum class FavTab { Foods, Stores }
@@ -37,7 +37,7 @@ fun FavoritesScreen(
 ) {
     // 1. Lấy dữ liệu từ ViewModel
     val favoriteFoods by favoriteViewModel.favoriteFoods.collectAsState()
-     val favoriteStores by favoriteViewModel.favoriteStores.collectAsState()
+    val favoriteStores by favoriteViewModel.favoriteStores.collectAsState()
     // ------------------------------------------------------------------
 
     val isLoading by favoriteViewModel.isLoading.collectAsState()
@@ -46,24 +46,22 @@ fun FavoritesScreen(
     // State để quản lý tab đang chọn
     var selectedTab by remember { mutableStateOf(FavTab.Foods) }
 
-    // 2. Logic lọc tìm kiếm cho Foods
+    // 2. Logic lọc tìm kiếm cho Foods với Fuzzy Search
     val filteredFoods by remember(searchText, favoriteFoods) {
         derivedStateOf {
             if (searchText.isBlank()) favoriteFoods
             else favoriteFoods.filter {
-                it.name.contains(searchText, ignoreCase = true) ||
-                        it.description.contains(searchText, ignoreCase = true)
+                fuzzyMatch(searchText, it.name) || fuzzyMatch(searchText, it.description)
             }
         }
     }
 
-    // 3. Logic lọc tìm kiếm cho Stores
+    // 3. Logic lọc tìm kiếm cho Stores với Fuzzy Search
     val filteredStores by remember(searchText, favoriteStores) {
         derivedStateOf {
             if (searchText.isBlank()) favoriteStores
             else favoriteStores.filter {
-                it.name.contains(searchText, ignoreCase = true)
-                // Có thể thêm tìm kiếm theo tags nếu muốn
+                fuzzyMatch(searchText, it.name)
             }
         }
     }

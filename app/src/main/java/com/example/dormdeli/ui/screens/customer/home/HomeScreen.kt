@@ -31,6 +31,7 @@ import com.example.dormdeli.ui.screens.customer.store.isStoreOpen
 import com.example.dormdeli.ui.theme.OrangePrimary
 import com.example.dormdeli.ui.viewmodels.customer.FoodViewModel
 import com.example.dormdeli.ui.viewmodels.customer.StoreViewModel
+import com.example.dormdeli.utils.SearchUtils.fuzzyMatch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,19 +66,20 @@ fun HomeScreen(
         foodViewModel.loadPopularFoods()
     }
 
-    // Logic lọc store: Chỉ tìm kiếm theo tên, loại bỏ phần tagsList không sử dụng
+    // Logic lọc store sử dụng fuzzyMatch
     val filteredRestaurants by remember(searchText, storesList) {
         derivedStateOf {
             if (searchText.isBlank()) {
                 storesList.take(5)
             } else {
                 storesList.filter { store ->
-                    store.name.contains(searchText, ignoreCase = true)
+                    fuzzyMatch(searchText, store.name)
                 }.take(5)
             }
         }
     }
 
+    // Logic lọc food sử dụng fuzzyMatch
     val filteredFoods by remember(searchText, selectedCat, foodsList) {
         derivedStateOf {
             val categoryFiltered = if (selectedCat == "All") foodsList
@@ -85,7 +87,7 @@ fun HomeScreen(
 
             if (searchText.isBlank()) categoryFiltered.take(5)
             else categoryFiltered.filter {
-                it.name.contains(searchText, ignoreCase = true)
+                fuzzyMatch(searchText, it.name)
             }.take(5)
         }
     }
