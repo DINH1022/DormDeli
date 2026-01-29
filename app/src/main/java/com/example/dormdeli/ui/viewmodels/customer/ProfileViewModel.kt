@@ -12,6 +12,7 @@ import com.example.dormdeli.firestore.CollectionName
 import com.example.dormdeli.firestore.ModelFields
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -39,40 +40,42 @@ class ProfileViewModel : ViewModel() {
     private val _registerShipperSuccess = mutableStateOf(false)
     val registerShipperSuccess: State<Boolean> = _registerShipperSuccess
 
+    private var userListener: ListenerRegistration? = null
+    private var shipperListener: ListenerRegistration? = null
+
     init {
         firebaseAuth.addAuthStateListener { auth ->
-            if (auth.currentUser != null) {
-                loadUserProfile()
-                listenToShipperRequest()
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                startListeningToProfile(currentUser.uid)
+                listenToShipperRequest(currentUser.uid)
             } else {
+                stopListeners()
                 _userState.value = null
                 _shipperRequestState.value = null
             }
         }
     }
 
-    fun loadUserProfile() {
-        val currentUser = firebaseAuth.currentUser
-        if (currentUser != null) {
-            _isLoading.value = true
-            userRepository.getUserById(
-                userId = currentUser.uid,
-                onSuccess = { user ->
-                    _userState.value = user
-                    _isLoading.value = false
-                },
-                onFailure = { e ->
-                    _errorMessage.value = "Failed to load profile: ${e.message}"
-                    _isLoading.value = false
+    private fun startListeningToProfile(uid: String) {
+        userListener?.remove()
+        _isLoading.value = true
+        userListener = db.collection(CollectionName.USERS.value).document(uid)
+            .addSnapshotListener { snapshot, error ->
+                _isLoading.value = false
+                if (error != null) {
+                    _errorMessage.value = "Profile sync error: ${error.message}"
+                    return@addSnapshotListener
                 }
-            )
-        }
+                if (snapshot != null && snapshot.exists()) {
+                    _userState.value = snapshot.toObject(User::class.java)
+                }
+            }
     }
 
-    private fun listenToShipperRequest() {
-        val currentUser = firebaseAuth.currentUser ?: return
-        // Sử dụng CollectionName.SHIPPER_PROFILE.value để đồng bộ với Admin
-        db.collection(CollectionName.SHIPPER_PROFILE.value).document(currentUser.uid)
+    private fun listenToShipperRequest(uid: String) {
+        shipperListener?.remove()
+        shipperListener = db.collection(CollectionName.SHIPPER_PROFILE.value).document(uid)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null && snapshot.exists()) {
                     _shipperRequestState.value = snapshot.toObject(ShipperProfile::class.java)
@@ -80,6 +83,26 @@ class ProfileViewModel : ViewModel() {
                     _shipperRequestState.value = null
                 }
             }
+    }
+
+    private fun stopListeners() {
+        userListener?.remove()
+        shipperListener?.remove()
+        userListener = null
+        shipperListener = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopListeners()
+    }
+
+    // Giữ lại các hàm cũ nhưng tối ưu logic load thủ công nếu cần
+    fun loadUserProfile() {
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser != null && _userState.value == null) {
+            startListeningToProfile(currentUser.uid)
+        }
     }
 
     fun switchActiveRole(newRole: String, onSuccess: () -> Unit) {
@@ -91,7 +114,7 @@ class ProfileViewModel : ViewModel() {
                 fields = mapOf("role" to newRole),
                 onSuccess = {
                     _isLoading.value = false
-                    _userState.value = _userState.value?.copy(role = newRole)
+                    // Không cần cập nhật _userState thủ công vì SnapshotListener sẽ lo việc đó
                     onSuccess()
                 },
                 onFailure = { e ->
@@ -108,7 +131,6 @@ class ProfileViewModel : ViewModel() {
             _isLoading.value = true
             viewModelScope.launch {
                 try {
-                    // Tạo data map để đảm bảo tên trường khớp chính xác với ModelFields
                     val shipperData = mapOf(
                         ModelFields.ShipperProfile.USER_ID to currentUser.uid,
                         ModelFields.ShipperProfile.IS_APPROVED to false,
@@ -116,7 +138,6 @@ class ProfileViewModel : ViewModel() {
                         ModelFields.ShipperProfile.TOTAL_INCOME to 0
                     )
                     
-                    // Gửi vào collection shipperProfile
                     db.collection(CollectionName.SHIPPER_PROFILE.value)
                         .document(currentUser.uid)
                         .set(shipperData)
@@ -152,13 +173,6 @@ class ProfileViewModel : ViewModel() {
                 onSuccess = {
                     _isLoading.value = false
                     _updateProfileSuccess.value = true
-                    _userState.value = _userState.value?.copy(
-                        fullName = fullName,
-                        email = email,
-                        dormBlock = dormBlock,
-                        roomNumber = roomNumber,
-                        avatarUrl = avatarUrl
-                    )
                 },
                 onFailure = { e ->
                     _isLoading.value = false
