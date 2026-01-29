@@ -126,6 +126,7 @@ class SellerRepository {
         val finalFood = foodWithStoreId.copy(id = docRef.id)
         
         docRef.set(finalFood).await()
+        syncStoreTags(storeId) // Tự động cập nhật tag cho store
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
@@ -133,15 +134,54 @@ class SellerRepository {
 
     suspend fun updateFood(food: Food): Result<Unit> = try {
         foodsCollection.document(food.id).set(food).await()
+        syncStoreTags(food.storeId) // Tự động cập nhật tag cho store
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     suspend fun deleteFood(foodId: String): Result<Unit> = try {
+        // Cần lấy storeId trước khi xóa để sync
+        val foodDoc = foodsCollection.document(foodId).get().await()
+        val storeId = foodDoc.getString("storeId")
+        
         foodsCollection.document(foodId).delete().await()
+        
+        if (storeId != null) {
+            syncStoreTags(storeId)
+        }
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
+    }
+
+    /**
+     * Tự động cập nhật trường 'tags' của Store dựa trên các 'category' của Food mà Store đó bán
+     */
+    private suspend fun syncStoreTags(storeId: String) {
+        try {
+            // 1. Lấy tất cả món ăn của store
+            val foodSnapshot = foodsCollection.whereEqualTo("storeId", storeId).get().await()
+            val categories = foodSnapshot.documents.mapNotNull { it.getString("category") }
+                .filter { it.isNotBlank() }
+                .distinct()
+
+            // 2. Ánh xạ từ mã category sang tên hiển thị tiếng Việt
+            val displayTags = categories.map { cat ->
+                when(cat.lowercase()) {
+                    "Rice" -> "Cơm"
+                    "Noodle" -> "Mì/Phở/Bún"
+                    "Fast_food" -> "Đồ ăn nhanh"
+                    "Drink" -> "Đồ uống"
+                    "Dessert" -> "Tráng miệng"
+                    else -> "Khác"
+                }
+            }.distinct()
+
+            // 3. Cập nhật vào Store
+            storesCollection.document(storeId).update("tags", displayTags).await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
