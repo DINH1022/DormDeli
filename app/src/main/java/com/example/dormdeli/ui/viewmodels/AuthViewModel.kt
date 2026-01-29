@@ -95,7 +95,6 @@ class AuthViewModel : ViewModel() {
     fun fetchCurrentUserRole() {
         val uid = authRepository.getCurrentUser()?.uid ?: return
         
-        // Tránh set isDataLoaded = false liên tục nếu không cần thiết
         userRepository.getUserById(uid, { user ->
             if (user != null) {
                 _isVerifiedStudent.value = user.isVerifiedStudent
@@ -225,12 +224,13 @@ class AuthViewModel : ViewModel() {
         val formattedPhone = if (phone.startsWith("+")) phone else "+84$phone"
         _phoneNumber.value = formattedPhone
 
-        val roleValue = _selectedRole.value.value
+        // CHỈ cho phép đăng ký với vai trò student
+        val roleValue = "student" 
 
         userRepository.getUserByPhone(formattedPhone,
             onSuccess = { existingUser ->
                 if (existingUser != null && existingUser.roles.contains(roleValue)) {
-                    _errorMessage.value = "This phone number is already registered for this role."
+                    _errorMessage.value = "This phone number is already registered."
                     _isLoading.value = false
                 } else {
                     tempRegistrationData = mapOf(
