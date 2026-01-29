@@ -3,6 +3,7 @@ package com.example.dormdeli.ui.seller.screens
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -79,18 +80,21 @@ fun SellerMainScreen(
             composable(BottomNavItem.Dashboard.route) {
                 when (restaurantStatus) {
                     RestaurantStatus.APPROVED -> StatisticsScreen(viewModel)
+                    RestaurantStatus.PENDING -> PendingApprovalScreen()
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Menu.route) {
                 when (restaurantStatus) {
                     RestaurantStatus.APPROVED -> MenuManagementScreen(viewModel) { navController.navigate(SellerDestinations.ADD_EDIT_FOOD_ROUTE) }
+                    RestaurantStatus.PENDING -> PendingApprovalScreen()
                     else -> UnauthorizedScreen()
                 }
             }
             composable(BottomNavItem.Orders.route) {
                 when (restaurantStatus) {
                     RestaurantStatus.APPROVED -> OrderManagementScreen(viewModel)
+                    RestaurantStatus.PENDING -> PendingApprovalScreen()
                     else -> UnauthorizedScreen()
                 }
             }
@@ -112,8 +116,9 @@ fun SellerMainScreen(
 fun UnauthorizedScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            text = "Bạn chưa có quán ăn được cấp phép hoặc đang chờ duyệt.",
-            textAlign = TextAlign.Center
+            text = "Bạn chưa có quán ăn nào. Hãy vào tab 'Hồ sơ' để đăng ký quán mới!",
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(32.dp)
         )
     }
 }

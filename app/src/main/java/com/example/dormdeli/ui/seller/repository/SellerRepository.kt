@@ -63,7 +63,7 @@ class SellerRepository {
             closeTime = closeTime,
             latitude = latitude,
             longitude = longitude,
-            approved = true, // Auto-approve as requested
+            approved = false, // Require Admin approval
             active = true
         )
         storesCollection.add(store).await()
