@@ -38,13 +38,5 @@ fun HomeHeader(
                 )
             }
         }
-
-        Icon(
-            imageVector = Icons.Default.Notifications,
-            contentDescription = "Notifications",
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onNotificationClick() }
-        )
     }
 }
