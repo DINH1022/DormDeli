@@ -1,6 +1,7 @@
 package com.example.dormdeli.ui.seller.repository
 
 import android.net.Uri
+import android.util.Log
 import com.example.dormdeli.utils.CloudinaryHelper
 import com.example.dormdeli.model.Food
 import com.example.dormdeli.model.Store
@@ -24,24 +25,38 @@ class SellerRepository {
     private fun getCurrentUserId(): String? = auth.currentUser?.uid
 
     fun getStoreFlow(): Flow<Store?> = callbackFlow {
-        val userId = getCurrentUserId()
-        if (userId == null) {
-            trySend(null)
-            return@callbackFlow
-        }
-        val registration = storesCollection.whereEqualTo("ownerId", userId)
-            .limit(1)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                val doc = snapshot?.documents?.firstOrNull()
-                val store = doc?.toObject(Store::class.java)?.copy(id = doc.id)
-                trySend(store)
+        val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val userId = firebaseAuth.currentUser?.uid
+            if (userId == null) {
+                trySend(null)
+                return@AuthStateListener
             }
 
-        awaitClose { registration.remove() }
+            // Mỗi khi userId thay đổi, thiết lập một listener mới cho Firestore
+            storesCollection.whereEqualTo("ownerId", userId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val doc = snapshot?.documents?.firstOrNull()
+                    val store = doc?.toObject(Store::class.java)?.copy(id = doc.id)
+                    trySend(store)
+                    
+                    // Lắng nghe thay đổi realtime
+                    val registration = storesCollection.whereEqualTo("ownerId", userId)
+                        .limit(1)
+                        .addSnapshotListener { ss, error ->
+                            if (error != null) return@addSnapshotListener
+                            val d = ss?.documents?.firstOrNull()
+                            trySend(d?.toObject(Store::class.java)?.copy(id = d.id))
+                        }
+                }
+        }
+
+        auth.addAuthStateListener(authListener)
+
+        awaitClose { 
+            auth.removeAuthStateListener(authListener)
+        }
     }
 
     suspend fun createStore(

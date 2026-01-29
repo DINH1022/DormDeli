@@ -67,14 +67,20 @@ class AuthViewModel : ViewModel() {
 
     private var tempRegistrationData: Map<String, String>? = null
 
+    // Cờ hiệu để tránh văng Login khi đang đổi role
+    private val _isSwitchingRole = mutableStateOf(false)
+    val isSwitchingRole: State<Boolean> = _isSwitchingRole
+
     init {
         firebaseAuth.addAuthStateListener { auth ->
             val user = auth.currentUser
             _isSignedIn.value = user != null
             _isGoogleLinked.value = authRepository.isGoogleLinked()
-            if (user != null) {
+            
+            // Chỉ fetch role nếu không phải đang trong quá trình Logout chủ đích
+            if (user != null && !_isSwitchingRole.value) {
                 fetchCurrentUserRole()
-            } else {
+            } else if (user == null && !_isSwitchingRole.value) {
                 _currentUserRole.value = null
                 _isVerifiedStudent.value = false
                 _isDataLoaded.value = true
@@ -82,12 +88,16 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun setSwitchingRole(value: Boolean) {
+        _isSwitchingRole.value = value
+    }
+
     fun fetchCurrentUserRole() {
         val uid = authRepository.getCurrentUser()?.uid ?: return
-        _isDataLoaded.value = false
+        
+        // Tránh set isDataLoaded = false liên tục nếu không cần thiết
         userRepository.getUserById(uid, { user ->
             if (user != null) {
-                // Cập nhật trạng thái xác thực TRƯỚC
                 _isVerifiedStudent.value = user.isVerifiedStudent
                 _currentUserRole.value = user.role
                 _selectedRole.value = UserRole.from(user.role)
@@ -166,7 +176,6 @@ class AuthViewModel : ViewModel() {
                             if (user != null) {
                                 val targetRole = _selectedRole.value.value
                                 if (user.role == targetRole || user.roles.contains(targetRole)) {
-                                    // Chuyển role hiện tại sang role đã chọn nếu user có nhiều role
                                     val updatedUser = user.copy(role = targetRole)
                                     completeSuccessfulLogin(updatedUser, onSuccess)
                                 } else {
@@ -199,7 +208,6 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun completeSuccessfulLogin(user: User, onSuccess: () -> Unit) {
-        // Cập nhật isVerified trước để đảm bảo khi onSuccess chạy, nó đã có giá trị mới nhất
         _isVerifiedStudent.value = user.isVerifiedStudent
         _currentUserRole.value = user.role
         _selectedRole.value = UserRole.from(user.role)
@@ -208,8 +216,6 @@ class AuthViewModel : ViewModel() {
         _isLoading.value = false
         
         Log.d("AuthViewModel", "completeSuccessfulLogin: Role=${user.role}, Verified=${user.isVerifiedStudent}")
-        
-        // Gọi callback để chuyển màn hình
         onSuccess()
     }
 
@@ -269,7 +275,6 @@ class AuthViewModel : ViewModel() {
                             val roles = user.roles.toMutableList()
                             if (!roles.contains(role)) roles.add(role)
                             userRepository.updateUserFields(firebaseUser.uid, mapOf("roles" to roles, "role" to role), {
-                                // Quan trọng: Giữ lại isVerifiedStudent từ user cũ
                                 completeSuccessfulLogin(user.copy(role = role), onSuccess)
                             }, { _isLoading.value = false })
                         }

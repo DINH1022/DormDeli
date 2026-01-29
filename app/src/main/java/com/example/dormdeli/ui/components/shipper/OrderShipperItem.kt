@@ -100,20 +100,21 @@ fun OrderShipperItem(
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Phần thông tin (Trái)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false) // Không cho phép lấn át cụm nút
+                    ) {
                         Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(text = customerInfo!!.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = customerInfo!!.fullName, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             Text(text = customerInfo!!.phone, fontSize = 12.sp, color = Color.Gray)
                         }
                     }
-                    
-                    // Spacer chiếm khoảng trống ở giữa
-                    Spacer(modifier = Modifier.weight(1f))
                     
                     // Cụm nút liên lạc (Phải)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -145,7 +146,6 @@ fun OrderShipperItem(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            // Sử dụng pickupValue đã tính toán linh hoạt
             InfoRow(icon = Icons.Default.LocationOn, label = "PICK UP", value = pickupValue, color = Color(0xFFE3F2FD))
             Spacer(modifier = Modifier.height(8.dp))
             
