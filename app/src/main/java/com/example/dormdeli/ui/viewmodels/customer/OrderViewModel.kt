@@ -19,10 +19,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 class OrderViewModel : ViewModel() {
     private val TAG = "OrderViewModel"
     private val repository = OrderRepository()
-    
+
     // Pending order data cho online payment
     private var pendingOrderData: PendingOrderData? = null
-    
+
     data class PendingOrderData(
         val cartItems: List<CartItem>,
         val subtotal: Double,
@@ -81,7 +81,13 @@ class OrderViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             // Truyền subtotal xuống repository để tính shipping fee
-            val success = repository.placeOrder(cartItems, subtotal, deliveryNote, deliveryAddress, paymentMethod)
+            val success = repository.placeOrder(
+                cartItems,
+                subtotal,
+                deliveryNote,
+                deliveryAddress,
+                paymentMethod
+            )
             _isLoading.value = false
             if (success) {
                 loadMyOrders()
@@ -163,10 +169,16 @@ class OrderViewModel : ViewModel() {
             deliveryAddress = deliveryAddress,
             paymentMethod = paymentMethod
         )
-        Log.d(TAG, "Pending order data saved: ${cartItems.size} items, method: $paymentMethod, subtotal: $subtotal")
-        Log.d(TAG, "Pending order data is now: ${if (pendingOrderData != null) "NOT NULL" else "NULL"}")
+        Log.d(
+            TAG,
+            "Pending order data saved: ${cartItems.size} items, method: $paymentMethod, subtotal: $subtotal"
+        )
+        Log.d(
+            TAG,
+            "Pending order data is now: ${if (pendingOrderData != null) "NOT NULL" else "NULL"}"
+        )
     }
-    
+
     /**
      * Tạo order từ pending data sau khi thanh toán thành công
      */
@@ -176,16 +188,19 @@ class OrderViewModel : ViewModel() {
     ) {
         Log.d(TAG, "createOrderFromPendingData called")
         Log.d(TAG, "Pending order data is: ${if (pendingOrderData != null) "NOT NULL" else "NULL"}")
-        
+
         val data = pendingOrderData
         if (data == null) {
             Log.e(TAG, "Pending order data is NULL! Cannot create order.")
             onFail()
             return
         }
-        
-        Log.d(TAG, "Creating order with ${data.cartItems.size} items, method: ${data.paymentMethod}")
-        
+
+        Log.d(
+            TAG,
+            "Creating order with ${data.cartItems.size} items, method: ${data.paymentMethod}"
+        )
+
         viewModelScope.launch {
             _isLoading.value = true
             val success = repository.placeOrder(
@@ -196,9 +211,9 @@ class OrderViewModel : ViewModel() {
                 paymentMethod = data.paymentMethod
             )
             _isLoading.value = false
-            
+
             Log.d(TAG, "Order creation result: $success")
-            
+
             if (success) {
                 pendingOrderData = null // Clear pending data
                 Log.d(TAG, "Order created successfully, loading orders...")
@@ -210,7 +225,7 @@ class OrderViewModel : ViewModel() {
             }
         }
     }
-    
+
     /**
      * Clear pending order data
      */
@@ -247,7 +262,12 @@ class OrderViewModel : ViewModel() {
         }
     }
 
-    fun updatePaymentMethod(orderId: String, paymentMethod: String, onSuccess: () -> Unit, onFail: () -> Unit = {}) {
+    fun updatePaymentMethod(
+        orderId: String,
+        paymentMethod: String,
+        onSuccess: () -> Unit,
+        onFail: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             val success = repository.updatePaymentMethod(orderId, paymentMethod)
@@ -261,24 +281,25 @@ class OrderViewModel : ViewModel() {
         }
     }
 
-    fun listenToOrderUpdates(userId: String, onOrderDelivering: (String) -> Unit) {
+    fun listenToOrderUpdates(userId: String, onStatusChange: (String, String) -> Unit) {
         firestore.collection("orders")
             .whereEqualTo("userId", userId)
-            // Chỉ lấy những đơn chưa hoàn thành để tối ưu
-            .whereIn("status", listOf("confirmed", "cooking", "delivering"))
+            // [QUAN TRỌNG] Thêm các trạng thái bạn muốn nhận thông báo vào danh sách này
+            .whereIn(
+                "status",
+                listOf("confirmed", "cooking", "delivering", "completed", "cancelled")
+            )
             .addSnapshotListener { snapshots, e ->
                 if (e != null) return@addSnapshotListener
 
                 for (dc in snapshots!!.documentChanges) {
-                    // Chỉ bắt sự kiện khi dữ liệu BỊ SỬA ĐỔI (MODIFIED)
-                    // Nghĩa là trạng thái từ "cooking" -> "delivering"
+                    // Chỉ báo khi trạng thái THAY ĐỔI (MODIFIED)
                     if (dc.type == DocumentChange.Type.MODIFIED) {
                         val newStatus = dc.document.getString("status") ?: ""
+                        val orderId = dc.document.id
 
-                        // Nếu trạng thái mới là "delivering" -> Báo ngay
-                        if (newStatus == "delivering") {
-                            onOrderDelivering(dc.document.id)
-                        }
+                        // Gọi callback truyền OrderID và Status mới ra ngoài
+                        onStatusChange(orderId, newStatus)
                     }
                 }
             }

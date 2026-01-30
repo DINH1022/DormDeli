@@ -86,9 +86,14 @@ fun HomeScreen(
 
     LaunchedEffect(currentUser) {
         currentUser?.let { user ->
-            // Giờ thì user.uid đã hợp lệ
-            orderViewModel.listenToOrderUpdates(user.uid) { orderId ->
-                sendOrderDeliveringNotification(context, orderId)
+            Log.d("HomeScreen", "Listening for updates...")
+
+            // Hàm lắng nghe giờ trả về 2 tham số: orderId và status
+            orderViewModel.listenToOrderUpdates(user.uid) { orderId, newStatus ->
+                Log.d("HomeScreen", "Order $orderId changed to $newStatus")
+
+                // Gọi hàm thông báo đa năng vừa viết
+                sendOrderStatusNotification(context, orderId, newStatus)
             }
         }
     }
@@ -261,11 +266,21 @@ fun HomeScreen(
 }
 
 
-fun sendOrderDeliveringNotification(context: Context, orderId: String) {
-    val channelId = "order_updates_channel"
-    val notificationId = orderId.hashCode() // ID riêng để không bị đè thông báo
+fun sendOrderStatusNotification(context: Context, orderId: String, status: String) {
+    // 1. Xác định nội dung thông báo dựa trên Status
+    val (title, content) = when (status.lowercase()) {
+        "confirmed" -> "Đơn hàng đã xác nhận ✅" to "Nhà hàng đã nhận đơn #$orderId và đang chuẩn bị."
+        "cooking" -> "Đang chế biến... 🍳" to "Đầu bếp đang thực hiện món ăn cho đơn #$orderId."
+        "delivering" -> "Đơn hàng đang đến! 🛵" to "Shipper đang giao đơn hàng #$orderId. Hãy chú ý điện thoại."
+        "completed" -> "Giao hàng thành công 🎉" to "Chúc bạn ngon miệng! Hãy đánh giá đơn hàng #$orderId nhé."
+        "cancelled" -> "Đơn hàng đã hủy ❌" to "Rất tiếc, đơn hàng #$orderId đã bị hủy."
+        else -> return // Các trạng thái lạ thì không báo
+    }
 
-    // 1. Tạo Channel (Android 8+)
+    val channelId = "order_updates_channel"
+    val notificationId = orderId.hashCode() // Dùng HashCode để mỗi đơn có 1 thông báo riêng
+
+    // 2. Tạo Channel (Giữ nguyên code cũ)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val name = "Order Updates"
         val importance = NotificationManager.IMPORTANCE_HIGH
@@ -274,22 +289,21 @@ fun sendOrderDeliveringNotification(context: Context, orderId: String) {
         manager.createNotificationChannel(channel)
     }
 
-    // 2. Intent mở màn hình Order (Tùy chỉnh nếu muốn deep link)
+    // 3. Intent (Giữ nguyên code cũ)
     val intent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     }
     val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-    // 3. Build thông báo
+    // 4. Build thông báo với Title & Content động
     val builder = NotificationCompat.Builder(context, channelId)
-        .setSmallIcon(R.drawable.ic_launcher_foreground) // [Thay icon Shipper/Giao hàng của bạn]
-        .setContentTitle("Đơn hàng đang đến! 🛵")
-        .setContentText("Shipper đang giao đơn hàng #$orderId cho bạn. Hãy chú ý điện thoại nhé.")
+        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setContentTitle(title)
+        .setContentText(content)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setContentIntent(pendingIntent)
         .setAutoCancel(true)
 
-    // 4. Gửi
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
