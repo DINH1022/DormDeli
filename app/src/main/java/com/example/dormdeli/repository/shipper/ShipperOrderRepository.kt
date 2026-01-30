@@ -96,6 +96,7 @@ class ShipperOrderRepository {
             .whereIn("status", listOf(
                 OrderStatus.SHIPPER_ACCEPTED.value, 
                 OrderStatus.CONFIRMED.value,
+                OrderStatus.PAID.value,
                 OrderStatus.PICKED_UP.value, 
                 OrderStatus.DELIVERING.value
             ))
