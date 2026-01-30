@@ -308,7 +308,7 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-
+    fun getCurrentUser() = authRepository.getCurrentUser()
     fun resendOTP(activity: Activity) {
         _isLoading.value = true
         authRepository.resendPhoneVerificationCode(_phoneNumber.value, activity, phoneAuthCallback)

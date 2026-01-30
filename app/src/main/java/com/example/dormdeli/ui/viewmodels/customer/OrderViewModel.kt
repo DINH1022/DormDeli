@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.firestore.DocumentChange
+import com.google.firebase.firestore.FirebaseFirestore
 
 class OrderViewModel : ViewModel() {
     private val TAG = "OrderViewModel"
@@ -39,6 +41,8 @@ class OrderViewModel : ViewModel() {
 
     private val _reviewedItems = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val reviewedItems = _reviewedItems.asStateFlow()
+
+    private val firestore = FirebaseFirestore.getInstance()
 
     init {
         loadMyOrders()
@@ -255,5 +259,28 @@ class OrderViewModel : ViewModel() {
             }
             _isLoading.value = false
         }
+    }
+
+    fun listenToOrderUpdates(userId: String, onOrderDelivering: (String) -> Unit) {
+        firestore.collection("orders")
+            .whereEqualTo("userId", userId)
+            // Chỉ lấy những đơn chưa hoàn thành để tối ưu
+            .whereIn("status", listOf("confirmed", "cooking", "delivering"))
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) return@addSnapshotListener
+
+                for (dc in snapshots!!.documentChanges) {
+                    // Chỉ bắt sự kiện khi dữ liệu BỊ SỬA ĐỔI (MODIFIED)
+                    // Nghĩa là trạng thái từ "cooking" -> "delivering"
+                    if (dc.type == DocumentChange.Type.MODIFIED) {
+                        val newStatus = dc.document.getString("status") ?: ""
+
+                        // Nếu trạng thái mới là "delivering" -> Báo ngay
+                        if (newStatus == "delivering") {
+                            onOrderDelivering(dc.document.id)
+                        }
+                    }
+                }
+            }
     }
 }
