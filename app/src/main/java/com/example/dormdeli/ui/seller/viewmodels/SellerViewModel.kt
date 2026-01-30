@@ -24,6 +24,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.util.Calendar
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -134,6 +135,38 @@ class SellerViewModel : ViewModel() {
     val cancelledCount: StateFlow<Int> = cancelledOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalRevenue: StateFlow<Long> = completedOrders.map { it.sumOf { order -> order.totalPrice } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+    
+    // Tính doanh thu theo tuần (7 ngày)
+    val weeklyRevenue: StateFlow<List<Long>> = completedOrders.map { orders ->
+        val startOfWeek = getStartOfCurrentWeek()
+        val today = System.currentTimeMillis()
+        val revenuePerDay = MutableList(7) { 0L }
+        
+        orders.forEach { order ->
+            val createdAt = order.createdAt
+            if (createdAt >= startOfWeek && createdAt <= today) {
+                val diffDay = ((createdAt - startOfWeek) / (1000 * 60 * 60 * 24)).toInt()
+                if (diffDay in 0..6) {
+                    revenuePerDay[diffDay] += order.totalPrice
+                }
+            }
+        }
+        revenuePerDay
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), List(7) { 0L })
+    
+    private fun getStartOfCurrentWeek(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        calendar.firstDayOfWeek = Calendar.MONDAY
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        if (calendar.timeInMillis > System.currentTimeMillis()) {
+            calendar.add(Calendar.WEEK_OF_YEAR, -1)
+        }
+        return calendar.timeInMillis
+    }
 
     fun setPickedLocation(location: LatLng) {
         _pickedLocation.value = location

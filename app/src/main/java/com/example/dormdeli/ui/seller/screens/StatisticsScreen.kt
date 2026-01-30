@@ -1,5 +1,7 @@
 package com.example.dormdeli.ui.seller.screens
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,10 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dormdeli.ui.seller.viewmodels.SellerViewModel
@@ -31,6 +36,7 @@ fun StatisticsScreen(viewModel: SellerViewModel) {
     val deliveredCount by viewModel.deliveredCount.collectAsState()
     val cancelledCount by viewModel.cancelledCount.collectAsState()
     val totalRevenue by viewModel.totalRevenue.collectAsState()
+    val weeklyRevenue by viewModel.weeklyRevenue.collectAsState()
 
     val formattedRevenue = remember(totalRevenue) {
         NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(totalRevenue)
@@ -120,7 +126,26 @@ fun StatisticsScreen(viewModel: SellerViewModel) {
                 }
             }
 
-            // Phần 4: Hiệu suất
+            // Phần 4: Biểu đồ doanh thu
+            if (weeklyRevenue.isNotEmpty()) {
+                item {
+                    ChartSection(
+                        title = "Doanh thu tuần này",
+                        subtitle = "Tổng: ${formatRevenue(weeklyRevenue.sum())} VNĐ",
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        LineChart(
+                            data = weeklyRevenue,
+                            labels = listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN"),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                    }
+                }
+            }
+
+            // Phần 5: Hiệu suất
             item {
                 QuickActionSection()
             }
@@ -260,5 +285,172 @@ fun QuickActionSection() {
                 Text("Tăng trưởng tốt so với hôm qua", style = MaterialTheme.typography.bodyMedium)
             }
         }
+    }
+}
+
+@Composable
+fun ChartSection(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                color = Color(0xFF1F1F1F),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                color = Color(0xFF757575),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+fun LineChart(
+    data: List<Long>,
+    labels: List<String>,
+    modifier: Modifier = Modifier
+) {
+    val maxValue = (data.maxOrNull() ?: 0L).coerceAtLeast(1L)
+
+    Row(modifier = modifier) {
+        // Trục Oy
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(bottom = 24.dp)
+                .width(44.dp)
+                .padding(end = 6.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
+        ) {
+            val steps = 4
+            for (i in steps downTo 0) {
+                val value = (maxValue * i) / steps
+                Text(
+                    text = formatRevenue(value),
+                    fontSize = 10.sp,
+                    color = Color(0xFF757575),
+                    maxLines = 1
+                )
+            }
+        }
+
+        // Đường kẻ trục đứng
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(bottom = 24.dp)
+                .width(1.dp)
+                .background(Color(0xFF757575).copy(alpha = 0.3f))
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Vùng hiển thị Biểu đồ và Nhãn Ox
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            if (data.isEmpty() || data.all { it == 0L }) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "Chưa có dữ liệu", color = Color(0xFF757575), fontSize = 14.sp)
+                }
+            } else {
+                // Canvas vẽ đường biểu đồ
+                Canvas(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    val xStep = size.width / (data.size - 1).coerceAtLeast(1)
+
+                    // Tính toán tọa độ các điểm
+                    val points = data.mapIndexed { index, value ->
+                        val x = index * xStep
+                        val y = size.height - (value.toFloat() / maxValue * size.height)
+                        Offset(x, y)
+                    }
+
+                    if (points.isNotEmpty()) {
+                        // Vẽ màu nền nhạt
+                        val fillPath = Path().apply {
+                            moveTo(points.first().x, size.height)
+                            points.forEach { point ->
+                                lineTo(point.x, point.y)
+                            }
+                            lineTo(points.last().x, size.height)
+                            close()
+                        }
+
+                        drawPath(
+                            path = fillPath,
+                            color = OrangePrimary.copy(alpha = 0.3f)
+                        )
+
+                        // Vẽ các đoạn thẳng nối điểm
+                        for (i in 0 until points.size - 1) {
+                            drawLine(
+                                color = OrangePrimary,
+                                start = points[i],
+                                end = points[i + 1],
+                                strokeWidth = 3.dp.toPx()
+                            )
+                        }
+
+                        // Vẽ các điểm tròn
+                        points.forEach { point ->
+                            drawCircle(
+                                color = OrangePrimary,
+                                radius = 4.dp.toPx(),
+                                center = point
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Nhãn trục Ox
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    labels.forEach { label ->
+                        Text(
+                            text = label,
+                            color = Color(0xFF757575),
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("DefaultLocale")
+private fun formatRevenue(revenue: Long): String {
+    return when {
+        revenue >= 1_000_000_000 -> String.format("%.1fB", revenue / 1_000_000_000.0)
+        revenue >= 1_000_000 -> String.format("%.1fM", revenue / 1_000_000.0)
+        revenue >= 1_000 -> String.format("%.1fK", revenue / 1_000.0)
+        else -> revenue.toString()
     }
 }
