@@ -133,6 +133,7 @@ class SellerViewModel : ViewModel() {
     val totalOrderCount: StateFlow<Int> = orders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val deliveredCount: StateFlow<Int> = completedOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val cancelledCount: StateFlow<Int> = cancelledOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val inProgressCount: StateFlow<Int> = acceptedOrders.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalRevenue: StateFlow<Long> = completedOrders.map { it.sumOf { order -> order.totalPrice } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
     

@@ -35,6 +35,7 @@ fun StatisticsScreen(viewModel: SellerViewModel) {
     val totalOrderCount by viewModel.totalOrderCount.collectAsState()
     val deliveredCount by viewModel.deliveredCount.collectAsState()
     val cancelledCount by viewModel.cancelledCount.collectAsState()
+    val inProgressCount by viewModel.inProgressCount.collectAsState()
     val totalRevenue by viewModel.totalRevenue.collectAsState()
     val weeklyRevenue by viewModel.weeklyRevenue.collectAsState()
 
@@ -95,34 +96,52 @@ fun StatisticsScreen(viewModel: SellerViewModel) {
             }
 
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    StatCard(
-                        title = "Tổng đơn",
-                        value = totalOrderCount.toString(),
-                        icon = Icons.Default.ReceiptLong,
-                        iconColor = Color(0xFF4285F4),
-                        iconBg = Color(0xFFE8F0FE),
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        title = "Đã giao",
-                        value = deliveredCount.toString(),
-                        icon = Icons.Default.CheckCircle,
-                        iconColor = Color(0xFF34A853),
-                        iconBg = Color(0xFFE6F4EA),
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        title = "Đã hủy",
-                        value = cancelledCount.toString(),
-                        icon = Icons.Default.Cancel,
-                        iconColor = Color(0xFFEA4335),
-                        iconBg = Color(0xFFFCE8E6),
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatCard(
+                            title = "Tổng đơn",
+                            value = totalOrderCount.toString(),
+                            icon = Icons.Default.ReceiptLong,
+                            iconColor = Color(0xFF4285F4),
+                            iconBg = Color(0xFFE8F0FE),
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            title = "Đã giao",
+                            value = deliveredCount.toString(),
+                            icon = Icons.Default.CheckCircle,
+                            iconColor = Color(0xFF34A853),
+                            iconBg = Color(0xFFE6F4EA),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatCard(
+                            title = "Đang thực hiện",
+                            value = inProgressCount.toString(),
+                            icon = Icons.Default.HourglassEmpty,
+                            iconColor = Color(0xFFFF9800),
+                            iconBg = Color(0xFFFFF3E0),
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            title = "Đã hủy",
+                            value = cancelledCount.toString(),
+                            icon = Icons.Default.Cancel,
+                            iconColor = Color(0xFFEA4335),
+                            iconBg = Color(0xFFFCE8E6),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -282,7 +301,7 @@ fun QuickActionSection() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color.Green)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Tăng trưởng tốt so với hôm qua", style = MaterialTheme.typography.bodyMedium)
+                Text("Quán hôm nay có tăng trưởng tốt", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
