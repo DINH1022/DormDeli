@@ -173,6 +173,14 @@ class AuthViewModel : ViewModel() {
                     userRepository.getUserById(firebaseUser.uid,
                         onSuccess = { user ->
                             if (user != null) {
+                                if (!user.active) {
+                                    _errorMessage.value = "Tài khoản của bạn đã bị khóa."
+                                    authRepository.signOut()
+                                    _isLoading.value = false
+                                    _isDataLoaded.value = true
+                                    return@getUserById
+                                }
+
                                 val targetRole = _selectedRole.value.value
                                 if (user.role == targetRole || user.roles.contains(targetRole)) {
                                     val updatedUser = user.copy(role = targetRole)
@@ -377,6 +385,12 @@ class AuthViewModel : ViewModel() {
                                     signOut()
                                     _isLoading.value = false
                                 } else {
+                                     if (!existingUser.active) {
+                                        _errorMessage.value = "Tài khoản của bạn đã bị khóa."
+                                        signOut()
+                                        _isLoading.value = false
+                                        return@getUserById
+                                    }
                                     val targetRole = _selectedRole.value.value
                                     if (existingUser.role == targetRole || existingUser.roles.contains(targetRole)) {
                                         completeSuccessfulLogin(existingUser.copy(role = targetRole), onSuccess)
